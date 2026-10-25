@@ -150,6 +150,10 @@ object WorksheetAndExportHelper {
                 <meta charset="utf-8">
                 <title>$sheetTitle</title>
                 <style>
+                  @font-face {
+                    font-family: 'AmiriPDF';
+                    src: url('file:///android_res/font/amiri.ttf');
+                  }
                   @page { size: A4; margin: 15mm; }
                   body { font-family: sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 14px; }
                   .header-box { border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
@@ -157,12 +161,12 @@ object WorksheetAndExportHelper {
                   h2 { font-size: 15px; color: #1e3a8a; background: #f1f5f9; padding: 7px 12px; border-left: 4px solid #1e3a8a; margin-top: 20px; }
                   .side-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                   .side-table th, .side-table td { border: 1px solid #cbd5e1; padding: 9px 12px; vertical-align: top; }
-                  .ar-side { width: 50%; direction: rtl; text-align: right; font-size: 21px; font-weight: bold; line-height: 1.75; }
+                  .ar-side { width: 50%; direction: rtl; text-align: right; font-family: 'AmiriPDF', serif; font-size: 22px; font-weight: bold; line-height: 1.85; }
                   .tr-side { width: 50%; direction: ltr; text-align: left; font-size: 13.5px; line-height: 1.75; color: #334155; }
                   .dialogue-line { border-bottom: 1px dashed #cbd5e1; padding: 9px 4px; page-break-inside: avoid; }
-                  .ar-handout { direction: rtl; text-align: right; font-size: 21px; font-weight: bold; line-height: 1.75; }
+                  .ar-handout { direction: rtl; text-align: right; font-family: 'AmiriPDF', serif; font-size: 22px; font-weight: bold; line-height: 1.85; }
                   .tr-handout { direction: ltr; text-align: right; font-size: 13.5px; color: #475569; margin-top: 4px; }
-                  .spk-ar { color: #1e3a8a; font-weight: bold; }
+                  .spk-ar { color: #1e3a8a; font-weight: bold; font-family: 'AmiriPDF', serif; }
                 </style>
                 </head>
                 <body>
@@ -439,6 +443,10 @@ object WorksheetAndExportHelper {
             <meta charset="utf-8">
             <title>$sheetTitle</title>
             <style>
+              @font-face {
+                font-family: 'AmiriPDF';
+                src: url('file:///android_res/font/amiri.ttf');
+              }
               @page { size: A4; margin: 14mm; }
               body { font-family: sans-serif; color: #0f172a; background: #fff; margin: 0; padding: 12px; }
               .header-box { border: 2px solid #1e3a8a; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
@@ -449,8 +457,8 @@ object WorksheetAndExportHelper {
               table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 13px; }
               th, td { border: 1px solid #94a3b8; padding: 7px 9px; vertical-align: middle; }
               th { background: #f1f5f9; font-weight: bold; }
-              .ar { font-size: 20px; font-weight: bold; direction: rtl; text-align: right; line-height: 1.5; }
-              .ar-inline { font-size: 19px; font-weight: bold; direction: rtl; }
+              .ar { font-family: 'AmiriPDF', serif; font-size: 21px; font-weight: bold; direction: rtl; text-align: right; line-height: 1.65; }
+              .ar-inline { font-family: 'AmiriPDF', serif; font-size: 20px; font-weight: bold; direction: rtl; }
               .qbox { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; page-break-inside: avoid; }
               .q-title { font-size: 13.5px; margin-bottom: 6px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px; }
               .opts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
@@ -487,7 +495,7 @@ object WorksheetAndExportHelper {
                 printManager.print(jobName, adapter, PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build())
             }
         }
-        webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+        webView.loadDataWithBaseURL("file:///android_res/", htmlContent, "text/html", "UTF-8", null)
     }
 
     fun shareHomeworkReportAndCsv(
@@ -539,7 +547,7 @@ object WorksheetAndExportHelper {
                 append("👤 Öğrenci: $studentName\n")
                 append("🏆 Seviye: $levelTitle | 🔥 Seri: $streakDays Gün | ⭐ Puan: $totalPoints\n")
                 append("🎧 Son Dinle & Bul Sınavı: $lastExamSummary\n")
-                append("📦 Kaydedilen Ödev Arşivi: ${zipFile.name} (${wavFiles.size} ses kaydı dahil)\n\n")
+                append("📦 Ekli Ödev Arşivi: ${zipFile.name} (CSV Raporu + ${wavFiles.size} ses kaydı)\n\n")
                 if (difficultRows.isNotEmpty()) {
                     append("⚠️ En Çok Tekrar Edilmesi Gereken İfadeler:\n")
                     difficultRows.take(5).forEach { d ->
@@ -548,12 +556,17 @@ object WorksheetAndExportHelper {
                 }
             }
 
+            val authority = "${context.packageName}.fileprovider"
+            val zipUri = androidx.core.content.FileProvider.getUriForFile(context, authority, zipFile)
+
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
+                type = "application/zip"
                 putExtra(Intent.EXTRA_SUBJECT, "Arapça Konuşma ve Telaffuz Ödev Karnesi — $studentName")
                 putExtra(Intent.EXTRA_TEXT, summaryShareText)
+                putExtra(Intent.EXTRA_STREAM, zipUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(sendIntent, "📦 Ödev Karnesini Öğretmenle Paylaş"))
+            context.startActivity(Intent.createChooser(sendIntent, "📦 Ödev Arşivini (.ZIP) Öğretmenle Paylaş"))
         } catch (_: Exception) {
         }
     }

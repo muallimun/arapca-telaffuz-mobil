@@ -17,41 +17,49 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -124,7 +132,7 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
                 viewModel.startPronunciationRecording()
             }
         } else {
-            viewModel.showToast("Mikrofon izni verilmedi. '🎯 Örnek Doğru Okuma' butonunu kullanabilirsiniz.")
+            viewModel.showToast("Mikrofon izni verilmedi.")
         }
     }
 
@@ -142,11 +150,12 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
     }
 
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = palette.bgColor,
         topBar = {
             MuallimunTopAppBar(
                 isDark = isDark,
+                currentMode = currentMode,
                 onOpenSarf = { viewModel.openModal(ActiveModal.SARF_EXPLORER) },
                 onOpenListeningExam = { viewModel.openModal(ActiveModal.LISTENING_EXAM) },
                 onOpenReports = { viewModel.openModal(ActiveModal.ANALYTICS_REPORTS) },
@@ -157,62 +166,10 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = palette.panelColor,
-                contentColor = palette.textMain
-            ) {
-                NavigationBarItem(
-                    selected = currentMode == AppMode.HOME,
-                    onClick = { viewModel.switchMode(AppMode.HOME) },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Ana Sayfa") },
-                    label = { Text("Ana Sayfa", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF0F172A),
-                        selectedTextColor = palette.accentHead,
-                        indicatorColor = WarmGold
-                    ),
-                    modifier = Modifier.testTag("nav_home")
-                )
-
-                NavigationBarItem(
-                    selected = currentMode == AppMode.WORDS,
-                    onClick = { viewModel.switchMode(AppMode.WORDS) },
-                    icon = { Icon(Icons.Default.MenuBook, contentDescription = "Kelime & Sarf") },
-                    label = { Text("Kelime Modu", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = RoyalBlue,
-                        indicatorColor = RoyalBlue
-                    ),
-                    modifier = Modifier.testTag("nav_words")
-                )
-
-                NavigationBarItem(
-                    selected = currentMode == AppMode.DIALOGUE,
-                    onClick = { viewModel.switchMode(AppMode.DIALOGUE) },
-                    icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Diyaloglar") },
-                    label = { Text("Diyalog Modu", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = AccentCoral,
-                        indicatorColor = AccentCoral
-                    ),
-                    modifier = Modifier.testTag("nav_dialogue")
-                )
-
-                NavigationBarItem(
-                    selected = currentMode == AppMode.SENTENCES,
-                    onClick = { viewModel.switchMode(AppMode.SENTENCES) },
-                    icon = { Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = "Cümleler") },
-                    label = { Text("Cümle Modu", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF0F172A),
-                        selectedTextColor = palette.okGreen,
-                        indicatorColor = EmeraldGreen
-                    ),
-                    modifier = Modifier.testTag("nav_sentences")
-                )
-            }
+            MuallimunCompactBottomBar(
+                currentMode = currentMode,
+                onSelectMode = { viewModel.switchMode(it) }
+            )
         }
     ) { innerPadding ->
         Box(
@@ -241,20 +198,20 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
                 visible = !toastMsg.isNullOrBlank(),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = WarmGold,
                     border = BorderStroke(1.dp, Color(0xFF0F172A)),
                     shadowElevation = 6.dp
                 ) {
                     Text(
                         text = toastMsg ?: "",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F172A),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                     )
                 }
             }
@@ -318,6 +275,7 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
 @Composable
 private fun MuallimunTopAppBar(
     isDark: Boolean,
+    currentMode: AppMode,
     onOpenSarf: () -> Unit,
     onOpenListeningExam: () -> Unit,
     onOpenReports: () -> Unit,
@@ -327,155 +285,268 @@ private fun MuallimunTopAppBar(
     onToggleTheme: () -> Unit
 ) {
     val palette = LocalMuallimunPalette.current
+    var showToolsInSubMode by remember(currentMode) { mutableStateOf(false) }
+    val showActionStrip = currentMode == AppMode.HOME || showToolsInSubMode
+
+    Surface(
+        color = palette.panelColor,
+        border = BorderStroke(0.5.dp, palette.border),
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 2.dp)
+        ) {
+            // Üst Satır (Maksimum 40.dp yükseklik, tek satır başlık + 32.dp kompakt ikonlar)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+            ) {
+                Text(
+                    text = "🕌 Arapça Asistanı",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.accentHead,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Çalışma sekmelerinde araç şeridini açıp kapatan kompakt buton
+                    if (currentMode != AppMode.HOME) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (showToolsInSubMode) RoyalBlue else palette.btnSec,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clickable { showToolsInSubMode = !showToolsInSubMode }
+                                .testTag("btn_toggle_top_tools")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Build,
+                                    contentDescription = "Araçlar",
+                                    tint = if (showToolsInSubMode) Color.White else palette.accentHead,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = palette.btnSec,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clickable { onToggleTheme() }
+                            .testTag("btn_toggle_theme")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(text = if (isDark) "☀️" else "🌙", fontSize = 13.sp)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = palette.btnSec,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clickable { onOpenGuide() }
+                            .testTag("btn_open_guide")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(text = "📖", fontSize = 13.sp)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = palette.btnSec,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clickable { onOpenAbout() }
+                            .testTag("btn_open_about")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Uygulama Hakkında",
+                                tint = palette.accentHead,
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = palette.btnSec,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clickable { onOpenSettings() }
+                            .testTag("btn_open_settings")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Ayarlar",
+                                tint = palette.textMain,
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Yatay Aksiyon Şeridi (Varsayılan olarak sadece Ana Sayfa'da açık, diğer sekmelerde gizli/açılır)
+            if (showActionStrip) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(bottom = 4.dp)
+                ) {
+                    Button(
+                        onClick = onOpenSarf,
+                        colors = ButtonDefaults.buttonColors(containerColor = TealAccent, contentColor = Color.White),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        modifier = Modifier
+                            .height(32.dp)
+                            .testTag("top_btn_sarf")
+                    ) {
+                        Text(
+                            text = "📖 Sarf Sözlüğü",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+
+                    Button(
+                        onClick = onOpenListeningExam,
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        modifier = Modifier
+                            .height(32.dp)
+                            .testTag("top_btn_listening_exam")
+                    ) {
+                        Text(
+                            text = "🎧 Dinle & Bul",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+
+                    Button(
+                        onClick = onOpenReports,
+                        colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        modifier = Modifier
+                            .height(32.dp)
+                            .testTag("top_btn_reports")
+                    ) {
+                        Text(
+                            text = "📊 Raporlar & Karne",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class CompactNavItem(
+    val mode: AppMode,
+    val label: String,
+    val icon: ImageVector,
+    val activeColor: Color,
+    val activeIconTint: Color,
+    val testTag: String
+)
+
+@Composable
+private fun MuallimunCompactBottomBar(
+    currentMode: AppMode,
+    onSelectMode: (AppMode) -> Unit
+) {
+    val palette = LocalMuallimunPalette.current
+    val navItems = listOf(
+        CompactNavItem(AppMode.HOME, "Ana Sayfa", Icons.Default.Home, WarmGold, Color(0xFF0F172A), "nav_home"),
+        CompactNavItem(AppMode.WORDS, "Kelime", Icons.Default.MenuBook, RoyalBlue, Color.White, "nav_words"),
+        CompactNavItem(AppMode.DIALOGUE, "Diyalog", Icons.AutoMirrored.Filled.Chat, AccentCoral, Color.White, "nav_dialogue"),
+        CompactNavItem(AppMode.SENTENCES, "Cümle", Icons.AutoMirrored.Filled.ListAlt, EmeraldGreen, Color(0xFF0F172A), "nav_sentences")
+    )
+
     Surface(
         color = palette.panelColor,
         border = BorderStroke(0.5.dp, palette.border),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "🕌 Arapça Asistanı",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = palette.accentHead
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = EmeraldGreen
-                    ) {
-                        Text(
-                            text = "v40.0",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .height(52.dp)
+                .padding(horizontal = 4.dp)
+        ) {
+            navItems.forEach { item ->
+                val isSelected = currentMode == item.mode
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable { onSelectMode(item.mode) }
+                        .testTag(item.testTag)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = palette.btnSec,
-                        modifier = Modifier
-                            .clickable { onToggleTheme() }
-                            .testTag("btn_toggle_theme")
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) item.activeColor else Color.Transparent,
+                        modifier = Modifier.size(width = 44.dp, height = 24.dp)
                     ) {
-                        Text(
-                            text = if (isDark) "☀️" else "🌙",
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                tint = if (isSelected) item.activeIconTint else palette.textDim,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = palette.btnSec,
-                        modifier = Modifier
-                            .clickable { onOpenGuide() }
-                            .testTag("btn_open_guide")
-                    ) {
-                        Text(
-                            text = "📖",
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onOpenAbout,
-                        modifier = Modifier
-                            .size(34.dp)
-                            .testTag("btn_open_about")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Uygulama Hakkında",
-                            tint = palette.accentHead
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onOpenSettings,
-                        modifier = Modifier
-                            .size(34.dp)
-                            .testTag("btn_open_settings")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Ayarlar",
-                            tint = palette.textMain
-                        )
-                    }
-                }
-            }
-
-            // Hızlı Üst Araç Çubuğu: 📖 Sarf Sözlüğü | 🎧 Dinle & Bul | 📊 Raporlar
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 6.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = TealAccent,
-                    modifier = Modifier
-                        .clickable { onOpenSarf() }
-                        .testTag("top_btn_sarf")
-                ) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "📖 Sarf Sözlüğü",
+                        text = item.label,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = AccentCoral,
-                    modifier = Modifier
-                        .clickable { onOpenListeningExam() }
-                        .testTag("top_btn_listening_exam")
-                ) {
-                    Text(
-                        text = "🎧 Dinle & Bul",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = RoyalPurple,
-                    modifier = Modifier
-                        .clickable { onOpenReports() }
-                        .testTag("top_btn_reports")
-                ) {
-                    Text(
-                        text = "📊 Raporlar & Karne",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                        color = if (isSelected) palette.accentHead else palette.textDim,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

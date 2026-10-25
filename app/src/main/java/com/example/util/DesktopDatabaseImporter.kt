@@ -57,15 +57,15 @@ object DesktopDatabaseImporter {
     )
 
     private fun resolveVisualIconOrEmoji(wordId: String, paketId: String, rawGorsel: String?): String? {
-        if (rawGorsel.isNullOrBlank()) return null
-        if (rawGorsel.length <= 4) return rawGorsel // Already an emoji
-        val cleanId = wordId.lowercase().trim()
+        if (!rawGorsel.isNullOrBlank()) {
+            // Dosya yolu (categories/hayvanlar/ari.png vb.) ise olduğu gibi koru; HybridWordVisualBox hem dosyayı hem emoji yedeğini çözer
+            return rawGorsel.trim()
+        }
+        val cleanId = wordId.lowercase().trim().removePrefix("w_")
         DESKTOP_VISUAL_ICON_MAP[cleanId]?.let { return it }
-        val fileStem = rawGorsel.substringAfterLast("/").substringBeforeLast(".").lowercase()
-        DESKTOP_VISUAL_ICON_MAP[fileStem]?.let { return it }
         return when {
-            paketId.contains("hayvan") -> "🐾"
-            paketId.contains("meyve") -> "🍎"
+            paketId.contains("hayvan", ignoreCase = true) -> "🐾"
+            paketId.contains("meyve", ignoreCase = true) || paketId.contains("sebze", ignoreCase = true) -> "🍎"
             else -> null
         }
     }
@@ -379,7 +379,95 @@ object DesktopDatabaseImporter {
     }
 
     /**
-     * Kullanıcının telefondan seçtiği .db, .zip (içinde birden fazla .db veya .json/.csv olan),
+     * İçinde .db/.json veritabanları ve categories/ (görsel .png/.jpg ve ses .mp3/.wav)
+     * bulunan bir .zip içerik paketini Room veritabanına ve filesDir/custom_media/ dizinine aktarır.
+     */
+    suspend fun importMediaZipBundle(
+        context: Context,
+        zipFile: File,
+        dao: MuallimunDao,
+        clearExisting: Boolean = false
+    ): ImportReport = withContext(Dispatchers.IO) {
+        val tempDir = File(context.cacheDir, "zip_extract_${System.currentTimeMillis()}").apply { mkdirs() }
+        val customMediaRoot = File(context.filesDir, "custom_media").apply { mkdirs() }
+        var totalAdded = 0
+        var extractedImages = 0
+        var extractedAudio = 0
+        val allDetails = mutableListOf<String>()
+
+        try {
+            ZipInputStream(zipFile.inputStream()).use { zis ->
+                var entry = zis.nextEntry
+                while (entry != null) {
+                    if (!entry.isDirectory) {
+                        val rawEntryPath = entry.name.replace("\\", "/").trimStart('/')
+                        val entryName = File(rawEntryPath).name
+                        val lowerName = entryName.lowercase()
+
+                        when {
+                            lowerName.endsWith(".db") || lowerName.endsWith(".sqlite") || lowerName.endsWith(".json") -> {
+                                val extractedDb = File(tempDir, "${System.nanoTime()}_$entryName")
+                                FileOutputStream(extractedDb).use { fos -> zis.copyTo(fos) }
+                                val rep = if (lowerName.endsWith(".json")) {
+                                    importJsonFile(extractedDb, dao, clearExisting)
+                                } else {
+                                    importSqliteDbFile(extractedDb, dao, clearExisting)
+                                }
+                                totalAdded += rep.addedCount
+                                allDetails.addAll(rep.skippedDetails)
+                            }
+
+                            lowerName.endsWith(".png") || lowerName.endsWith(".jpg") ||
+                                lowerName.endsWith(".jpeg") || lowerName.endsWith(".webp") -> {
+                                val relTarget = if (rawEntryPath.contains("categories/")) {
+                                    "categories/" + rawEntryPath.substringAfter("categories/")
+                                } else {
+                                    "images/$entryName"
+                                }
+                                val destFile = File(customMediaRoot, relTarget).apply { parentFile?.mkdirs() }
+                                FileOutputStream(destFile).use { fos -> zis.copyTo(fos) }
+                                // Ayrıca doğrudan dosya adıyla da erişilebilmesi için images/ altına kopya
+                                val flatImg = File(customMediaRoot, "images/$entryName").apply { parentFile?.mkdirs() }
+                                if (destFile.absolutePath != flatImg.absolutePath) {
+                                    destFile.copyTo(flatImg, overwrite = true)
+                                }
+                                extractedImages++
+                            }
+
+                            lowerName.endsWith(".mp3") || lowerName.endsWith(".wav") ||
+                                lowerName.endsWith(".m4a") || lowerName.endsWith(".ogg") -> {
+                                val relTarget = if (rawEntryPath.contains("categories/")) {
+                                    "categories/" + rawEntryPath.substringAfter("categories/")
+                                } else {
+                                    "audio/$entryName"
+                                }
+                                val destFile = File(customMediaRoot, relTarget).apply { parentFile?.mkdirs() }
+                                FileOutputStream(destFile).use { fos -> zis.copyTo(fos) }
+                                val flatAud = File(customMediaRoot, "audio/$entryName").apply { parentFile?.mkdirs() }
+                                if (destFile.absolutePath != flatAud.absolutePath) {
+                                    destFile.copyTo(flatAud, overwrite = true)
+                                }
+                                extractedAudio++
+                            }
+                        }
+                    }
+                    zis.closeEntry()
+                    entry = zis.nextEntry
+                }
+            }
+            if (extractedImages > 0 || extractedAudio > 0) {
+                allDetails.add("Medya: $extractedImages görsel, $extractedAudio ses dosyası aktarıldı")
+                totalAdded += (extractedImages + extractedAudio)
+            }
+        } finally {
+            tempDir.deleteRecursively()
+        }
+
+        ImportReport(totalAdded, 0, allDetails)
+    }
+
+    /**
+     * Kullanıcının telefondan seçtiği .db, .zip (içinde .db/.json ve categories/ medya dosyaları olan),
      * .json (sozluk.json / diyalog_paketi.json) dosyalarını tek adımda içe aktarır.
      */
     suspend fun importAnyFileUri(
@@ -401,42 +489,40 @@ object DesktopDatabaseImporter {
 
             val lower = cleanName.lowercase()
             when {
-                lower.endsWith(".zip") -> {
-                    var totalAdded = 0
-                    val allDetails = mutableListOf<String>()
-                    ZipInputStream(copiedFile.inputStream()).use { zis ->
-                        var entry = zis.nextEntry
-                        while (entry != null) {
-                            if (!entry.isDirectory) {
-                                val entryName = File(entry.name).name
-                                if (entryName.endsWith(".db", ignoreCase = true) ||
-                                    entryName.endsWith(".sqlite", ignoreCase = true) ||
-                                    entryName.endsWith(".json", ignoreCase = true)
-                                ) {
-                                    val extracted = File(tempDir, entryName)
-                                    FileOutputStream(extracted).use { fos -> zis.copyTo(fos) }
-                                    val rep = if (entryName.endsWith(".json", ignoreCase = true)) {
-                                        importJsonFile(extracted, dao, clearExisting)
-                                    } else {
-                                        importSqliteDbFile(extracted, dao, clearExisting)
-                                    }
-                                    totalAdded += rep.addedCount
-                                    allDetails.addAll(rep.skippedDetails)
-                                }
-                            }
-                            zis.closeEntry()
-                            entry = zis.nextEntry
-                        }
-                    }
-                    ImportReport(totalAdded, 0, allDetails)
-                }
-
+                lower.endsWith(".zip") -> importMediaZipBundle(context, copiedFile, dao, clearExisting)
                 lower.endsWith(".json") -> importJsonFile(copiedFile, dao, clearExisting)
-
                 else -> importSqliteDbFile(copiedFile, dao, clearExisting)
             }
         } catch (ex: Exception) {
             ImportReport(0, 1, listOf("İçe aktarma hatası: ${ex.localizedMessage}"))
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    /**
+     * Belirli bir asset veritabanı dosyasını (örn. kelimeler.db, sozluk.db, diyaloglar.db, cumleler.db)
+     * assets/ altında mevcutsa Room'a aktarır.
+     */
+    suspend fun importSingleAssetDbIfPresent(
+        context: Context,
+        assetName: String,
+        dao: MuallimunDao
+    ): Int = withContext(Dispatchers.IO) {
+        val tempDir = File(context.cacheDir, "asset_seed_${System.nanoTime()}").apply { mkdirs() }
+        try {
+            val outFile = File(tempDir, assetName)
+            context.assets.open(assetName).use { input ->
+                FileOutputStream(outFile).use { output -> input.copyTo(output) }
+            }
+            val rep = if (assetName.endsWith(".json", ignoreCase = true)) {
+                importJsonFile(outFile, dao, clearExisting = false)
+            } else {
+                importSqliteDbFile(outFile, dao, clearExisting = false)
+            }
+            rep.addedCount
+        } catch (_: Exception) {
+            0
         } finally {
             tempDir.deleteRecursively()
         }
@@ -458,23 +544,8 @@ object DesktopDatabaseImporter {
         if (dbAssets.isEmpty()) return@withContext 0
 
         var totalImported = 0
-        val tempDir = File(context.cacheDir, "bundled_assets_seed").apply { mkdirs() }
-        try {
-            for (assetName in dbAssets) {
-                val outFile = File(tempDir, assetName)
-                context.assets.open(assetName).use { input ->
-                    FileOutputStream(outFile).use { output -> input.copyTo(output) }
-                }
-                val rep = if (assetName.endsWith(".json", ignoreCase = true)) {
-                    importJsonFile(outFile, dao, clearExisting = false)
-                } else {
-                    importSqliteDbFile(outFile, dao, clearExisting = false)
-                }
-                totalImported += rep.addedCount
-            }
-        } catch (_: Exception) {
-        } finally {
-            tempDir.deleteRecursively()
+        for (assetName in dbAssets) {
+            totalImported += importSingleAssetDbIfPresent(context, assetName, dao)
         }
         totalImported
     }

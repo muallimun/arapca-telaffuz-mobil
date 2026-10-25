@@ -13,7 +13,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -153,14 +157,17 @@ fun OnboardingTourModal(
     ) {
         Surface(
             color = palette.bgColor.copy(alpha = 0.96f),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 18.dp)
             ) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -351,6 +358,7 @@ fun SettingsModal(
 
     val studentName by viewModel.studentName.collectAsState()
     val showTeacherBar by viewModel.showTeacherBar.collectAsState()
+    val showDemoSim by viewModel.showDemoSimulationButtons.collectAsState()
     val slowTts by viewModel.slowTts.collectAsState()
     val autoPlay by viewModel.autoPlayOnCardChange.collectAsState()
     val autoAdvance by viewModel.autoAdvanceOnCorrect.collectAsState()
@@ -371,12 +379,16 @@ fun SettingsModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(14.dp),
+                    .navigationBarsPadding()
+                    .padding(horizontal = 14.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
@@ -388,7 +400,8 @@ fun SettingsModal(
                         text = "⚙️ UYGULAMA VE EĞİTİM AYARLARI (v40.0)",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = palette.accentHead
+                        color = palette.accentHead,
+                        modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
@@ -400,17 +413,19 @@ fun SettingsModal(
                     containerColor = palette.panelColor,
                     contentColor = palette.accentHead
                 ) {
-                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("🏠 Genel", fontSize = 12.sp, fontWeight = FontWeight.Bold) })
-                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("🔊 Ses & TTS", fontSize = 12.sp, fontWeight = FontWeight.Bold) })
-                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("🛠️ Bakım", fontSize = 12.sp, fontWeight = FontWeight.Bold) })
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("🏠 Genel", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) })
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("🔊 Ses & TTS", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) })
+                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("🛠️ Bakım", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) })
                 }
 
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(rememberScrollState())
+                        .padding(top = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    Spacer(modifier = Modifier.height(12.dp))
                     when (selectedTab) {
                         0 -> {
                             Card(
@@ -420,9 +435,10 @@ fun SettingsModal(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(12.dp),
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     OutlinedTextField(
                                         value = editedName,
                                         onValueChange = { editedName = it },
@@ -436,19 +452,35 @@ fun SettingsModal(
                                     SettingSwitchRow("🎲 Kartları Rastgele Sırala", randomOrder) { viewModel.setRandomOrder(it) }
                                     SettingSwitchRow("🙈 Sınav Modu (Arapçayı Gizle)", testModeHideAr) { viewModel.setTestModeHideArabic(it) }
                                     SettingSwitchRow("👨‍🏫 Ana Ekranda Öğretmen Barını Göster", showTeacherBar) { viewModel.setShowTeacherBar(it) }
+                                    SettingSwitchRow("🧪 Demo / Simülasyon Butonlarını Göster", showDemoSim) { viewModel.setShowDemoSimulationButtons(it) }
 
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Row(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text("Tema: ${if (isDark) "🌙 Karanlık Mod" else "☀️ Aydınlık Mod"}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.textMain)
+                                        Text(
+                                            text = "Tema: ${if (isDark) "🌙 Karanlık Mod" else "☀️ Aydınlık Mod"}",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = palette.textMain,
+                                            maxLines = 1,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
                                         Button(
                                             onClick = { viewModel.toggleTheme() },
                                             colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
-                                            Text("🔄 Temayı Değiştir", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                text = "🔄 Temayı Değiştir",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
                                         }
                                     }
                                 }
@@ -618,12 +650,15 @@ fun UserGuideModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(14.dp),
+                    .padding(horizontal = 14.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
@@ -812,12 +847,15 @@ fun RoleplayReportCardModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(14.dp),
+                    .padding(horizontal = 14.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(

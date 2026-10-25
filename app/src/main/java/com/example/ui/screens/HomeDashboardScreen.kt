@@ -92,12 +92,12 @@ fun HomeDashboardScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // 1. Üst Karşılama & Günlük Hedef Banner'ı
+        // 1. Üst Karşılama & Günlük Hedef Banner'ı (Kompakt Mobil Düzen)
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = palette.panelColor),
             border = BorderStroke(1.dp, palette.border),
             modifier = Modifier.fillMaxWidth()
@@ -113,21 +113,23 @@ fun HomeDashboardScreen(
                             )
                         )
                     )
-                    .padding(14.dp)
+                    .padding(12.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = "أَهْلاً وَسَهْلاً بِكُمْ فِي مُخْتَبَرِ النُّطْقِ وَالْمُحَادَثَةِ",
                         fontFamily = AmiriArabicFontFamily,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
+                        fontSize = 19.sp,
+                        lineHeight = 26.sp,
                         color = palette.textArabic,
                         textAlign = TextAlign.End,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
                         text = "👋 Hoş geldin $studentName! Bugün hangi modda Arapça konuşma pratiği yapmak istersin?",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.textMain
                     )
@@ -141,31 +143,36 @@ fun HomeDashboardScreen(
                             .clickable { viewModel.openModal(ActiveModal.STUDENT_NAME) }
                             .testTag("student_profile_badge")
                     ) {
-                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                            Row(
+                        Column(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            FlowRow(
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = "👤 $studentName ✏️",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = palette.accentHead
+                                    color = palette.accentHead,
+                                    maxLines = 1
                                 )
                                 Text(
                                     text = viewModel.getLevelTitle(),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = palette.okGreen
+                                    color = palette.okGreen,
+                                    maxLines = 1
                                 )
                             }
-                            Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                text = "🔥 Seri: $streak Gün  |  🎯 Bugün: $dailyCount/$dailyGoal  |  ⭐ Puan: $totalPoints",
-                                fontSize = 12.sp,
+                                text = "🔥 Seri: $streak Gün  •  🎯 Bugün: $dailyCount/$dailyGoal  •  ⭐ Puan: $totalPoints",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = palette.textDim
+                                color = palette.textDim,
+                                maxLines = 1
                             )
                         }
                     }
@@ -181,8 +188,8 @@ fun HomeDashboardScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = "📍 Son Çalışılan: $lastModeLabel",
@@ -192,7 +199,8 @@ fun HomeDashboardScreen(
                 )
                 Text(
                     text = smartTip,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp,
                     color = palette.textMain
                 )
                 Button(
@@ -204,12 +212,13 @@ fun HomeDashboardScreen(
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(40.dp)
                         .testTag("resume_session_button")
                 ) {
                     Text(
                         text = "▶️ Kaldığım Yerden Devam Et",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                        fontSize = 12.sp
                     )
                 }
             }

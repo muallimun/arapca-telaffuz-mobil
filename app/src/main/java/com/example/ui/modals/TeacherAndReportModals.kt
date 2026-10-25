@@ -14,7 +14,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -120,12 +124,16 @@ fun AnalyticsAndReportsModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(14.dp),
+                    .navigationBarsPadding()
+                    .padding(horizontal = 14.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Header
@@ -453,13 +461,17 @@ fun WorksheetAndHandoutGeneratorModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
-                    .padding(14.dp),
+                    .padding(horizontal = 14.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
@@ -751,6 +763,9 @@ fun UnifiedAdminPanelModal(
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
 
+    val allPackages by viewModel.wordPackages.collectAsState()
+    val allSentencePackages by viewModel.sentencePackages.collectAsState()
+    val allDialogues by viewModel.allDialogues.collectAsState()
     val allWords by viewModel.allWords.collectAsState()
     val allSentences by viewModel.allSentences.collectAsState()
     val allDialogueLines by viewModel.allDialogueLines.collectAsState()
@@ -761,15 +776,64 @@ fun UnifiedAdminPanelModal(
     var showAuditReport by remember { mutableStateOf(false) }
 
     var pasteText by remember { mutableStateOf("") }
-    var targetPkgId by remember { mutableStateOf("excel_paket") }
-    var targetPkgTitle by remember { mutableStateOf("Excel Özel Paket") }
+    var targetPkgId by remember { mutableStateOf("egitim_ilim") }
+    var targetPkgTitle by remember { mutableStateOf("Eğitim & İlim") }
+
+    var editingItemId by remember { mutableStateOf<String?>(null) }
+    var editingDialogueLineId by remember { mutableStateOf<Int?>(null) }
     var newArabicText by remember { mutableStateOf("") }
     var newTurkishText by remember { mutableStateOf("") }
     var newCefrLevel by remember { mutableStateOf("A1") }
+    var newVisualOrEmoji by remember { mutableStateOf("📚") }
+    var newAudioRelPath by remember { mutableStateOf("") }
+    var newSpeakerName by remember { mutableStateOf("Ömer") }
+    var newSpeakerGender by remember { mutableStateOf("E") }
 
     var statusBanner by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     var clearBeforeDbImport by remember { mutableStateOf(false) }
+
+    val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val baseId = editingItemId ?: "${activeTab.first()}_${System.currentTimeMillis()}"
+        if (editingItemId == null) editingItemId = baseId
+        val savedRel = com.example.util.MediaHelper.copyPickedMediaToCustomStorage(
+            context = context,
+            uri = uri,
+            subfolder = "images",
+            itemPrefix = baseId,
+            defaultExtension = "png"
+        )
+        if (savedRel != null) {
+            newVisualOrEmoji = savedRel
+            statusBanner = "🖼️ Görsel kopyalandı: $savedRel"
+        } else {
+            statusBanner = "⚠️ Görsel dosyası kopyalanamadı."
+        }
+    }
+
+    val audioPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val baseId = editingItemId ?: (editingDialogueLineId?.let { "dlgline_$it" } ?: "${activeTab.first()}_${System.currentTimeMillis()}")
+        if (editingItemId == null && activeTab != "dialogue") editingItemId = baseId
+        val savedRel = com.example.util.MediaHelper.copyPickedMediaToCustomStorage(
+            context = context,
+            uri = uri,
+            subfolder = "audio",
+            itemPrefix = baseId,
+            defaultExtension = "mp3"
+        )
+        if (savedRel != null) {
+            newAudioRelPath = savedRel
+            statusBanner = "🎵 Ses dosyası kopyalandı: $savedRel"
+        } else {
+            statusBanner = "⚠️ Ses dosyası kopyalanamadı."
+        }
+    }
 
     val dbFilePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()
@@ -800,13 +864,17 @@ fun UnifiedAdminPanelModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // Header
                 Row(
@@ -815,8 +883,8 @@ fun UnifiedAdminPanelModal(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "🛠️ YÖNETİM, PAKET VE .DB AKTARIM PANELİ",
-                        fontSize = 15.sp,
+                        text = "🛠️ YÖNETİM, YENİ KATEGORİ/MEDYA & .DB/.ZIP PANELİ",
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.accentHead,
                         modifier = Modifier.weight(1f)
@@ -843,7 +911,7 @@ fun UnifiedAdminPanelModal(
                             .testTag("btn_import_desktop_db")
                     ) {
                         Text(
-                            text = "📥 Masaüstü .DB / .ZIP / .JSON Yükle",
+                            text = "📥 Masaüstü .DB / Medyalı .ZIP / .JSON Yükle",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
@@ -897,7 +965,7 @@ fun UnifiedAdminPanelModal(
                         }
                     ) {
                         Text(
-                            text = "🎯 Otomatik Seviye Ata (A1-C1)",
+                            text = "🎯 Otomatik Seviye Ata",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -929,10 +997,10 @@ fun UnifiedAdminPanelModal(
                     ) {
                         Text(
                             text = msg,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = palette.okGreen,
-                            modifier = Modifier.padding(10.dp)
+                            modifier = Modifier.padding(8.dp)
                         )
                     }
                 }
@@ -946,37 +1014,21 @@ fun UnifiedAdminPanelModal(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(10.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
                                 text = "📋 Excel veya Tablodan Doğrudan Yapıştır (Arapça [Tab veya ;] Türkçe)",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.accentHead
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = targetPkgId,
-                                    onValueChange = { targetPkgId = it },
-                                    label = { Text("Paket ID", fontSize = 11.sp) },
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                OutlinedTextField(
-                                    value = targetPkgTitle,
-                                    onValueChange = { targetPkgTitle = it },
-                                    label = { Text("Paket Başlığı", fontSize = 11.sp) },
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
                             OutlinedTextField(
                                 value = pasteText,
                                 onValueChange = { pasteText = it },
                                 placeholder = { Text("Örn:\nمُحَاضَرَةٌ ; Konferans ; B1\nمُسْتَشْفًى ; Hastane ; A2") },
-                                minLines = 3,
-                                maxLines = 5,
+                                minLines = 2,
+                                maxLines = 4,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("excel_paste_textfield")
@@ -1003,8 +1055,8 @@ fun UnifiedAdminPanelModal(
                                             val rep = viewModel.repository.importFromClipboardOrCsv(
                                                 mode = activeTab,
                                                 rawText = pasteText,
-                                                paketId = targetPkgId,
-                                                paketAdi = targetPkgTitle,
+                                                paketId = targetPkgId.ifBlank { "ozel_paket" },
+                                                paketAdi = targetPkgTitle.ifBlank { "Özel Paket" },
                                                 defaultSeviye = newCefrLevel
                                             )
                                             statusBanner = "✅ ${rep.addedCount} kayıt eklendi, ${rep.skippedCount} satır atlandı."
@@ -1051,15 +1103,15 @@ fun UnifiedAdminPanelModal(
                         border = BorderStroke(1.dp, WarmGold),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
+                        Column(modifier = Modifier.padding(8.dp)) {
                             Text(
                                 text = if (issues.isEmpty()) "✅ Kalite Denetimi: Tüm kayıtlar harekeli ve eksiksiz!" else "⚠️ Tespit Edilen Kalite Kusurları (${issues.size}):",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (issues.isEmpty()) palette.okGreen else WarmGold
                             )
-                            issues.take(5).forEach { iss ->
-                                Text("• $iss", fontSize = 11.sp, color = palette.textMain)
+                            issues.take(4).forEach { iss ->
+                                Text("• $iss", fontSize = 10.sp, color = palette.textMain)
                             }
                         }
                     }
@@ -1076,13 +1128,34 @@ fun UnifiedAdminPanelModal(
                         "sentences" to "📜 Cümleler (${allSentences.size})"
                     ).forEach { (key, title) ->
                         Button(
-                            onClick = { activeTab = key },
+                            onClick = {
+                                activeTab = key
+                                editingItemId = null
+                                editingDialogueLineId = null
+                                when (key) {
+                                    "words" -> {
+                                        val firstPkg = allPackages.firstOrNull()
+                                        targetPkgId = firstPkg?.id ?: "egitim_ilim"
+                                        targetPkgTitle = firstPkg?.ad ?: "Eğitim & İlim"
+                                    }
+                                    "sentences" -> {
+                                        val firstSPkg = allSentencePackages.firstOrNull()
+                                        targetPkgId = firstSPkg?.id ?: "gunluk_kaliplar"
+                                        targetPkgTitle = firstSPkg?.ad ?: "Günlük Kalıplar"
+                                    }
+                                    "dialogue" -> {
+                                        val firstDlg = allDialogues.firstOrNull()
+                                        targetPkgId = firstDlg?.id ?: "dlg_01"
+                                        targetPkgTitle = firstDlg?.baslikTr ?: "Yeni Diyalog"
+                                    }
+                                }
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (activeTab == key) RoyalBlue else palette.btnSec,
                                 contentColor = if (activeTab == key) Color.White else palette.textMain
                             ),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -1090,7 +1163,7 @@ fun UnifiedAdminPanelModal(
                     }
                 }
 
-                // Hızlı Yeni Kayıt Ekleme Formu
+                // Yayın Sonrası Yeni Kategori/Paket/Diyalog + Kelime/Cümle + Görsel/Ses Ekleme & Düzenleme Formu
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = palette.panelColor),
@@ -1098,14 +1171,33 @@ fun UnifiedAdminPanelModal(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(10.dp),
+                        modifier = Modifier.padding(8.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        // Kategori / Paket / Diyalog ID ve Başlığı
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            OutlinedTextField(
+                                value = targetPkgId,
+                                onValueChange = { targetPkgId = it },
+                                label = { Text(if (activeTab == "dialogue") "Diyalog ID" else "Kategori/Paket ID", fontSize = 10.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = targetPkgTitle,
+                                onValueChange = { targetPkgTitle = it },
+                                label = { Text(if (activeTab == "dialogue") "Diyalog Başlığı" else "Kategori Başlığı", fontSize = 10.sp) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1.2f)
+                            )
+                        }
+
+                        // Arapça ve Türkçe Alanları
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             OutlinedTextField(
                                 value = newArabicText,
                                 onValueChange = { newArabicText = it },
-                                placeholder = { Text("Arapça (RTL)", fontSize = 12.sp) },
+                                placeholder = { Text("Arapça (RTL)", fontSize = 11.sp) },
                                 singleLine = true,
                                 modifier = Modifier
                                     .weight(1f)
@@ -1114,12 +1206,68 @@ fun UnifiedAdminPanelModal(
                             OutlinedTextField(
                                 value = newTurkishText,
                                 onValueChange = { newTurkishText = it },
-                                placeholder = { Text("Türkçe Anlamı", fontSize = 12.sp) },
+                                placeholder = { Text("Türkçe Anlamı", fontSize = 11.sp) },
                                 singleLine = true,
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag("admin_new_turkish_input")
                             )
+                        }
+
+                        // Medya Seçiciler: 🖼️ Telefondan Görsel Seç (.png/.jpg) & 🎵 Telefondan Ses Seç (.mp3/.wav)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (activeTab == "words") {
+                                OutlinedTextField(
+                                    value = newVisualOrEmoji,
+                                    onValueChange = { newVisualOrEmoji = it },
+                                    label = { Text("Emoji / Görsel Yolu", fontSize = 10.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(0.9f)
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = RoyalPurple,
+                                    modifier = Modifier
+                                        .clickable { imagePickerLauncher.launch("image/*") }
+                                        .testTag("btn_pick_custom_image")
+                                ) {
+                                    Text(
+                                        text = "🖼️ Telefondan Görsel Seç (.png/.jpg)",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                                    )
+                                }
+                            } else if (activeTab == "dialogue") {
+                                OutlinedTextField(
+                                    value = newSpeakerName,
+                                    onValueChange = { newSpeakerName = it },
+                                    label = { Text("Konuşmacı", fontSize = 10.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = TealAccent,
+                                modifier = Modifier
+                                    .clickable { audioPickerLauncher.launch("audio/*") }
+                                    .testTag("btn_pick_custom_audio")
+                            ) {
+                                Text(
+                                    text = if (newAudioRelPath.isBlank()) "🎵 Telefondan Ses Seç (.mp3/.wav)" else "🎵 Ses Hazır ✓",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                                )
+                            }
                         }
 
                         Row(
@@ -1139,50 +1287,143 @@ fun UnifiedAdminPanelModal(
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = if (newCefrLevel == lvl) Color(0xFF0F172A) else palette.textMain,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
                                         )
                                     }
                                 }
                             }
 
-                            Button(
-                                onClick = {
-                                    val ar = ArabicNlpEngine.sanitizeArabicSentence(newArabicText)
-                                    val tr = ArabicNlpEngine.sanitizeTurkishSentence(newTurkishText)
-                                    if (ar.isBlank() || tr.isBlank()) {
-                                        statusBanner = "Lütfen Arapça ve Türkçe alanlarını doldurun."
-                                        return@Button
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                if (editingItemId != null || editingDialogueLineId != null) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            editingItemId = null
+                                            editingDialogueLineId = null
+                                            newArabicText = ""
+                                            newTurkishText = ""
+                                            newAudioRelPath = ""
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("İptal", fontSize = 11.sp)
                                     }
-                                    scope.launch {
-                                        val newId = "${activeTab.first()}_${System.currentTimeMillis()}"
-                                        when (activeTab) {
-                                            "words" -> viewModel.repository.saveOrUpdateWord(
-                                                WordEntity(id = newId, paketId = "egitim_ilim", arapca = ar, turkce = tr, seviye = newCefrLevel)
-                                            )
-                                            "sentences" -> viewModel.repository.saveOrUpdateSentence(
-                                                SentenceEntity(id = newId, paketId = "gunluk_kaliplar", arapca = ar, turkce = tr, seviye = newCefrLevel)
-                                            )
-                                            "dialogue" -> viewModel.repository.saveOrUpdateDialogueLine(
-                                                com.example.data.DialogueLineEntity(
-                                                    diyalogId = "dlg_01",
-                                                    sira = 99,
-                                                    konusmaci = "Ömer",
-                                                    cinsiyet = "E",
-                                                    arapca = ar,
-                                                    turkce = tr
-                                                )
-                                            )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val ar = ArabicNlpEngine.sanitizeArabicSentence(newArabicText)
+                                        val tr = ArabicNlpEngine.sanitizeTurkishSentence(newTurkishText)
+                                        if (ar.isBlank() || tr.isBlank()) {
+                                            statusBanner = "Lütfen Arapça ve Türkçe alanlarını doldurun."
+                                            return@Button
                                         }
-                                        newArabicText = ""
-                                        newTurkishText = ""
-                                        statusBanner = "➕ Yeni kayıt ($newCefrLevel) başarıyla eklendi!"
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.testTag("btn_admin_add_record")
-                            ) {
-                                Text("➕ Yeni Kayıt Ekle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        val cleanPkgId = targetPkgId.trim().lowercase()
+                                            .replace(" ", "_")
+                                            .ifBlank { "ozel_kategori" }
+                                        val cleanPkgTitle = targetPkgTitle.trim().ifBlank { cleanPkgId }
+
+                                        scope.launch {
+                                            val itemId = editingItemId ?: "${activeTab.first()}_${System.currentTimeMillis()}"
+                                            when (activeTab) {
+                                                "words" -> {
+                                                    viewModel.repository.saveOrUpdatePackage(
+                                                        com.example.data.PackageEntity(
+                                                            id = cleanPkgId,
+                                                            ad = cleanPkgTitle,
+                                                            mode = "words",
+                                                            seviye = newCefrLevel
+                                                        )
+                                                    )
+                                                    val existing = allWords.firstOrNull { it.id == itemId }
+                                                    viewModel.repository.saveOrUpdateWord(
+                                                        (existing ?: WordEntity(
+                                                            id = itemId,
+                                                            paketId = cleanPkgId,
+                                                            arapca = ar,
+                                                            turkce = tr
+                                                        )).copy(
+                                                            paketId = cleanPkgId,
+                                                            arapca = ar,
+                                                            turkce = tr,
+                                                            seviye = newCefrLevel,
+                                                            gorsel = newVisualOrEmoji.ifBlank { "📚" },
+                                                            ses = newAudioRelPath.ifBlank { existing?.ses }
+                                                        )
+                                                    )
+                                                }
+                                                "sentences" -> {
+                                                    viewModel.repository.saveOrUpdatePackage(
+                                                        com.example.data.PackageEntity(
+                                                            id = cleanPkgId,
+                                                            ad = cleanPkgTitle,
+                                                            mode = "sentences",
+                                                            seviye = newCefrLevel
+                                                        )
+                                                    )
+                                                    val existing = allSentences.firstOrNull { it.id == itemId }
+                                                    viewModel.repository.saveOrUpdateSentence(
+                                                        (existing ?: SentenceEntity(
+                                                            id = itemId,
+                                                            paketId = cleanPkgId,
+                                                            arapca = ar,
+                                                            turkce = tr
+                                                        )).copy(
+                                                            paketId = cleanPkgId,
+                                                            arapca = ar,
+                                                            turkce = tr,
+                                                            seviye = newCefrLevel,
+                                                            ses = newAudioRelPath.ifBlank { existing?.ses }
+                                                        )
+                                                    )
+                                                }
+                                                "dialogue" -> {
+                                                    val existingDlg = allDialogues.firstOrNull { it.id == cleanPkgId }
+                                                    viewModel.repository.saveOrUpdateDialogue(
+                                                        com.example.data.DialogueEntity(
+                                                            id = cleanPkgId,
+                                                            paketId = existingDlg?.paketId ?: "muhadesat_paketi",
+                                                            baslikAr = existingDlg?.baslikAr ?: "",
+                                                            baslikTr = cleanPkgTitle,
+                                                            seviye = newCefrLevel
+                                                        )
+                                                    )
+                                                    val lineId = editingDialogueLineId ?: 0
+                                                    val existingLine = allDialogueLines.firstOrNull { it.id == lineId }
+                                                    viewModel.repository.saveOrUpdateDialogueLine(
+                                                        com.example.data.DialogueLineEntity(
+                                                            id = lineId,
+                                                            diyalogId = cleanPkgId,
+                                                            sira = existingLine?.sira ?: (allDialogueLines.count { it.diyalogId == cleanPkgId } + 1),
+                                                            konusmaci = newSpeakerName.ifBlank { "Ömer" },
+                                                            cinsiyet = newSpeakerGender,
+                                                            arapca = ar,
+                                                            turkce = tr,
+                                                            ses = newAudioRelPath.ifBlank { existingLine?.ses }
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                            val wasEdit = editingItemId != null || editingDialogueLineId != null
+                                            editingItemId = null
+                                            editingDialogueLineId = null
+                                            newArabicText = ""
+                                            newTurkishText = ""
+                                            newAudioRelPath = ""
+                                            statusBanner = if (wasEdit) "✅ Kayıt güncellendi!" else "➕ Yeni kayıt ve kategori ($cleanPkgTitle) kaydedildi!"
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.testTag("btn_admin_add_record")
+                                ) {
+                                    Text(
+                                        text = if (editingItemId != null || editingDialogueLineId != null) "💾 Güncelle" else "➕ Kaydet / Ekle",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -1192,7 +1433,7 @@ fun UnifiedAdminPanelModal(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("🔍 Kayıtlarda hızlı ara...", fontSize = 12.sp) },
+                    placeholder = { Text("🔍 Kayıtlarda hızlı ara (Düzenlemek için ✏️ butonuna dokunun)...", fontSize = 11.sp) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1211,10 +1452,29 @@ fun UnifiedAdminPanelModal(
                             }
                             items(list, key = { it.id }) { w ->
                                 AdminRecordRow(
-                                    badge = "[${w.seviye}] ${w.paketId}",
+                                    badge = "[${w.seviye}] ${w.paketId} ${if (!w.ses.isNullOrBlank()) "🎵" else ""}",
                                     turkce = w.turkce,
                                     arapca = w.arapca,
-                                    onSpeak = { viewModel.audioManager.speakArabic(w.arapca, "male", false) },
+                                    onSpeak = {
+                                        viewModel.audioManager.speakArabic(
+                                            text = w.arapca,
+                                            voiceType = "male",
+                                            slow = false,
+                                            audioPath = w.ses,
+                                            itemId = w.id,
+                                            paketId = w.paketId
+                                        )
+                                    },
+                                    onEdit = {
+                                        editingItemId = w.id
+                                        targetPkgId = w.paketId
+                                        targetPkgTitle = allPackages.firstOrNull { it.id == w.paketId }?.ad ?: w.paketId
+                                        newArabicText = w.arapca
+                                        newTurkishText = w.turkce
+                                        newCefrLevel = w.seviye
+                                        newVisualOrEmoji = w.gorsel ?: "📚"
+                                        newAudioRelPath = w.ses ?: ""
+                                    },
                                     onDelete = { scope.launch { viewModel.repository.deleteWord(w.id) } }
                                 )
                             }
@@ -1225,10 +1485,28 @@ fun UnifiedAdminPanelModal(
                             }
                             items(list, key = { it.id }) { s ->
                                 AdminRecordRow(
-                                    badge = "[${s.seviye}] ${s.paketId}",
+                                    badge = "[${s.seviye}] ${s.paketId} ${if (!s.ses.isNullOrBlank()) "🎵" else ""}",
                                     turkce = s.turkce,
                                     arapca = s.arapca,
-                                    onSpeak = { viewModel.audioManager.speakArabic(s.arapca, "male", false) },
+                                    onSpeak = {
+                                        viewModel.audioManager.speakArabic(
+                                            text = s.arapca,
+                                            voiceType = "male",
+                                            slow = false,
+                                            audioPath = s.ses,
+                                            itemId = s.id,
+                                            paketId = s.paketId
+                                        )
+                                    },
+                                    onEdit = {
+                                        editingItemId = s.id
+                                        targetPkgId = s.paketId
+                                        targetPkgTitle = allSentencePackages.firstOrNull { it.id == s.paketId }?.ad ?: s.paketId
+                                        newArabicText = s.arapca
+                                        newTurkishText = s.turkce
+                                        newCefrLevel = s.seviye
+                                        newAudioRelPath = s.ses ?: ""
+                                    },
                                     onDelete = { scope.launch { viewModel.repository.deleteSentence(s.id) } }
                                 )
                             }
@@ -1239,10 +1517,29 @@ fun UnifiedAdminPanelModal(
                             }
                             items(list, key = { it.id }) { l ->
                                 AdminRecordRow(
-                                    badge = "[${l.diyalogId}] ${l.konusmaci}",
+                                    badge = "[${l.diyalogId}] ${l.konusmaci} ${if (!l.ses.isNullOrBlank()) "🎵" else ""}",
                                     turkce = l.turkce,
                                     arapca = l.arapca,
-                                    onSpeak = { viewModel.audioManager.speakArabic(l.arapca, "male", false) },
+                                    onSpeak = {
+                                        viewModel.audioManager.speakArabic(
+                                            text = l.arapca,
+                                            voiceType = "male",
+                                            slow = false,
+                                            audioPath = l.ses,
+                                            itemId = "dlg_${l.id}",
+                                            paketId = l.diyalogId
+                                        )
+                                    },
+                                    onEdit = {
+                                        editingDialogueLineId = l.id
+                                        targetPkgId = l.diyalogId
+                                        targetPkgTitle = allDialogues.firstOrNull { it.id == l.diyalogId }?.baslikTr ?: l.diyalogId
+                                        newSpeakerName = l.konusmaci
+                                        newSpeakerGender = l.cinsiyet
+                                        newArabicText = l.arapca
+                                        newTurkishText = l.turkce
+                                        newAudioRelPath = l.ses ?: ""
+                                    },
                                     onDelete = { scope.launch { viewModel.repository.deleteDialogueLine(l.id) } }
                                 )
                             }
@@ -1260,6 +1557,7 @@ private fun AdminRecordRow(
     turkce: String,
     arapca: String,
     onSpeak: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val palette = LocalMuallimunPalette.current
@@ -1274,7 +1572,7 @@ private fun AdminRecordRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = badge, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = palette.accentHead)
@@ -1284,7 +1582,7 @@ private fun AdminRecordRow(
                 text = arapca,
                 fontFamily = AmiriArabicFontFamily,
                 fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
+                fontSize = 19.sp,
                 color = palette.textArabic,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
@@ -1294,14 +1592,21 @@ private fun AdminRecordRow(
                     color = AccentCoral,
                     modifier = Modifier.clickable { onSpeak() }
                 ) {
-                    Text("🔊", fontSize = 12.sp, modifier = Modifier.padding(6.dp))
+                    Text("🔊", fontSize = 11.sp, modifier = Modifier.padding(6.dp))
+                }
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = RoyalBlue,
+                    modifier = Modifier.clickable { onEdit() }
+                ) {
+                    Text("✏️", fontSize = 11.sp, modifier = Modifier.padding(6.dp))
                 }
                 Surface(
                     shape = RoundedCornerShape(6.dp),
                     color = CoralRed,
                     modifier = Modifier.clickable { onDelete() }
                 ) {
-                    Text("🗑️", fontSize = 12.sp, modifier = Modifier.padding(6.dp))
+                    Text("🗑️", fontSize = 11.sp, modifier = Modifier.padding(6.dp))
                 }
             }
         }

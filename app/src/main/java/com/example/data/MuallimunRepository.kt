@@ -22,22 +22,50 @@ class MuallimunRepository(private val dao: MuallimunDao) {
     fun observePackages(mode: String): Flow<List<PackageEntity>> = dao.observePackagesByMode(mode)
 
     suspend fun ensureSeeded(context: android.content.Context? = null) {
-        if (context != null && getConfig("bundled_assets_checked_v40_full", "0") != "1") {
-            val importedCount = com.example.util.DesktopDatabaseImporter.importBundledAssetsIfPresent(context, dao)
-            if (importedCount > 0) {
-                setConfig("bundled_assets_checked_v40_full", "1")
+        if (context != null) {
+            val visualOrRegularWords = dao.getAllWords().count { !it.id.startsWith("szl_") }
+            if (visualOrRegularWords < 100) {
+                com.example.util.DesktopDatabaseImporter.importSingleAssetDbIfPresent(context, "kelimeler.db", dao)
+            }
+            val dictCount = dao.getAllSozluk().size
+            if (dictCount < 100) {
+                com.example.util.DesktopDatabaseImporter.importSingleAssetDbIfPresent(context, "sozluk.db", dao)
+            }
+            val dialogueCount = dao.getAllDialogues().size
+            if (dialogueCount < 10) {
+                com.example.util.DesktopDatabaseImporter.importSingleAssetDbIfPresent(context, "diyaloglar.db", dao)
+            }
+            val sentenceCount = dao.getAllSentences().size
+            if (sentenceCount < 100) {
+                com.example.util.DesktopDatabaseImporter.importSingleAssetDbIfPresent(context, "cumleler.db", dao)
             }
         }
-        val currentWords = dao.getAllWords()
-        if (currentWords.isEmpty()) {
-            dao.insertPackages(InitialSeedData.initialPackages)
+
+        // Yalnızca ilgili tablo hâlâ tamamen boşsa (assets/ içinden yüklenmemişse) InitialSeedData yedeğini ekle
+        if (dao.getAllWords().isEmpty()) {
+            dao.insertPackages(InitialSeedData.initialPackages.filter { it.mode == "words" })
             val allWords = InitialSeedData.initialVisualWords + InitialSeedData.buildSozlukWordCards()
             dao.insertWords(allWords)
+        }
+        if (dao.getAllSozluk().isEmpty()) {
             dao.insertSozlukList(InitialSeedData.initialSozlukEntries)
+        }
+        if (dao.getAllDialogues().isEmpty()) {
             dao.insertDialogues(InitialSeedData.initialDialogues)
             dao.insertDialogueLines(InitialSeedData.initialDialogueLines)
+        }
+        if (dao.getAllSentences().isEmpty()) {
+            dao.insertPackages(InitialSeedData.initialPackages.filter { it.mode == "sentences" })
             dao.insertSentences(InitialSeedData.initialSentences)
         }
+    }
+
+    suspend fun saveOrUpdatePackage(pkg: PackageEntity) {
+        dao.insertPackage(pkg)
+    }
+
+    suspend fun saveOrUpdateDialogue(dialogue: DialogueEntity) {
+        dao.insertDialogue(dialogue)
     }
 
     suspend fun importDesktopDatabaseUri(

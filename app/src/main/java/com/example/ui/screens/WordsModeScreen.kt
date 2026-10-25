@@ -94,6 +94,7 @@ fun WordsModeScreen(
     val activeMorphLbl by viewModel.activeMorphLabel.collectAsState()
     val attemptCount by viewModel.wordAttemptCount.collectAsState()
     val maxAttemptsSetting by viewModel.maxAttemptsSetting.collectAsState()
+    val showDemoSim by viewModel.showDemoSimulationButtons.collectAsState()
 
     val isRecording by viewModel.audioManager.isRecording.collectAsState()
     val waveBars by viewModel.audioManager.waveBars.collectAsState()
@@ -102,6 +103,7 @@ fun WordsModeScreen(
     var showPackageMenu by remember { mutableStateOf(false) }
     var showLevelMenu by remember { mutableStateOf(false) }
     var showCardLevelMenu by remember { mutableStateOf(false) }
+    var filterExpanded by remember { mutableStateOf(false) }
 
     val currentItem = if (filteredWords.isNotEmpty()) {
         filteredWords[wordIndex.coerceIn(0, filteredWords.size - 1)]
@@ -122,73 +124,43 @@ fun WordsModeScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // 1. Üst Filtre, Paket, Seviye ve Punto Barı
+        // 1. Kompakt Tek Satırlık Açılır-Kapanır (Collapsible) Üst Filtre, Paket ve Seviye Şeridi
         Card(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = palette.panelColor),
             border = BorderStroke(1.dp, palette.border),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Seviye Seçici
-                    Box {
-                        OutlinedButton(
-                            onClick = { showLevelMenu = true },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.testTag("word_level_selector")
-                        ) {
-                            Text(
-                                text = "Seviye: $selectedLevel",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.textMain
-                            )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
-                        }
-                        DropdownMenu(
-                            expanded = showLevelMenu,
-                            onDismissRequest = { showLevelMenu = false }
-                        ) {
-                            listOf("Tümü", "A1", "A2", "B1", "B2", "C1").forEach { lvl ->
-                                DropdownMenuItem(
-                                    text = { Text(lvl, fontWeight = FontWeight.Bold) },
-                                    onClick = {
-                                        showLevelMenu = false
-                                        viewModel.selectWordLevel(lvl)
-                                    }
-                                )
-                            }
-                        }
-                    }
-
                     // Paket Seçici
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { showPackageMenu = true },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(34.dp)
                                 .testTag("word_package_selector")
                         ) {
                             Text(
                                 text = currentCategoryTitle,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.accentHead,
                                 maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.weight(1f)
                             )
                             Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
@@ -208,150 +180,211 @@ fun WordsModeScreen(
                             }
                         }
                     }
-                }
 
-                // Hızlı Özel Paket Çipleri ve Görünüm Kontrolleri
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (selectedCategory == "gunluk_tekrar") TealAccent else palette.btnSec,
-                        modifier = Modifier
-                            .clickable { viewModel.selectWordCategory("gunluk_tekrar") }
-                            .testTag("chip_daily_15")
-                    ) {
-                        Text(
-                            text = "📅 Günün 15 Tekrarı",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = AccentCoral,
-                        modifier = Modifier
-                            .clickable { viewModel.openModal(ActiveModal.LISTENING_EXAM) }
-                            .testTag("chip_listening_exam")
-                    ) {
-                        Text(
-                            text = "🎧 Dinle & Bul",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (selectedCategory == "tekrar") RoyalBlue else palette.btnSec,
-                        modifier = Modifier
-                            .clickable { viewModel.selectWordCategory("tekrar") }
-                            .testTag("chip_favorites")
-                    ) {
-                        Text(
-                            text = "⭐ Tekrarım",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.textMain,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (selectedCategory == "zayif") CoralRed else palette.btnSec,
-                        modifier = Modifier
-                            .clickable { viewModel.selectWordCategory("zayif") }
-                            .testTag("chip_weak_words")
-                    ) {
-                        Text(
-                            text = "🎯 Zayıflar",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-                }
-
-                // Hareke, Türkçe ve Punto Satırı
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilterChip(
-                            selected = showTashkeel,
-                            onClick = { viewModel.setWordShowTashkeel(!showTashkeel) },
-                            label = { Text("Hareke", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = RoyalBlue,
-                                selectedLabelColor = Color.White
-                            )
-                        )
-                        FilterChip(
-                            selected = showTr,
-                            onClick = { viewModel.setWordShowTr(!showTr) },
-                            label = { Text("🇹🇷 Türkçe", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = RoyalBlue,
-                                selectedLabelColor = Color.White
-                            )
-                        )
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = palette.btnSec,
-                            modifier = Modifier.clickable { viewModel.changeWordFontSize(-2) }
+                    // Seviye Seçici
+                    Box {
+                        OutlinedButton(
+                            onClick = { showLevelMenu = true },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier
+                                .height(34.dp)
+                                .testTag("word_level_selector")
                         ) {
                             Text(
-                                text = "A-",
-                                fontSize = 12.sp,
+                                text = selectedLevel,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textMain,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
+                        }
+                        DropdownMenu(
+                            expanded = showLevelMenu,
+                            onDismissRequest = { showLevelMenu = false }
+                        ) {
+                            listOf("Tümü", "A1", "A2", "B1", "B2", "C1").forEach { lvl ->
+                                DropdownMenuItem(
+                                    text = { Text(lvl, fontWeight = FontWeight.Bold) },
+                                    onClick = {
+                                        showLevelMenu = false
+                                        viewModel.selectWordLevel(lvl)
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Açılır-Kapanır Görünüm & Filtre Butonu
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (filterExpanded) RoyalBlue else palette.btnSec,
+                        modifier = Modifier
+                            .height(34.dp)
+                            .clickable { filterExpanded = !filterExpanded }
+                            .testTag("btn_toggle_word_filters")
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        ) {
+                            Text(
+                                text = if (filterExpanded) "⚙️ ▴" else "⚙️ Filtre ▾",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (filterExpanded) Color.White else palette.textMain,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
-                        Text(
-                            text = " Punto ",
-                            fontSize = 11.sp,
-                            color = palette.textDim,
-                            fontWeight = FontWeight.Bold
-                        )
+                    }
+                }
+
+                // Açılır-Kapanır Ek Filtreler (Günün 15 Tekrarı, Hareke, Türkçe, Punto)
+                if (filterExpanded) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = palette.btnSec,
-                            modifier = Modifier.clickable { viewModel.changeWordFontSize(2) }
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedCategory == "gunluk_tekrar") TealAccent else palette.btnSec,
+                            modifier = Modifier
+                                .clickable { viewModel.selectWordCategory("gunluk_tekrar") }
+                                .testTag("chip_daily_15")
                         ) {
                             Text(
-                                text = "A+",
-                                fontSize = 12.sp,
+                                text = "📅 Günün 15 Tekrarı",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AccentCoral,
+                            modifier = Modifier
+                                .clickable { viewModel.openModal(ActiveModal.LISTENING_EXAM) }
+                                .testTag("chip_listening_exam")
+                        ) {
+                            Text(
+                                text = "🎧 Dinle & Bul",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedCategory == "tekrar") RoyalBlue else palette.btnSec,
+                            modifier = Modifier
+                                .clickable { viewModel.selectWordCategory("tekrar") }
+                                .testTag("chip_favorites")
+                        ) {
+                            Text(
+                                text = "⭐ Tekrarım",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textMain,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                             )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (selectedCategory == "zayif") CoralRed else palette.btnSec,
+                            modifier = Modifier
+                                .clickable { viewModel.selectWordCategory("zayif") }
+                                .testTag("chip_weak_words")
+                        ) {
+                            Text(
+                                text = "🎯 Zayıflar",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(
+                                selected = showTashkeel,
+                                onClick = { viewModel.setWordShowTashkeel(!showTashkeel) },
+                                label = { Text("Hareke", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = RoyalBlue,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                            FilterChip(
+                                selected = showTr,
+                                onClick = { viewModel.setWordShowTr(!showTr) },
+                                label = { Text("🇹🇷 Türkçe", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = RoyalBlue,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = palette.btnSec,
+                                modifier = Modifier.clickable { viewModel.changeWordFontSize(-2) }
+                            ) {
+                                Text(
+                                    text = "A-",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.textMain,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                            Text(
+                                text = " Punto ",
+                                fontSize = 11.sp,
+                                color = palette.textDim,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = palette.btnSec,
+                                modifier = Modifier.clickable { viewModel.changeWordFontSize(2) }
+                            ) {
+                                Text(
+                                    text = "A+",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.textMain,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // 2. ANA KELİME VE SARF KARTI (Yeşil Mikrofon Çerçeve Parlaması Destekli)
+        // 2. ANA KELİME VE SARF KARTI (Kompakt Mobil Sığdırma + Yeşil Mikrofon Çerçeve Parlaması)
         val cardBorderColor = if (isRecording) EmeraldGreen else palette.border
         val cardBorderWidth = if (isRecording) 3.dp else 1.dp
 
         Card(
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = palette.cardColor),
             border = BorderStroke(cardBorderWidth, cardBorderColor),
             modifier = Modifier
@@ -363,13 +396,13 @@ fun WordsModeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp)
+                        .padding(24.dp)
                 ) {
-                    Text("🎉", fontSize = 42.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("🎉", fontSize = 36.sp)
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Bu pakette seçili seviyede kelime bulunamadı (Üstten seviyeyi 'Tümü' yapabilirsiniz).",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.textDim,
                         textAlign = TextAlign.Center
@@ -380,51 +413,60 @@ fun WordsModeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Kart Üst Meta Barı: Tekrar Listeme Ekle | Öğrendim | Seviye Etiketi
+                    // Kart Üst Meta Barı: Sol (Tekrar + Öğrendim) | Sağ (Sabit Genişlikli A1 Seviye Rozeti)
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        val isFav = currentItem.isFav == 1
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isFav) WarmGold else palette.btnSec,
-                            modifier = Modifier
-                                .clickable {
-                                    scope.launch { viewModel.repository.toggleWordFavorite(currentItem.id) }
-                                }
-                                .testTag("btn_word_fav")
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = if (isFav) "⭐ Tekrar Listemde" else "☆ Tekrar Listeme Ekle",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isFav) Color(0xFF0F172A) else palette.textMain,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
-                        }
+                            val isFav = currentItem.isFav == 1
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isFav) WarmGold else palette.btnSec,
+                                modifier = Modifier
+                                    .clickable {
+                                        scope.launch { viewModel.repository.toggleWordFavorite(currentItem.id) }
+                                    }
+                                    .testTag("btn_word_fav")
+                            ) {
+                                Text(
+                                    text = if (isFav) "⭐ Tekrarım" else "☆ Tekrar",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isFav) Color(0xFF0F172A) else palette.textMain,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
 
-                        val isLearned = currentItem.isLearned == 1
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isLearned) EmeraldGreen else palette.btnSec,
-                            modifier = Modifier
-                                .clickable {
-                                    scope.launch { viewModel.repository.toggleWordLearned(currentItem.id) }
-                                }
-                                .testTag("btn_word_learned")
-                        ) {
-                            Text(
-                                text = if (isLearned) "✅ Öğrendim" else "☑️ Öğrendim",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isLearned) Color(0xFF0F172A) else palette.textMain,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
+                            val isLearned = currentItem.isLearned == 1
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isLearned) EmeraldGreen else palette.btnSec,
+                                modifier = Modifier
+                                    .clickable {
+                                        scope.launch { viewModel.repository.toggleWordLearned(currentItem.id) }
+                                    }
+                                    .testTag("btn_word_learned")
+                            ) {
+                                Text(
+                                    text = if (isLearned) "✅ Öğrendim" else "☑️ Öğrendim",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isLearned) Color(0xFF0F172A) else palette.textMain,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
 
                         Box {
@@ -432,15 +474,23 @@ fun WordsModeScreen(
                                 shape = RoundedCornerShape(8.dp),
                                 color = palette.panelColor,
                                 border = BorderStroke(1.dp, palette.border),
-                                modifier = Modifier.clickable { showCardLevelMenu = true }
+                                modifier = Modifier
+                                    .width(64.dp)
+                                    .clickable { showCardLevelMenu = true }
                             ) {
-                                Text(
-                                    text = "🏷️ ${currentItem.seviye} ▾",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = palette.accentHead,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
-                                )
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "🏷️ ${currentItem.seviye} ▾",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = palette.accentHead,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
                             }
                             DropdownMenu(
                                 expanded = showCardLevelMenu,
@@ -462,22 +512,14 @@ fun WordsModeScreen(
                         }
                     }
 
-                    // Görsel İllüstrasyon Rozeti VEYA Sarf Sözlüğü (Altıgen Kök Rozeti + Türev Ağacı)
+                    // Görsel İllüstrasyon Rozeti (80.dp Hibrit Resim + Emoji Fallback) VEYA Sarf Sözlüğü Barı
                     if (!currentItem.gorsel.isNullOrBlank()) {
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = palette.panelColor,
-                            border = BorderStroke(1.dp, palette.border),
-                            modifier = Modifier.size(width = 140.dp, height = 100.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = currentItem.gorsel,
-                                    fontSize = 54.sp,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
+                        com.example.util.HybridWordVisualBox(
+                            wordId = currentItem.id,
+                            paketId = currentItem.paketId,
+                            gorsel = currentItem.gorsel,
+                            sizeDp = 80.dp
+                        )
                     } else if (morphInfo != null) {
                         WordMorphologyCardBar(
                             morphInfo = morphInfo,
@@ -507,7 +549,7 @@ fun WordsModeScreen(
                             onClick = { viewModel.changeWordIndex(-1) },
                             modifier = Modifier
                                 .background(palette.btnSec, RoundedCornerShape(10.dp))
-                                .size(44.dp)
+                                .size(38.dp)
                                 .testTag("btn_prev_word")
                         ) {
                             Icon(
@@ -521,7 +563,7 @@ fun WordsModeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(horizontal = 8.dp)
+                                .padding(horizontal = 6.dp)
                         ) {
                             Text(
                                 text = if (testModeHideAr && evalState.isCorrect != true) "❓ ❓ ❓" else displayArabic,
@@ -530,14 +572,14 @@ fun WordsModeScreen(
                                 fontSize = fontSizeSp.sp,
                                 color = if (testModeHideAr && evalState.isCorrect != true) palette.textDim else palette.textArabic,
                                 textAlign = TextAlign.Center,
-                                lineHeight = (fontSizeSp + 14).sp
+                                lineHeight = (fontSizeSp + 8).sp
                             )
 
                             if (showTr || evalState.isCorrect == true) {
                                 val trPrefix = if (activeMorphLbl.isNotBlank()) "[$activeMorphLbl] " else ""
                                 Text(
                                     text = "$trPrefix${currentItem.turkce}",
-                                    fontSize = 18.sp,
+                                    fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (evalState.isCorrect == true) palette.okGreen else palette.textMain,
                                     textAlign = TextAlign.Center
@@ -549,7 +591,7 @@ fun WordsModeScreen(
                             onClick = { viewModel.changeWordIndex(1) },
                             modifier = Modifier
                                 .background(palette.btnSec, RoundedCornerShape(10.dp))
-                                .size(44.dp)
+                                .size(38.dp)
                                 .testTag("btn_next_word")
                         ) {
                             Icon(
@@ -560,40 +602,46 @@ fun WordsModeScreen(
                         }
                     }
 
-                    // Referans Ses ve Gölgeleme Butonları
+                    // Referans Ses ve Gölgeleme Butonları (Kompakt Tek Satır / FlowRow)
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Button(
                             onClick = { viewModel.speakCurrentItem("female") },
                             colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.testTag("btn_speak_female")
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier
+                                .height(32.dp)
+                                .testTag("btn_speak_female")
                         ) {
-                            Text("🔊 Kadın", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("🔊 Kadın", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
 
                         Button(
                             onClick = { viewModel.speakCurrentItem("male") },
                             colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.testTag("btn_speak_male")
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier
+                                .height(32.dp)
+                                .testTag("btn_speak_male")
                         ) {
-                            Text("🔊 Erkek", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("🔊 Erkek", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
 
                         Button(
                             onClick = { viewModel.openShadowingForCurrentCard() },
                             colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.testTag("btn_open_shadowing")
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier
+                                .height(32.dp)
+                                .testTag("btn_open_shadowing")
                         ) {
-                            Text("🗣️ Gölgele", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("🗣️ Gölgele", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
 
                         Button(
@@ -602,10 +650,11 @@ fun WordsModeScreen(
                                 if (!ok) viewModel.showToast("Dinlenecek ses kaydı bulunamadı.")
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier.height(32.dp)
                         ) {
-                            Text("🎧 Sesimi Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("🎧 Sesim", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
 
@@ -613,7 +662,9 @@ fun WordsModeScreen(
                     LiveWaveformBars(
                         bars = waveBars,
                         isRecording = isRecording,
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                        modifier = Modifier
+                            .height(26.dp)
+                            .padding(horizontal = 24.dp)
                     )
 
                     Button(
@@ -622,61 +673,64 @@ fun WordsModeScreen(
                             containerColor = if (isRecording) CoralRed else RoyalBlue,
                             contentColor = Color.White
                         ),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
-                            .fillMaxWidth(0.88f)
-                            .height(50.dp)
+                            .fillMaxWidth(0.92f)
+                            .height(44.dp)
                             .testTag("btn_word_record")
                     ) {
                         Icon(
                             imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
                             contentDescription = null
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = if (isRecording) "⏹️ KAYDI DURDUR" else "🎤 BAŞLA VE KONUŞ",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
 
-                    // Hızlı Telaffuz & Mahreç Test Butonları (Emülatör ve Canlı Koç Testi İçin)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = palette.panelColor,
-                            border = BorderStroke(1.dp, palette.okGreen.copy(alpha = 0.6f)),
-                            modifier = Modifier
-                                .clickable { viewModel.simulatePronunciationAttempt("correct") }
-                                .testTag("btn_sim_correct")
+                    // Hızlı Telaffuz & Mahreç Test Butonları (Ayarlar -> Demo / Simülasyon Açık İse Gösterilir)
+                    if (showDemoSim) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "🎯 Örnek Doğru Okuma",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = palette.okGreen,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
-                        }
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = palette.panelColor,
+                                border = BorderStroke(1.dp, palette.okGreen.copy(alpha = 0.6f)),
+                                modifier = Modifier
+                                    .clickable { viewModel.simulatePronunciationAttempt("correct") }
+                                    .testTag("btn_sim_correct")
+                            ) {
+                                Text(
+                                    text = "🎯 Örnek Doğru Okuma",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = palette.okGreen,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
 
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = palette.panelColor,
-                            border = BorderStroke(1.dp, WarmGold.copy(alpha = 0.6f)),
-                            modifier = Modifier
-                                .clickable { viewModel.simulatePronunciationAttempt("makhraj") }
-                                .testTag("btn_sim_makhraj")
-                        ) {
-                            Text(
-                                text = "🔬 Mahreç/Kök Hatası Test Et",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = WarmGold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = palette.panelColor,
+                                border = BorderStroke(1.dp, WarmGold.copy(alpha = 0.6f)),
+                                modifier = Modifier
+                                    .clickable { viewModel.simulatePronunciationAttempt("makhraj") }
+                                    .testTag("btn_sim_makhraj")
+                            ) {
+                                Text(
+                                    text = "🔬 Mahreç/Kök Hatası Test Et",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = WarmGold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
                         }
                     }
 

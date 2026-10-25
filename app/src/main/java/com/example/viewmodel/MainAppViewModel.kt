@@ -130,6 +130,9 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val _showTeacherBar = MutableStateFlow(true)
     val showTeacherBar: StateFlow<Boolean> = _showTeacherBar.asStateFlow()
 
+    private val _showDemoSimulationButtons = MutableStateFlow(false)
+    val showDemoSimulationButtons: StateFlow<Boolean> = _showDemoSimulationButtons.asStateFlow()
+
     private val _slowTts = MutableStateFlow(false)
     val slowTts: StateFlow<Boolean> = _slowTts.asStateFlow()
 
@@ -348,6 +351,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 _totalPoints.value = map["total_points"]?.toIntOrNull() ?: 0
                 _isDarkTheme.value = (map["theme_mode"] ?: "dark") == "dark"
                 _showTeacherBar.value = (map["show_teacher_bar"] ?: "1") != "0"
+                _showDemoSimulationButtons.value = (map["show_demo_simulation"] ?: "0") == "1"
                 _lastActiveModeName.value = map["last_active_mode"] ?: "words"
                 _lastListeningExamSummary.value = map["last_listening_exam"] ?: "Henüz Dinle & Bul sınavı tamamlanmadı."
             }
@@ -423,6 +427,13 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         _showTeacherBar.value = show
         viewModelScope.launch {
             repository.setConfig("show_teacher_bar", if (show) "1" else "0")
+        }
+    }
+
+    fun setShowDemoSimulationButtons(show: Boolean) {
+        _showDemoSimulationButtons.value = show
+        viewModelScope.launch {
+            repository.setConfig("show_demo_simulation", if (show) "1" else "0")
         }
     }
 
@@ -674,7 +685,14 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         _highlightedDialogueLineIndex.value = idx
         val line = lines[idx]
         val vType = if (line.cinsiyet.equals("K", ignoreCase = true)) "female" else "male"
-        audioManager.speakArabic(line.arapca, vType, _slowTts.value) {
+        audioManager.speakArabic(
+            text = line.arapca,
+            voiceType = vType,
+            slow = _slowTts.value,
+            audioPath = line.ses,
+            itemId = "dlgline_${line.id}",
+            paketId = line.diyalogId
+        ) {
             if (_isPlayingAllDialogue.value) {
                 viewModelScope.launch {
                     delay(280)
@@ -744,7 +762,14 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             _roleplayWaitingUser.value = false
             _roleplayStatusText.value = "🔊 ${line.konusmaci} konuşuyor (${line.sira}. Cümle)..."
             val vType = if (line.cinsiyet.equals("K", ignoreCase = true)) "female" else "male"
-            audioManager.speakArabic(line.arapca, vType, _slowTts.value) {
+            audioManager.speakArabic(
+                text = line.arapca,
+                voiceType = vType,
+                slow = _slowTts.value,
+                audioPath = line.ses,
+                itemId = "dlgline_${line.id}",
+                paketId = line.diyalogId
+            ) {
                 if (_roleplayActive.value) {
                     viewModelScope.launch {
                         delay(300)
@@ -765,7 +790,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
 
         audioManager.startSpeechRecognition("rp_${line.id}") { heard, _, errMsg ->
             if (!errMsg.isNullOrBlank() && heard.isBlank()) {
-                _roleplayStatusText.value = "🤔 $errMsg (E뮬atör için '🎯 Örnek Okuma' butonunu da kullanabilirsiniz)"
+                _roleplayStatusText.value = "🤔 $errMsg (Emülatör için '🎯 Örnek Okuma' butonunu da kullanabilirsiniz)"
             } else {
                 handleRoleplayTranscription(heard)
             }
@@ -866,7 +891,36 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 chosen
             }
         }
-        audioManager.speakArabic(expected, vType, _slowTts.value)
+        when (_currentMode.value) {
+            AppMode.WORDS -> {
+                val w = currentWordItem()
+                // Eğer aktif bir sarf çekimi seçili değilse kelimenin gerçek ses dosyasını (varsa) çal
+                val audioPath = if (_activeMorphArabic.value == null) w?.ses else null
+                val itemId = if (_activeMorphArabic.value == null) w?.id else null
+                audioManager.speakArabic(
+                    text = expected,
+                    voiceType = vType,
+                    slow = _slowTts.value,
+                    audioPath = audioPath,
+                    itemId = itemId,
+                    paketId = w?.paketId
+                )
+            }
+            AppMode.SENTENCES -> {
+                val s = currentSentenceItem()
+                audioManager.speakArabic(
+                    text = expected,
+                    voiceType = vType,
+                    slow = _slowTts.value,
+                    audioPath = s?.ses,
+                    itemId = s?.id,
+                    paketId = s?.paketId
+                )
+            }
+            else -> {
+                audioManager.speakArabic(expected, vType, _slowTts.value)
+            }
+        }
     }
 
     fun openShadowingForCurrentCard() {

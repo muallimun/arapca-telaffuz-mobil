@@ -13,7 +13,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -54,6 +58,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -133,12 +138,15 @@ fun SarfExplorerModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(horizontal = 12.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Header
@@ -547,13 +555,16 @@ fun ListeningExamModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(14.dp),
+                    .padding(horizontal = 14.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Header
@@ -590,7 +601,7 @@ fun ListeningExamModal(
                     }
                 }
 
-                // Kaynak, Seviye ve Soru Sayısı Seçici
+                // Kaynak, Seviye ve Soru Sayısı Seçici + Sınav Başlatma ve Ses/İpucu Butonları
                 Card(
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = palette.panelColor),
@@ -598,45 +609,65 @@ fun ListeningExamModal(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        // 1. Satır: Kaynak Seçimi (Tam Genişlik)
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedButton(
+                                onClick = { showSourceMenu = true },
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val lbl = sourceOptions.firstOrNull { it.first == selectedSourceKey }?.second ?: ""
+                                Text(
+                                    text = "Kaynak: $lbl",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.accentHead,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
+                            }
+                            DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
+                                sourceOptions.forEach { (k, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label, fontWeight = FontWeight.SemiBold) },
+                                        onClick = {
+                                            showSourceMenu = false
+                                            selectedSourceKey = k
+                                            examStarted = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // 2. Satır: Seviye Seçimi ve Soru Sayısı (Yan Yana Eşit Genişlik - weight(1f))
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Box(modifier = Modifier.weight(1f)) {
                                 OutlinedButton(
-                                    onClick = { showSourceMenu = true },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    val lbl = sourceOptions.firstOrNull { it.first == selectedSourceKey }?.second ?: ""
-                                    Text(lbl, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = palette.accentHead, maxLines = 1)
-                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
-                                }
-                                DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
-                                    sourceOptions.forEach { (k, label) ->
-                                        DropdownMenuItem(
-                                            text = { Text(label, fontWeight = FontWeight.SemiBold) },
-                                            onClick = {
-                                                showSourceMenu = false
-                                                selectedSourceKey = k
-                                                examStarted = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-
-                            Box {
-                                OutlinedButton(
                                     onClick = { showLevelMenu = true },
                                     shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Seviye: $selectedLevel", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = palette.textMain)
+                                    Text(
+                                        text = "Seviye: $selectedLevel",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = palette.textMain,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                     Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
                                 }
                                 DropdownMenu(expanded = showLevelMenu, onDismissRequest = { showLevelMenu = false }) {
@@ -653,13 +684,22 @@ fun ListeningExamModal(
                                 }
                             }
 
-                            Box {
+                            Box(modifier = Modifier.weight(1f)) {
                                 OutlinedButton(
                                     onClick = { showCountMenu = true },
                                     shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(selectedTargetCount, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = palette.accentHead)
+                                    Text(
+                                        text = "Hedef: $selectedTargetCount",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = palette.accentHead,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                     Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
                                 }
                                 DropdownMenu(expanded = showCountMenu, onDismissRequest = { showCountMenu = false }) {
@@ -677,30 +717,33 @@ fun ListeningExamModal(
                             }
                         }
 
-                        // ▶️ SINAVI BAŞLAT | 🔊 Sesi Tekrar Çal | 👁️ İpucu
+                        // 3. Satır: ▶️ SINAVI BAŞLAT (Tam Genişlikte Tek Başına - height(48.dp))
+                        Button(
+                            onClick = { startNewExam() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (examStarted) RoyalBlue else EmeraldGreen,
+                                contentColor = if (examStarted) Color.White else Color(0xFF0F172A)
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("btn_start_listening_exam")
+                        ) {
+                            Text(
+                                text = if (examStarted) "🔄 Yeniden Başlat" else "▶️ SINAVI BAŞLAT",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                maxLines = 1
+                            )
+                        }
+
+                        // 4. Satır: 🔊 Sesi Dinle ve 👁️ İpucu Yan Yana (Eşit Genişlik - weight(1f))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Button(
-                                onClick = { startNewExam() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (examStarted) RoyalBlue else EmeraldGreen,
-                                    contentColor = if (examStarted) Color.White else Color(0xFF0F172A)
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("btn_start_listening_exam")
-                            ) {
-                                Text(
-                                    text = if (examStarted) "🔄 Yeniden Başlat" else "▶️ SINAVI BAŞLAT",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
-                            }
-
                             Button(
                                 onClick = {
                                     currentQuestion?.let { q ->
@@ -709,18 +752,34 @@ fun ListeningExamModal(
                                 },
                                 enabled = examStarted && currentQuestion != null,
                                 colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
                             ) {
                                 Icon(Icons.Default.VolumeUp, contentDescription = null)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Sesi Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("🔊 Sesi Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                             }
 
-                            FilterChip(
-                                selected = showArabicHint,
+                            Button(
                                 onClick = { showArabicHint = !showArabicHint },
-                                label = { Text("👁️ İpucu", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                            )
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (showArabicHint) WarmGold else palette.btnSec,
+                                    contentColor = if (showArabicHint) Color(0xFF0F172A) else palette.textMain
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                            ) {
+                                Text(
+                                    text = if (showArabicHint) "👁️ İpucu Açık" else "👁️ İpucu",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }
@@ -956,13 +1015,16 @@ fun ShadowingTrainerModal(
     ) {
         Surface(
             color = palette.bgColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .safeDrawingPadding()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(14.dp),
+                    .padding(horizontal = 14.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Header

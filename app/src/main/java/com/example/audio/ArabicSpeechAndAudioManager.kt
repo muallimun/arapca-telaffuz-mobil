@@ -128,14 +128,148 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         }
     }
 
+    /**
+     * Kelimeye, cümleye veya diyaloğa atanmış gerçek ses dosyası (.mp3 / .wav)
+     * filesDir/custom_media/ veya assets/categories/ altında mevcutsa MediaPlayer ile çalar.
+     * Dosya bulunamazsa false döndürür ve speakArabic otomatik olarak Android TTS motoruna geçer.
+     */
+    fun playCustomOrAssetAudioIfAvailable(
+        audioPath: String?,
+        itemId: String? = null,
+        paketId: String? = null,
+        voiceType: String = "male",
+        onComplete: (() -> Unit)? = null
+    ): Boolean {
+        val cleanPath = audioPath?.trim()?.replace("\\", "/")?.trimStart('/') ?: ""
+        val cleanId = itemId?.trim()?.removePrefix("w_") ?: ""
+        val vSuffix = if (voiceType == "female") "female" else "male"
+        val vShort = if (voiceType == "female") "f" else "m"
+        val exts = listOf("mp3", "wav", "m4a", "ogg")
+
+        // 1. Yerel Dosya Sistemi (filesDir / custom_media) adayları
+        val localCandidates = mutableListOf<File>()
+        if (cleanPath.isNotEmpty()) {
+            val direct = File(cleanPath)
+            if (direct.isAbsolute) localCandidates.add(direct)
+            localCandidates.add(File(context.filesDir, cleanPath))
+            localCandidates.add(File(context.filesDir, "custom_media/$cleanPath"))
+            localCandidates.add(File(context.filesDir, "custom_media/audio/${File(cleanPath).name}"))
+            if (!paketId.isNullOrBlank()) {
+                localCandidates.add(File(context.filesDir, "custom_media/categories/$paketId/${File(cleanPath).name}"))
+            }
+        }
+        if (cleanId.isNotEmpty()) {
+            for (ext in exts) {
+                if (!paketId.isNullOrBlank()) {
+                    localCandidates.add(File(context.filesDir, "custom_media/categories/$paketId/${cleanId}_${vSuffix}.$ext"))
+                    localCandidates.add(File(context.filesDir, "custom_media/categories/$paketId/${cleanId}_${vShort}.$ext"))
+                    localCandidates.add(File(context.filesDir, "custom_media/categories/$paketId/$cleanId.$ext"))
+                }
+                localCandidates.add(File(context.filesDir, "custom_media/audio/${cleanId}_${vSuffix}.$ext"))
+                localCandidates.add(File(context.filesDir, "custom_media/audio/$cleanId.$ext"))
+            }
+        }
+
+        for (file in localCandidates.distinct()) {
+            if (file.exists() && file.isFile && file.length() > 64) {
+                try {
+                    _isSpeakingTts.value = true
+                    mediaPlayer = MediaPlayer().apply {
+                        setDataSource(FileInputStream(file).fd)
+                        setOnCompletionListener { mp ->
+                            _isSpeakingTts.value = false
+                            try { mp.release() } catch (_: Exception) {}
+                            mainHandler.post { onComplete?.invoke() }
+                        }
+                        setOnErrorListener { mp, _, _ ->
+                            _isSpeakingTts.value = false
+                            try { mp.release() } catch (_: Exception) {}
+                            mainHandler.post { onComplete?.invoke() }
+                            true
+                        }
+                        prepare()
+                        start()
+                    }
+                    return true
+                } catch (_: Exception) {
+                    _isSpeakingTts.value = false
+                }
+            }
+        }
+
+        // 2. APK İçi Assets (assets/ ve assets/categories/...) adayları
+        val assetCandidates = mutableListOf<String>()
+        if (cleanPath.isNotEmpty()) {
+            assetCandidates.add(cleanPath)
+            if (!cleanPath.startsWith("categories/")) {
+                assetCandidates.add("categories/$cleanPath")
+            }
+            if (!paketId.isNullOrBlank()) {
+                assetCandidates.add("categories/$paketId/${File(cleanPath).name}")
+            }
+        }
+        if (cleanId.isNotEmpty()) {
+            for (ext in exts) {
+                if (!paketId.isNullOrBlank()) {
+                    assetCandidates.add("categories/$paketId/${cleanId}_${vSuffix}.$ext")
+                    assetCandidates.add("categories/$paketId/${cleanId}_${vShort}.$ext")
+                    assetCandidates.add("categories/$paketId/$cleanId.$ext")
+                }
+                assetCandidates.add("categories/$cleanId.$ext")
+            }
+        }
+
+        for (assetPath in assetCandidates.distinct()) {
+            try {
+                val afd = context.assets.openFd(assetPath)
+                _isSpeakingTts.value = true
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                    afd.close()
+                    setOnCompletionListener { mp ->
+                        _isSpeakingTts.value = false
+                        try { mp.release() } catch (_: Exception) {}
+                        mainHandler.post { onComplete?.invoke() }
+                    }
+                    setOnErrorListener { mp, _, _ ->
+                        _isSpeakingTts.value = false
+                        try { mp.release() } catch (_: Exception) {}
+                        mainHandler.post { onComplete?.invoke() }
+                        true
+                    }
+                    prepare()
+                    start()
+                }
+                return true
+            } catch (_: Exception) {
+                _isSpeakingTts.value = false
+            }
+        }
+
+        return false
+    }
+
     fun speakArabic(
         text: String,
         voiceType: String = "male", // "female" or "male"
         slow: Boolean = false,
         repeatCount: Int = 1,
+        audioPath: String? = null,
+        itemId: String? = null,
+        paketId: String? = null,
         onComplete: (() -> Unit)? = null
     ) {
         stopAllAudio()
+        if (!audioPath.isNullOrBlank() || !itemId.isNullOrBlank()) {
+            val playedRealFile = playCustomOrAssetAudioIfAvailable(
+                audioPath = audioPath,
+                itemId = itemId,
+                paketId = paketId,
+                voiceType = voiceType,
+                onComplete = onComplete
+            )
+            if (playedRealFile) return
+        }
         if (text.isBlank()) {
             onComplete?.invoke()
             return

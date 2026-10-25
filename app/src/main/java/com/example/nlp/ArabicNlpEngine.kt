@@ -332,6 +332,51 @@ object ArabicNlpEngine {
         return max(0.0, 1.0 - dist.toDouble() / max(a.length, b.length).toDouble())
     }
 
+    /**
+     * Aligns two character sequences using a 2D Levenshtein DP matrix so insertions
+     * or deletions do not shift subsequent character comparisons.
+     */
+    fun alignCharacters(a: String, b: String): List<Pair<Char?, Char?>> {
+        val n = a.length
+        val m = b.length
+        val dp = Array(n + 1) { IntArray(m + 1) }
+        for (i in 0..n) dp[i][0] = i
+        for (j in 0..m) dp[0][j] = j
+
+        for (i in 1..n) {
+            for (j in 1..m) {
+                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                dp[i][j] = min(
+                    min(dp[i - 1][j] + 1, dp[i][j - 1] + 1),
+                    dp[i - 1][j - 1] + cost
+                )
+            }
+        }
+
+        val aligned = mutableListOf<Pair<Char?, Char?>>()
+        var i = n
+        var j = m
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0) {
+                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                if (dp[i][j] == dp[i - 1][j - 1] + cost) {
+                    aligned.add(a[i - 1] to b[j - 1])
+                    i--
+                    j--
+                    continue
+                }
+            }
+            if (i > 0 && dp[i][j] == dp[i - 1][j] + 1) {
+                aligned.add(a[i - 1] to null)
+                i--
+            } else if (j > 0) {
+                aligned.add(null to b[j - 1])
+                j--
+            }
+        }
+        return aligned.reversed()
+    }
+
     private fun applyRootConsonantGuard(eWord: String, hWord: String, rawSim: Double): Double {
         if (rawSim >= 0.99 || rawSim <= 0.0) return rawSim
         val ewS = stripAl(phoneticSkeleton(eWord))
@@ -525,54 +570,48 @@ object ArabicNlpEngine {
                 val hCons = consonantSkeleton(hCmp)
                 val consSim = similarity(eCons, hCons)
 
-                // Character-by-character alignment inspection
-                val minLen = min(eCmp.length, hCmp.length)
-                for (i in 0 until minLen) {
-                    val ec = eCmp[i]
-                    val hc = hCmp[i]
-                    if (ec == hc) continue
+                // Levenshtein DP matrix alignment so insertions/deletions do not shift indices
+                val alignedPairs = alignCharacters(eCmp, hCmp)
+                for ((ecOpt, hcOpt) in alignedPairs) {
+                    if (ecOpt != null && hcOpt != null) {
+                        val ec = ecOpt
+                        val hc = hcOpt
+                        if (ec == hc) continue
 
-                    val pairKey = ec to hc
-                    if (MAKHRAJ_COACH_MAP.containsKey(pairKey)) {
-                        val (title, tip) = MAKHRAJ_COACH_MAP.getValue(pairKey)
-                        val fullTitle = "🎯 $title"
-                        if (seenTitles.add(fullTitle)) {
-                            feedbackList.add(MakhrajTip(fullTitle, tip, ew, bestHWord))
-                        }
-                    } else if (ec in MED_LETTERS && hc in MED_LETTERS && consSim >= 0.75) {
-                        val title = "🔄 Vezin / Med Harfi Değişimi ($ec ➔ $hc)"
-                        if (seenTitles.add(title)) {
-                            feedbackList.add(
-                                MakhrajTip(
-                                    title,
-                                    "'$ew' kelimesindeki '$ec' sesini '$hc' gibi okudunuz ('$bestHWord' algılandı). Harfin ünlü/vezin yönüne dikkat edin.",
-                                    ew,
-                                    bestHWord
+                        val pairKey = ec to hc
+                        if (MAKHRAJ_COACH_MAP.containsKey(pairKey)) {
+                            val (title, tip) = MAKHRAJ_COACH_MAP.getValue(pairKey)
+                            val fullTitle = "🎯 $title"
+                            if (seenTitles.add(fullTitle)) {
+                                feedbackList.add(MakhrajTip(fullTitle, tip, ew, bestHWord))
+                            }
+                        } else if (ec in MED_LETTERS && hc in MED_LETTERS && consSim >= 0.75) {
+                            val title = "🔄 Vezin / Med Harfi Değişimi ($ec ➔ $hc)"
+                            if (seenTitles.add(title)) {
+                                feedbackList.add(
+                                    MakhrajTip(
+                                        title,
+                                        "'$ew' kelimesindeki '$ec' sesini '$hc' gibi okudunuz ('$bestHWord' algılandı). Harfin ünlü/vezin yönüne dikkat edin.",
+                                        ew,
+                                        bestHWord
+                                    )
                                 )
-                            )
-                        }
-                    } else if (eCmp.length == hCmp.length) {
-                        val title = "🎯 Harf / Kök Değişimi ($ec ➔ $hc)"
-                        if (seenTitles.add(title)) {
-                            feedbackList.add(
-                                MakhrajTip(
-                                    title,
-                                    "'$ew' kelimesindeki '$ec' harfi yerine '$hc' sesi algılandı ('$bestHWord'). Tek bir kök harfin değişmesi anlamı tamamen değiştirir; '$ec' harfini net çıkarın.",
-                                    ew,
-                                    bestHWord
+                            }
+                        } else {
+                            val title = "🎯 Harf / Kök Değişimi ($ec ➔ $hc)"
+                            if (seenTitles.add(title)) {
+                                feedbackList.add(
+                                    MakhrajTip(
+                                        title,
+                                        "'$ew' kelimesindeki '$ec' harfi yerine '$hc' sesi algılandı ('$bestHWord'). Tek bir kök harfin değişmesi anlamı tamamen değiştirir; '$ec' harfini net çıkarın.",
+                                        ew,
+                                        bestHWord
+                                    )
                                 )
-                            )
+                            }
                         }
-                    }
-                }
-
-                // Check for missing letters (Med / Wazn / Root consonant deletion)
-                if (eCmp.length > hCmp.length) {
-                    val missingChars = eCmp.toMutableList()
-                    for (ch in hCmp) {
-                        missingChars.remove(ch)
-                    }
-                    for (dc in missingChars) {
+                    } else if (ecOpt != null && hcOpt == null) {
+                        val dc = ecOpt
                         if (dc in MED_LETTERS && eCons == hCons) {
                             if (dc == 'ا' && eCmp.length == 4 && hCmp.length == 3 && hCons.length == 3) {
                                 val title = "🔄 Sarf Kalıbı / Vezin Farklılığı ($ew ➔ $bestHWord)"
@@ -624,13 +663,8 @@ object ArabicNlpEngine {
                                 )
                             }
                         }
-                    }
-                } else if (hCmp.length > eCmp.length) {
-                    val insertedChars = hCmp.toMutableList()
-                    for (ch in eCmp) {
-                        insertedChars.remove(ch)
-                    }
-                    for (ic in insertedChars) {
+                    } else if (ecOpt == null && hcOpt != null) {
+                        val ic = hcOpt
                         if (ic in MED_LETTERS && eCons == hCons) {
                             val title = "📏 Gereksiz Uzatma / Hareke Hatası ($ic)"
                             if (seenTitles.add(title)) {

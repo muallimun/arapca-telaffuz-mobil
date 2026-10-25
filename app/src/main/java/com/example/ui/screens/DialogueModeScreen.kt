@@ -81,6 +81,7 @@ fun DialogueModeScreen(
     val showTr by viewModel.chatShowTr.collectAsState()
     val showTashkeel by viewModel.chatShowTashkeel.collectAsState()
     val fontSizeSp by viewModel.chatFontSizeSp.collectAsState()
+    val showDemoSim by viewModel.showDemoSimulationButtons.collectAsState()
 
     val isPlayingAll by viewModel.isPlayingAllDialogue.collectAsState()
     val highlightedLineIdx by viewModel.highlightedDialogueLineIndex.collectAsState()
@@ -110,36 +111,39 @@ fun DialogueModeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // 1. Üst Diyalog Seçici ve Alt-Mod (Öğrenme vs Roleplay) Barı
+        // 1. Kompakt Üst Diyalog Seçici ve Alt-Mod (Öğrenme vs Roleplay) Barı
         Card(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = palette.panelColor),
             border = BorderStroke(1.dp, palette.border),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box {
                         OutlinedButton(
                             onClick = { showLevelMenu = true },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(34.dp)
                         ) {
                             Text(
                                 text = "Seviye: $selectedLevel",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = palette.textMain
+                                color = palette.textMain,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
                         }
@@ -162,10 +166,11 @@ fun DialogueModeScreen(
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { showDialogueMenu = true },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(34.dp)
                                 .testTag("dialogue_selector")
                         ) {
                             val titleDisp = if (currentDialogue != null) {
@@ -173,10 +178,11 @@ fun DialogueModeScreen(
                             } else "Diyalog Seçin"
                             Text(
                                 text = titleDisp,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.accentHead,
                                 maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.weight(1f)
                             )
                             Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
@@ -205,7 +211,7 @@ fun DialogueModeScreen(
 
                 // Alt Mod Seçici: 📖 Öğrenme Modu vs 🎭 Ölçme / Canlandırma (Roleplay)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -215,13 +221,14 @@ fun DialogueModeScreen(
                             containerColor = if (submode == "learn") EmeraldGreen else palette.btnSec,
                             contentColor = if (submode == "learn") Color(0xFF0F172A) else palette.textMain
                         ),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                         modifier = Modifier
                             .weight(1f)
+                            .height(34.dp)
                             .testTag("btn_submode_learn")
                     ) {
-                        Text("📖 Öğrenme Modu", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("📖 Öğrenme Modu", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                     }
 
                     Button(
@@ -230,13 +237,14 @@ fun DialogueModeScreen(
                             containerColor = if (submode == "roleplay") WarmGold else palette.btnSec,
                             contentColor = if (submode == "roleplay") Color(0xFF0F172A) else palette.textMain
                         ),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                         modifier = Modifier
                             .weight(1f)
+                            .height(34.dp)
                             .testTag("btn_submode_roleplay")
                     ) {
-                        Text("🎭 Canlandırma (Roleplay)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("🎭 Canlandırma (Roleplay)", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                     }
                 }
 
@@ -253,14 +261,18 @@ fun DialogueModeScreen(
                                 containerColor = if (isPlayingAll) CoralRed else AccentCoral,
                                 contentColor = Color.White
                             ),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                            modifier = Modifier.testTag("btn_play_all_dialogue")
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier
+                                .height(32.dp)
+                                .testTag("btn_play_all_dialogue")
                         ) {
                             Text(
-                                text = if (isPlayingAll) "⏹️ Diyaloğu Durdur" else "▶️ Diyaloğun Tümünü Oynat",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                text = if (isPlayingAll) "⏹️ Durdur" else "▶️ Tümünü Oynat",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
@@ -268,12 +280,12 @@ fun DialogueModeScreen(
                             FilterChip(
                                 selected = showTashkeel,
                                 onClick = { viewModel.setChatShowTashkeel(!showTashkeel) },
-                                label = { Text("Hareke", fontSize = 11.sp) }
+                                label = { Text("Hareke", fontSize = 10.sp) }
                             )
                             FilterChip(
                                 selected = showTr,
                                 onClick = { viewModel.setChatShowTr(!showTr) },
-                                label = { Text("🇹🇷 Çeviri", fontSize = 11.sp) }
+                                label = { Text("🇹🇷 Çeviri", fontSize = 10.sp) }
                             )
                         }
                     }
@@ -347,19 +359,21 @@ fun DialogueModeScreen(
                                     Text("🎤 Konuş", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
 
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = palette.cardColor,
-                                    border = BorderStroke(1.dp, EmeraldGreen),
-                                    modifier = Modifier.clickable { viewModel.simulatePronunciationAttempt("correct") }
-                                ) {
-                                    Text(
-                                        text = "🎯 Simüle Et",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = palette.okGreen,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-                                    )
+                                if (showDemoSim) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = palette.cardColor,
+                                        border = BorderStroke(1.dp, EmeraldGreen),
+                                        modifier = Modifier.clickable { viewModel.simulatePronunciationAttempt("correct") }
+                                    ) {
+                                        Text(
+                                            text = "🎯 Simüle Et",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = palette.okGreen,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -424,7 +438,14 @@ fun DialogueModeScreen(
                                     shape = RoundedCornerShape(8.dp),
                                     color = AccentCoral,
                                     modifier = Modifier.clickable {
-                                        viewModel.audioManager.speakArabic(line.arapca, vType, viewModel.slowTts.value)
+                                        viewModel.audioManager.speakArabic(
+                                            text = line.arapca,
+                                            voiceType = vType,
+                                            slow = viewModel.slowTts.value,
+                                            audioPath = line.ses,
+                                            itemId = "dlgline_${line.id}",
+                                            paketId = line.diyalogId
+                                        )
                                     }
                                 ) {
                                     Text(

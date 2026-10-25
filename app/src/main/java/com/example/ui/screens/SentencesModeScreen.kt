@@ -88,6 +88,7 @@ fun SentencesModeScreen(
     val hideArabic by viewModel.sentHideArabic.collectAsState()
     val testModeHideAr by viewModel.testModeHideArabic.collectAsState()
     val fontSizeSp by viewModel.sentFontSizeSp.collectAsState()
+    val showDemoSim by viewModel.showDemoSimulationButtons.collectAsState()
 
     val isRecording by viewModel.audioManager.isRecording.collectAsState()
     val waveBars by viewModel.audioManager.waveBars.collectAsState()
@@ -96,6 +97,7 @@ fun SentencesModeScreen(
     var showFilterMenu by remember { mutableStateOf(false) }
     var showLevelMenu by remember { mutableStateOf(false) }
     var showCardLevelMenu by remember { mutableStateOf(false) }
+    var filterExpanded by remember { mutableStateOf(false) }
 
     val currentItem = if (sentences.isNotEmpty()) {
         sentences[sentenceIndex.coerceIn(0, sentences.size - 1)]
@@ -105,43 +107,45 @@ fun SentencesModeScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // 1. Üst Filtre, Seviye ve Görünüm Barı
+        // 1. Kompakt & Açılır-Kapanır Üst Filtre ve Seviye Barı
         Card(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = palette.panelColor),
             border = BorderStroke(1.dp, palette.border),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { showFilterMenu = true },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(34.dp)
                                 .testTag("sentence_filter_selector")
                         ) {
                             Text(
-                                text = "Filtre: $selectedFilter",
-                                fontSize = 12.sp,
+                                text = selectedFilter,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.accentHead,
                                 maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.weight(1f)
                             )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead, modifier = Modifier.size(16.dp))
                         }
                         DropdownMenu(
                             expanded = showFilterMenu,
@@ -162,16 +166,19 @@ fun SentencesModeScreen(
                     Box {
                         OutlinedButton(
                             onClick = { showLevelMenu = true },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(34.dp)
                         ) {
                             Text(
                                 text = "Seviye: $selectedLevel",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = palette.textMain
+                                color = palette.textMain,
+                                maxLines = 1,
+                                softWrap = false
                             )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain, modifier = Modifier.size(16.dp))
                         }
                         DropdownMenu(
                             expanded = showLevelMenu,
@@ -191,74 +198,96 @@ fun SentencesModeScreen(
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = AccentCoral,
-                        modifier = Modifier.clickable { viewModel.openModal(ActiveModal.LISTENING_EXAM) }
+                        color = if (filterExpanded) palette.accentHead.copy(alpha = 0.2f) else palette.btnSec,
+                        border = BorderStroke(1.dp, if (filterExpanded) palette.accentHead else palette.border),
+                        modifier = Modifier
+                            .height(34.dp)
+                            .clickable { filterExpanded = !filterExpanded }
                     ) {
-                        Text(
-                            text = "🎧 Dinle & Bul",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
-                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        ) {
+                            Text(
+                                text = if (filterExpanded) "⚙️ Filtre ▴" else "⚙️ Filtre ▾",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (filterExpanded) palette.accentHead else palette.textMain,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
                     }
                 }
 
-                // Görünüm ve Punto Satırı
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        FilterChip(
-                            selected = hideArabic,
-                            onClick = { viewModel.setSentHideArabic(!hideArabic) },
-                            label = { Text("🙈 Arapçayı Gizle", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = WarmGold,
-                                selectedLabelColor = Color(0xFF0F172A)
+                if (filterExpanded) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilterChip(
+                                selected = hideArabic,
+                                onClick = { viewModel.setSentHideArabic(!hideArabic) },
+                                label = { Text("🙈 Arapçayı Gizle", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = WarmGold,
+                                    selectedLabelColor = Color(0xFF0F172A)
+                                )
                             )
-                        )
-                        FilterChip(
-                            selected = showTashkeel,
-                            onClick = { viewModel.setSentShowTashkeel(!showTashkeel) },
-                            label = { Text("Hareke", fontSize = 10.sp) }
-                        )
-                        FilterChip(
-                            selected = showTr,
-                            onClick = { viewModel.setSentShowTr(!showTr) },
-                            label = { Text("🇹🇷 Türkçe", fontSize = 10.sp) }
-                        )
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = palette.btnSec,
-                            modifier = Modifier.clickable { viewModel.changeSentenceFontSize(-2) }
-                        ) {
-                            Text(
-                                text = "A-",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.textMain,
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
+                            FilterChip(
+                                selected = showTashkeel,
+                                onClick = { viewModel.setSentShowTashkeel(!showTashkeel) },
+                                label = { Text("Hareke", fontSize = 10.sp) }
+                            )
+                            FilterChip(
+                                selected = showTr,
+                                onClick = { viewModel.setSentShowTr(!showTr) },
+                                label = { Text("🇹🇷 Türkçe", fontSize = 10.sp) }
                             )
                         }
-                        Text(" Punto ", fontSize = 10.sp, color = palette.textDim, fontWeight = FontWeight.Bold)
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = palette.btnSec,
-                            modifier = Modifier.clickable { viewModel.changeSentenceFontSize(2) }
-                        ) {
-                            Text(
-                                text = "A+",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.textMain,
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
-                            )
+
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = AccentCoral,
+                                modifier = Modifier.clickable { viewModel.openModal(ActiveModal.LISTENING_EXAM) }
+                            ) {
+                                Text(
+                                    text = "🎧 Dinle & Bul",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = palette.btnSec,
+                                modifier = Modifier.clickable { viewModel.changeSentenceFontSize(-2) }
+                            ) {
+                                Text(
+                                    text = "A-",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.textMain,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = palette.btnSec,
+                                modifier = Modifier.clickable { viewModel.changeSentenceFontSize(2) }
+                            ) {
+                                Text(
+                                    text = "A+",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.textMain,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -267,10 +296,10 @@ fun SentencesModeScreen(
 
         // 2. ANA CÜMLE KARTI
         val cardBorderColor = if (isRecording) EmeraldGreen else palette.border
-        val cardBorderWidth = if (isRecording) 3.dp else 1.dp
+        val cardBorderWidth = if (isRecording) 2.5.dp else 1.dp
 
         Card(
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = palette.cardColor),
             border = BorderStroke(cardBorderWidth, cardBorderColor),
             modifier = Modifier
@@ -282,7 +311,7 @@ fun SentencesModeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp)
+                        .padding(24.dp)
                 ) {
                     Text(
                         text = "Seçili filtre veya seviyede cümle bulunamadı.",
@@ -296,47 +325,56 @@ fun SentencesModeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Üst Kontroller: ⭐ Favori | ✅ Öğrendim | 🏷️ Seviye
+                    // Üst Kontroller: ⭐ Favori | ✅ Öğrendim | 🏷️ Seviye (Sabit Genişlik)
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        val isFav = currentItem.isFav == 1
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isFav) WarmGold else palette.btnSec,
-                            modifier = Modifier.clickable {
-                                scope.launch { viewModel.repository.toggleSentenceFavorite(currentItem.id) }
-                            }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = if (isFav) "⭐ Favori" else "☆ Favori",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isFav) Color(0xFF0F172A) else palette.textMain,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                            )
-                        }
+                            val isFav = currentItem.isFav == 1
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isFav) WarmGold else palette.btnSec,
+                                modifier = Modifier.clickable {
+                                    scope.launch { viewModel.repository.toggleSentenceFavorite(currentItem.id) }
+                                }
+                            ) {
+                                Text(
+                                    text = if (isFav) "⭐ Favori" else "☆ Favori",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isFav) Color(0xFF0F172A) else palette.textMain,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
 
-                        val isLearned = currentItem.isLearned == 1
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isLearned) EmeraldGreen else palette.btnSec,
-                            modifier = Modifier.clickable {
-                                scope.launch { viewModel.repository.toggleSentenceLearned(currentItem.id) }
+                            val isLearned = currentItem.isLearned == 1
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isLearned) EmeraldGreen else palette.btnSec,
+                                modifier = Modifier.clickable {
+                                    scope.launch { viewModel.repository.toggleSentenceLearned(currentItem.id) }
+                                }
+                            ) {
+                                Text(
+                                    text = if (isLearned) "✅ Öğrendim" else "☑️ Öğrendim",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isLearned) Color(0xFF0F172A) else palette.textMain,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
                             }
-                        ) {
-                            Text(
-                                text = if (isLearned) "✅ Öğrendim" else "☑️ Öğrendim",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isLearned) Color(0xFF0F172A) else palette.textMain,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                            )
                         }
 
                         Box {
@@ -344,14 +382,19 @@ fun SentencesModeScreen(
                                 shape = RoundedCornerShape(8.dp),
                                 color = palette.panelColor,
                                 border = BorderStroke(1.dp, palette.border),
-                                modifier = Modifier.clickable { showCardLevelMenu = true }
+                                modifier = Modifier
+                                    .width(64.dp)
+                                    .clickable { showCardLevelMenu = true }
                             ) {
                                 Text(
                                     text = "🏷️ ${currentItem.seviye} ▾",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = palette.accentHead,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                                 )
                             }
                             DropdownMenu(
@@ -388,7 +431,7 @@ fun SentencesModeScreen(
                                 verticalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
+                                    .padding(vertical = 4.dp)
                             ) {
                                 evalState.wordStatuses.forEach { (wStr, isOk) ->
                                     val wDisp = if (showTashkeel) wStr else ArabicNlpEngine.removeDiacritics(wStr)
@@ -408,15 +451,15 @@ fun SentencesModeScreen(
                             color = palette.panelColor,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 12.dp)
+                                .padding(vertical = 6.dp)
                         ) {
                             Text(
                                 text = "🔒 [ Arapça Cümle Gizli — Söyleyin veya '🔊 Dinle'ye Basın ]",
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textArabic,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(16.dp)
+                                modifier = Modifier.padding(12.dp)
                             )
                         }
                     } else {
@@ -427,10 +470,10 @@ fun SentencesModeScreen(
                             fontSize = fontSizeSp.sp,
                             color = palette.textArabic,
                             textAlign = TextAlign.Center,
-                            lineHeight = (fontSizeSp + 14).sp,
+                            lineHeight = (fontSizeSp + 12).sp,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 6.dp)
+                                .padding(vertical = 2.dp)
                         )
                     }
 
@@ -438,7 +481,7 @@ fun SentencesModeScreen(
                     if (showTr) {
                         Text(
                             text = currentItem.turkce,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = palette.textMain,
                             textAlign = TextAlign.Center
@@ -461,7 +504,7 @@ fun SentencesModeScreen(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textMain,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                             )
                         }
 
@@ -477,7 +520,7 @@ fun SentencesModeScreen(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textMain,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                             )
                         }
 
@@ -493,7 +536,7 @@ fun SentencesModeScreen(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textMain,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                             )
                         }
 
@@ -507,7 +550,7 @@ fun SentencesModeScreen(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textMain,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                             )
                         }
                     }
@@ -516,12 +559,14 @@ fun SentencesModeScreen(
                     LiveWaveformBars(
                         bars = waveBars,
                         isRecording = isRecording,
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                        modifier = Modifier
+                            .height(26.dp)
+                            .padding(horizontal = 24.dp)
                     )
 
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Button(
@@ -530,72 +575,89 @@ fun SentencesModeScreen(
                                 containerColor = if (isRecording) CoralRed else RoyalBlue,
                                 contentColor = Color.White
                             ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.testTag("btn_sentence_record")
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .height(42.dp)
+                                .testTag("btn_sentence_record")
                         ) {
                             Icon(
                                 imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Mic,
-                                contentDescription = null
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (isRecording) "⏹️ DURDUR" else "🎤 Telaffuz Et",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
+                                text = if (isRecording) "DURDUR" else "🎤 Telaffuz Et",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
                         Button(
                             onClick = { viewModel.speakCurrentItem(null) },
                             colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.testTag("btn_sentence_tts")
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(42.dp)
+                                .testTag("btn_sentence_tts")
                         ) {
-                            Text("🔊 Dinle (TTS)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("🔊 Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
 
                         Button(
                             onClick = { viewModel.openShadowingForCurrentCard() },
                             colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(42.dp)
                         ) {
-                            Text("🗣️ Gölgele", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("🗣️ Gölgele", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
 
-                    // Emülatör & Canlı Koç Test Butonları
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = palette.panelColor,
-                            border = BorderStroke(1.dp, palette.okGreen.copy(alpha = 0.6f)),
-                            modifier = Modifier.clickable { viewModel.simulatePronunciationAttempt("correct") }
+                    // Emülatör & Canlı Koç Test Butonları (Ayarlar -> Demo / Simülasyon Açık İse Gösterilir)
+                    if (showDemoSim) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "🎯 Örnek Doğru Okuma",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = palette.okGreen,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
-                        }
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = palette.panelColor,
+                                border = BorderStroke(1.dp, palette.okGreen.copy(alpha = 0.6f)),
+                                modifier = Modifier.clickable { viewModel.simulatePronunciationAttempt("correct") }
+                            ) {
+                                Text(
+                                    text = "🎯 Örnek Doğru Okuma",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = palette.okGreen,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
 
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = palette.panelColor,
-                            border = BorderStroke(1.dp, WarmGold.copy(alpha = 0.6f)),
-                            modifier = Modifier.clickable { viewModel.simulatePronunciationAttempt("makhraj") }
-                        ) {
-                            Text(
-                                text = "🔬 Mahreç Hatası Test Et",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = WarmGold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = palette.panelColor,
+                                border = BorderStroke(1.dp, WarmGold.copy(alpha = 0.6f)),
+                                modifier = Modifier.clickable { viewModel.simulatePronunciationAttempt("makhraj") }
+                            ) {
+                                Text(
+                                    text = "🔬 Mahreç Hatası Test Et",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = WarmGold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
                         }
                     }
 
@@ -606,7 +668,7 @@ fun SentencesModeScreen(
                     }
                     Text(
                         text = evalState.verdictTitle,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = verdictColor,
                         textAlign = TextAlign.Center
@@ -614,7 +676,7 @@ fun SentencesModeScreen(
                     if (evalState.statusDetail.isNotBlank()) {
                         Text(
                             text = evalState.statusDetail,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = palette.textMain,
                             textAlign = TextAlign.Center
