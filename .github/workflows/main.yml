@@ -1,0 +1,32 @@
+name: Android APK Derle
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodlari Cek
+        uses: actions/checkout@v4
+
+      - name: JDK 17 Kurulumu
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Gradle Calistirma Izni Ver
+        run: chmod +x gradlew
+
+      - name: Debug APK Derle
+        run: ./gradlew assembleDebug
+
+      - name: APK Dosyasini Indirilebilir Yap
+        uses: actions/upload-artifact@v4
+        with:
+          name: Arapca-Telaffuz-APK
+          path: app/build/outputs/apk/debug/*.apk
