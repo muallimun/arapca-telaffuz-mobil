@@ -59,8 +59,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.material3.Scaffold
 import com.example.ui.theme.AccentCoral
 import com.example.ui.theme.AmiriArabicFontFamily
 import com.example.ui.theme.CoralRed
@@ -87,6 +88,14 @@ private data class OnboardingStep(
 )
 
 @Composable
+fun SevenStepOnboardingTourModal(
+    viewModel: MainAppViewModel,
+    onDismiss: () -> Unit
+) {
+    OnboardingTourModal(viewModel = viewModel, onDismiss = onDismiss)
+}
+
+@Composable
 fun OnboardingTourModal(
     viewModel: MainAppViewModel,
     onDismiss: () -> Unit
@@ -98,193 +107,198 @@ fun OnboardingTourModal(
     val steps = remember {
         listOf(
             OnboardingStep(
-                badge = "ADIM 1 / 7 — UYGULAMANIN AMACI NEDİR?",
-                icon = "🎙️  🕌  🤖",
-                title = "Arapçayı Sadece Okuyarak Değil, Sesli Konuşarak Öğrenin!",
-                description = "Bu uygulamanın temel amacı; Arapça öğrenenlerin en çok zorlandığı 'doğru telaffuz etme (mahreç)', 'kelime köklerini tanıma (sarf)' ve 'akıcı konuşma (muhâdese)' becerilerini yapay zekâ destekli fonetik koçla geliştirmektir.",
-                tip = "💡 Alt gezinme çubuğundan ve üst menüden istediğiniz çalışma ekranına her an geçiş yapabilirsiniz."
+                badge = "ADIM 1 / 7 — 🎯 HOŞ GELDİNİZ",
+                icon = "🎯  🕌  📱",
+                title = "🎯 Hoş Geldiniz: Mobil Arapça Telaffuz Asistanı",
+                description = "Arapçayı sadece okuyarak değil, sesli konuşarak ve doğru mahreçle öğrenmeniz için tasarlanan mobil telaffuz asistanınıza hoş geldiniz!\n\nEkranın en altındaki gezinme çubuğundan 4 ana çalışma moduna (🏠 Ana Sayfa, 🔤 Kelime, 💬 Diyalog, 📝 Cümle) tek dokunuşla anında geçiş yapabilirsiniz.",
+                tip = "💡 Üst bardaki ☀️/🌙 ikonuyla temayı değiştirebilir, ℹ️ butonuyla kılavuz ve tanıtım turuna her zaman ulaşabilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 2 / 7 — 🏛️ ANA SAYFA EKRANINDA NE YAPABİLİRSİNİZ?",
-                icon = "🏛️  📍  🔥",
-                title = "Başlangıç Merkezini Kullanma ve Kaldığınız Yerden Devam Etme",
-                description = "Uygulama açıldığında karşınıza gelen '🏛️ Ana Sayfa' sizin çalışma merkezinizdir. Adınızı, günlük çalışma serinizi (🔥 Streak) ve puanınızı takip edebilir; '▶️ Kaldığım Yerden Devam Et' butonuyla son çalıştığınız ekrana tek dokunuşla dönebilirsiniz.",
-                tip = "💡 Sağ üstteki ☀️/🌙 butonuyla Aydınlık veya Karanlık temayı seçebilirsiniz."
+                badge = "ADIM 2 / 7 — 🎤 SESLİ TELAFFUZ & MAHREÇ KOÇU",
+                icon = "🎤  🎯  🔬",
+                title = "🎤 Sesli Telaffuz & Canlı Mahreç Koçu",
+                description = "Çalışma kartlarındaki '🎤 Mikrofon' butonuna basıp Arapça kelimeyi veya cümleyi sesli okuyun.\n\nCanlı ses tanıma motoru okumanızı anında analiz eder; boğaz (ع-ح-خ), peltek (ث-ذ-ظ), kalın/ince (ص-س, ط-ت, ض-د, ق-ك) harf farklarını ve med-vezin (uzatma) hatalarını tespit ederek ağız ve boğazdaki doğru çıkış noktasını size tarif eder.",
+                tip = "💡 Cümle içinde hatalı okuduğunuz kırmızı kelimenin üzerine dokunarak yavaşlatılmış doğru telaffuzunu anında dinleyebilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 3 / 7 — 🏠 KELİME MODU EKRANINDA NE YAPABİLİRSİNİZ?",
-                icon = "🏠  🔊  🎤",
-                title = "Kelimeleri Dinleyin, Mikrofona Okuyun ve Gölgeleme Yapın",
-                description = "1) '🔊 Kadın / Erkek' butonlarıyla kelimenin doğru telaffuzunu dinleyin.\n2) '🎤 BAŞLA VE KONUŞ' butonuna basıp yeşil çerçeve parladığında mikrofona okuyun.\n3) '🗣️ Gölgele' ile sesi duyduktan hemen sonra aynı ritimle tekrar etme antrenmanı yapın.\n4) '📅 Günün 15 Tekrarı' ile SM-2 akıllı tekrar yapın.",
-                tip = "💡 Emülatörde veya sessiz ortamda test için '🎯 Örnek Doğru Okuma' ve '🔬 Mahreç Hatası Test Et' butonlarını da kullanabilirsiniz."
+                badge = "ADIM 3 / 7 — 🗣️ GÖLGELEME & KENDİ SESİNİ DİNLEME",
+                icon = "🗣️  🔊  🎧",
+                title = "🗣️ Gölgeleme (Shadowing) & Kendi Sesini Dinleme",
+                description = "• 🔊 Kadın / Erkek butonlarıyla kelimenin veya cümlenin örnek telaffuzunu dinleyin.\n• 🗣️ 'Gölgele' butonuyla önce örnek sesi duyup hemen ardından beklemeden tekrar ederek ritim ve vurgu çalışması yapın.\n• 🎧 'Sesim' butonuyla kendi son ses kaydınızı dinleyip örnek okunuşla karşılaştırın.",
+                tip = "💡 Üst üste zorlandığınız kelimelerde Koç otomatik olarak '🐢 Yavaş Seslendirme (%25)' desteğini devreye sokar."
             ),
             OnboardingStep(
-                badge = "ADIM 4 / 7 — 📖 SARF SÖZLÜĞÜ EKRANINDA NE YAPABİLİRSİNİZ?",
-                icon = "📖  🌿  🔍",
-                title = "Kelimelerin 3 Harfli Köklerini ve Türev Ailelerini Keşfedin",
-                description = "Arapça kelimelerin hangi 3 asli harften (Sülâsî Kök) türediğini öğrenin. İsimlerin Tekil/Çoğul (Müfret/Cemî), fiillerin ise Geçmiş/Şimdiki Zaman (Mâzî/Muzâri/Masdar) çekimlerini dinleyip aynı kökten türeyen akraba kelimeleri inceleyin.",
-                tip = "💡 Kelime Modunda sözlük paketlerini seçtiğinizde kart üzerinde Altıgen Kök Rozeti açılır."
+                badge = "ADIM 4 / 7 — 🌿 SARF KÖK SÖZLÜĞÜ & KÖK ATÖLYESİ",
+                icon = "📖  🌿  🐝",
+                title = "🌿 Sarf Kök Sözlüğü & 6'lı Petek Görünümü",
+                description = "Üst menüdeki '📖 Sözlük' butonuna dokunarak Arapça kelimelerin 3 harfli sülâsî köklerini, vezinlerini ve aynı kökten türeyen kelime ailesini keşfedin.\n\nİsimlerin Tekil/Çoğul (Müfret/Cemî), fiillerin Mâzî/Muzâri/Masdar çekimlerini ve 6'lı petek (altıgen kök) görünümünü sesli olarak inceleyin.",
+                tip = "💡 Kelime kartlarındaki 3 harfli kök rozetine dokunarak o kelimenin tüm türev ailesini anında açabilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 5 / 7 — 💬 DİYALOG VE 📜 CÜMLE EKRANLARINDA NE YAPABİLİRSİNİZ?",
-                icon = "💬  🎭  📜",
-                title = "Karşılıklı Rol Yaparak Konuşun ve Cümle Telaffuzu Çalışın",
-                description = "• 💬 Diyalog Modu: '📖 Öğrenme Modu'nda günlük hayat diyaloglarını dinleyin. '🎭 Canlandırma (Roleplay)' modunda ise bir karakteri seçin; karşı rolü uygulama seslendirsin, sıra size geldiğinde mikrofona konuşarak diyaloğu tamamlayın.\n• 📜 Cümle Modu: Cümle içindeki doğru (yeşil) ve hatalı (kırmızı) kelimelerinizi anında görün.",
-                tip = "💡 Canlandırma modunda Türkçe çeviri gizlenir; ihtiyaç duyarsanız '💡 Türkçe İpucu Göster' butonuna dokunabilirsiniz."
+                badge = "ADIM 5 / 7 — 🎭 DİYALOG CANLANDIRMA (ROLEPLAY)",
+                icon = "🎭  💬  🎙️",
+                title = "🎭 Diyalog Canlandırma — Roleplay",
+                description = "Alt menüden '💬 Diyalog' moduna geçip '🎭 Canlandırma (Roleplay)' sekmesini seçin.\n\nDiyalogdaki karakterlerden birini seçtiğinizde karşı rolü uygulama sesli olarak okur; sıra sizin karakterinize geldiğinde mikrofon açılır ve gerçek bir konuşma partneriyle pratik yapıyormuş gibi sesli Arapça diyalog kurarsınız.",
+                tip = "💡 Canlandırma sırasında takıldığınız yerde '💡 İpucu' butonuyla cümlenin anlamını görebilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 6 / 7 — 🎯 CANLI MAHREÇ KOÇU VE 🎧 DİNLE & BUL SINAVI",
-                icon = "🎯  🎧  🏆",
-                title = "Harf Hatalarınızı Düzeltin ve 4 Şıklı Dinleme Sınavı Çözün",
-                description = "• 🎯 Canlı Mahreç & Hareke Koçu: Birbirine karıştırdığınız harfleri (ص-س, ذ-ز, ع-ء, ن-ر vb.), kök harf değişimlerini (نَحْلَة vs رحلة) veya vezin/uzatma hatalarını kırmızıyla gösterip ağız/boğazdaki doğru çıkış noktasını tarif eder.\n• 🎧 Dinle & Bul: 10, 20, 50 soruluk veya Sınırsız 4 şıklı sesli anlama sınavı çözün.",
-                tip = "💡 Üst üste 3 hatalı denemede Koç otomatik olarak '🐢 Yavaş Seslendirme (%25)' modunu açar."
+                badge = "ADIM 6 / 7 — 🎧 DİNLE & BUL VE GÜNÜN 15 TEKRARI",
+                icon = "🎧  📅  ⭐",
+                title = "🎧 Dinle & Bul ve Günün 15 Tekrarı",
+                description = "• Üst menüdeki '🎧 Sınav' butonuyla Arapça sesi dinleyip doğru anlamı bulduğunuz çoktan seçmeli sesli testler çözün.\n• Kelime ve Cümle ekranlarındaki filtre panelinden '📅 Günlük 15', '📌 Ezberlenmeyen' veya '⚠️ Zayıf' çiplerini seçerek her gün akıllı aralıklı tekrar (SM-2) yapın.",
+                tip = "💡 Filtre panelinden '🙈 Gizle', '✨ Hareke' ve '🇹🇷 Anlam' butonlarıyla kart görünümünü tek dokunuşla özelleştirebilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 7 / 7 — 📊 RAPORLAR, 🖨️ SINAV/DERS NOTU VE 🛠️ YÖNETİM PANELİ",
-                icon = "📊  🖨️  🛠️",
-                title = "Gelişim Karnenizi İnceleyin, A4 Sınav/Ders Notu Üretin ve İçerik Ekleyin",
-                description = "• 📊 Raporlar: Rozetlerinizi, ilerleme grafiklerinizi ve zorlandığınız kelimelerdeki ses kayıtlarınızı (.wav) dinleyin; öğretmeninize '📦 Ödev & Karne (.ZIP/CSV)' paylaşın.\n• 🖨️ Sınav & Ders Notu / 🛠️ Yönetim Paneli: A4 yazılı sınav veya okuma metni (PDF) çıktısı alın; Excel'den kopyala-yapıştır ile kendi ders içeriğinizi ekleyin.",
-                tip = "💡 Şimdi '🚀 Hemen Başla!' butonuna dokunarak adınızı kaydedip ilk Arapça pratiğinize başlayabilirsiniz!"
+                badge = "ADIM 7 / 7 — 📊 GELİŞİM KARNESİ & KOLAY İÇERİK EKLEME",
+                icon = "📊  🏅  📥",
+                title = "📊 Gelişim Karnesi & Kolay İçerik Ekleme",
+                description = "• Üst menüdeki '📊 Karne' ekranından kazandığınız başarı rozetlerini, doğruluk oranınızı ve en çok zorlandığınız kelimeleri takip edin.\n• İçerik Yönetimi ekranından panoya kopyaladığınız listeleri veya hazır paket dosyalarını (.db / .json / .csv) tek dokunuşla aktararak yeni kelime, cümle ve diyaloglar ekleyin.",
+                tip = "💡 Şimdi '🚀 Hemen Başla!' butonuna dokunarak ilk sesli Arapça pratiğinize başlayabilirsiniz!"
             )
         )
     }
 
     val step = steps[curStep]
 
-    Dialog(
-        onDismissRequest = { viewModel.finishOnboardingTour(dontShowAgain) },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor.copy(alpha = 0.96f),
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier
+            .fillMaxSize()
+            .navigationBarsPadding()
+    ) { innerPadding ->
+        Column(
+            verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Column(
-                verticalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 18.dp)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                Text(
+                    text = step.badge,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.accentHead,
+                    modifier = Modifier.weight(1f)
+                )
+                val dots = steps.indices.joinToString(" ") { if (it == curStep) "●" else "○" }
+                Text(
+                    text = dots,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.okGreen
+                )
+            }
+
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = palette.cardColor),
+                border = BorderStroke(1.dp, palette.border),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(18.dp)
                 ) {
+                    Text(text = step.icon, fontSize = 32.sp)
                     Text(
-                        text = step.badge,
-                        fontSize = 12.sp,
+                        text = step.title,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.accentHead,
-                        modifier = Modifier.weight(1f)
+                        textAlign = TextAlign.Center
                     )
-                    val dots = steps.indices.joinToString(" ") { if (it == curStep) "●" else "○" }
                     Text(
-                        text = dots,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = palette.okGreen
+                        text = step.description,
+                        fontSize = 13.sp,
+                        color = palette.textMain,
+                        lineHeight = 20.sp
                     )
-                }
-
-                Card(
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = palette.cardColor),
-                    border = BorderStroke(1.dp, palette.border),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp)
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(20.dp)
-                    ) {
-                        Text(text = step.icon, fontSize = 34.sp)
-                        Text(
-                            text = step.title,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.accentHead,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = step.description,
-                            fontSize = 14.sp,
-                            color = palette.textMain,
-                            lineHeight = 21.sp
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = palette.panelColor,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = step.tip,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.accentHead,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = dontShowAgain, onCheckedChange = { dontShowAgain = it })
-                        Text("Bir daha açılışta gösterme", fontSize = 12.sp, color = palette.textDim)
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = palette.panelColor,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Button(
-                            onClick = { viewModel.finishOnboardingTour(dontShowAgain) },
-                            colors = ButtonDefaults.buttonColors(containerColor = palette.panelColor, contentColor = palette.textDim),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.testTag("btn_skip_tour")
-                        ) {
-                            Text("⏭️ Turu Atla", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
+                        Text(
+                            text = step.tip,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.accentHead,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+            }
 
-                        if (curStep > 0) {
-                            Button(
-                                onClick = { curStep-- },
-                                colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text("◀ Önceki", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.navigationBarsPadding()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = dontShowAgain, onCheckedChange = { dontShowAgain = it })
+                    Text("Bir daha açılışta gösterme", fontSize = 12.sp, color = palette.textDim)
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick = { viewModel.finishOnboardingTour(dontShowAgain) },
+                        colors = ButtonDefaults.buttonColors(containerColor = palette.panelColor, contentColor = palette.textDim),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .height(44.dp)
+                            .testTag("btn_skip_tour")
+                    ) {
+                        Text("⏭️ Turu Atla", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
+
+                    if (curStep > 0) {
+                        Button(
+                            onClick = { curStep-- },
+                            colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.height(44.dp)
+                        ) {
+                            Text("◀ Önceki", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            if (curStep < steps.size - 1) {
+                                curStep++
+                            } else {
+                                viewModel.finishOnboardingTour(dontShowAgain)
                             }
-                        }
-
-                        Button(
-                            onClick = {
-                                if (curStep < steps.size - 1) {
-                                    curStep++
-                                } else {
-                                    viewModel.finishOnboardingTour(dontShowAgain)
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (curStep == steps.size - 1) EmeraldGreen else RoyalBlue,
-                                contentColor = if (curStep == steps.size - 1) Color(0xFF0F172A) else Color.White
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("btn_next_tour")
-                        ) {
-                            Text(
-                                text = if (curStep == steps.size - 1) "🚀 Hemen Başla!" else "Sonraki Adım ▶",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (curStep == steps.size - 1) EmeraldGreen else RoyalBlue,
+                            contentColor = if (curStep == steps.size - 1) Color(0xFF0F172A) else Color.White
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("btn_next_tour")
+                    ) {
+                        Text(
+                            text = if (curStep == steps.size - 1) "🚀 Hemen Başla!" else "Sonraki Adım ▶",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
                     }
                 }
             }
@@ -373,24 +387,18 @@ fun SettingsModal(
     var editedName by remember(studentName) { mutableStateOf(studentName) }
     var recStats by remember { mutableStateOf(viewModel.audioManager.getRecordingsStats()) }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 14.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -607,7 +615,6 @@ fun SettingsModal(
                 ) {
                     Text("✅ AYARLARI UYGULA VE KAPAT", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
-            }
         }
     }
 }
@@ -635,92 +642,179 @@ private fun SettingSwitchRow(
 }
 
 // =============================================================================
-// 4. 📖 KULLANIM KILAVUZU VE ℹ️ HAKKINDA / KILAVUZ MERKEZİ MODALLARI
+// 4. 📖 MOBİL KULLANIM KILAVUZU (InteractiveGuideModal / UserGuideModal)
 // =============================================================================
+@Composable
+fun InteractiveGuideModal(
+    viewModel: MainAppViewModel,
+    onDismiss: () -> Unit
+) {
+    UserGuideModal(viewModel = viewModel, onDismiss = onDismiss)
+}
+
 @Composable
 fun UserGuideModal(
     viewModel: MainAppViewModel,
     onDismiss: () -> Unit
 ) {
     val palette = LocalMuallimunPalette.current
+    val context = LocalContext.current
+    var selectedGuideTab by remember { mutableIntStateOf(0) }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    fun openUrl(url: String) {
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: Exception) {
+        }
+    }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier
+            .fillMaxSize()
+            .navigationBarsPadding()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .navigationBarsPadding()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "📖 MOBİL KULLANIM KILAVUZU",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.accentHead,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+                Button(
+                    onClick = { viewModel.openModal(ActiveModal.ABOUT_INFO) },
+                    colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text("ℹ️ Hakkında", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Button(
+                    onClick = { viewModel.openModal(ActiveModal.ONBOARDING_TOUR) },
+                    colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text("🔄 7 Adımlı Tur", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
+                }
+            }
+
+            // Kompakt Sekmeler: Menü & Gezinme | Mikrofon & Mahreç | Paket & İçerik
+            TabRow(
+                selectedTabIndex = selectedGuideTab,
+                containerColor = palette.panelColor,
+                contentColor = palette.accentHead
+            ) {
+                Tab(
+                    selected = selectedGuideTab == 0,
+                    onClick = { selectedGuideTab = 0 },
+                    text = { Text("📱 Menü & Modlar", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                )
+                Tab(
+                    selected = selectedGuideTab == 1,
+                    onClick = { selectedGuideTab = 1 },
+                    text = { Text("🎤 Ses & Mahreç", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                )
+                Tab(
+                    selected = selectedGuideTab == 2,
+                    onClick = { selectedGuideTab = 2 },
+                    text = { Text("📥 Paket Yükleme", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                )
+            }
+
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 14.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "📖 KAPSAMLI KULLANIM KILAVUZU",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = palette.accentHead,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Button(
-                        onClick = { viewModel.openModal(ActiveModal.ONBOARDING_TOUR) },
-                        colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("👋 7 Adımlı Tur", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                when (selectedGuideTab) {
+                    0 -> {
+                        GuideSectionCard(
+                            title = "🧭 1. Alt ve Üst Menü Kullanımı",
+                            body = "• Alt Gezinme Çubuğu: Ekranın altındaki 4 sekme (🏠 Ana Sayfa, 🔤 Kelime, 💬 Diyalog, 📝 Cümle) arasında tek dokunuşla geçiş yapın.\n• Üst Hızlı Araçlar: '📖 Sözlük' ile Sarf Kök Sözlüğünü, '🎧 Sınav' ile Dinle & Bul testini, '📊 Karne' ile gelişim istatistiklerinizi açın.\n• ⚙️ Filtre Butonu: Kelime ve Cümle ekranlarında '🙈 Gizle', '✨ Hareke', '🇹🇷 Anlam', punto (A-/A+) ve '📅 Günlük 15' filtrelerini açıp kapatın."
+                        )
+                        GuideSectionCard(
+                            title = "🌿 2. Sarf Kök Sözlüğü ve 6'lı Petek Görünümü",
+                            body = "• Kelime kartlarındaki 3 harfli kök rozetine veya üst menüdeki '📖 Sözlük' butonuna dokunun.\n• Kelimenin sülâsî kökünü, veznini, Tekil/Çoğul veya Mâzî/Muzâri/Masdar çekimlerini ve aynı kökten türeyen kelime ailesini 6'lı petek görünümünde sesli inceleyin."
+                        )
+                        GuideSectionCard(
+                            title = "🎭 3. Diyalog Öğrenme ve Canlandırma (Roleplay)",
+                            body = "• '📖 Öğrenme Modu'nda diyaloğu satır satır veya tümüyle dinleyin.\n• '🎭 Canlandırma (Roleplay)' modunda bir konuşmacı rolü seçin; karşı rolü uygulama seslendirsin, sıra size geldiğinde mikrofona konuşarak diyaloğu tamamlayın."
+                        )
                     }
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
+                    1 -> {
+                        GuideSectionCard(
+                            title = "🎤 1. Mikrofona Konuşma İpuçları",
+                            body = "• Kartın altındaki '🎤 Mikrofon' butonuna bir kez dokunun; kart çerçevesi yeşil parladığında kelimenizi veya cümlenizi net bir sesle okuyun.\n• Konuşmanız bittiğinde sistem sesi otomatik değerlendirir ve doğruluk puanınızı verir.\n• '🗣️ Gölgele' ile örnek sesi dinledikten hemen sonra peş peşe tekrar yapabilir, '🎧 Sesim' ile kendi kaydınızı dinleyebilirsiniz."
+                        )
+                        GuideSectionCard(
+                            title = "🐢 2. Hatalı Kelimeye Dokunarak Yavaş Telaffuz Dinleme",
+                            body = "• Okuma sonrasında doğru kelimeler yeşil, hatalı veya eksik kelimeler kırmızı renkle işaretlenir.\n• Cümle veya diyalog içinde kırmızı (hatalı) görünen herhangi bir Arapça kelimenin üzerine doğrudan dokunarak o kelimenin yavaşlatılmış doğru telaffuzunu anında dinleyebilirsiniz."
+                        )
+                        GuideSectionCard(
+                            title = "🔬 3. Canlı Mahreç ve Vezin Uyarıları",
+                            body = "• Boğaz harfleri (ع-ح-خ), peltek harfler (ث-ذ-ظ), kalın-ince harf ayrımları (ص-س, ط-ت, ض-د, ق-ك) ve med (uzatma) hataları kartın altında detaylı açıklamayla gösterilir."
+                        )
                     }
-                }
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    GuideSectionCard(
-                        title = "🎯 1. Uygulamanın Amacı ve Eğitim Felsefesi",
-                        body = "Muallimun.Net Arapça Telaffuz ve Konuşma Asistanı; İmam Hatip Liseleri, İlahiyat Fakülteleri, TÖMER ve bireysel Arapça öğrenenler için geliştirilmiş yapay zekâ destekli bir konuşma (المحادثة), sarf (kök/türev) ve doğru telaffuz (النطق الصحيح) laboratuvarıdır."
-                    )
-                    GuideSectionCard(
-                        title = "🏠 2. Kelime Modu, Gölgeleme (Shadowing) ve SM-2 Tekrar",
-                        body = "• '🎤 BAŞLA VE KONUŞ' butonuna bastığınızda kartın dış çerçevesi parlak yeşil renkte parlar.\n• '🗣️ Gölgele' ile referans ses dalga boyunu (mavi) ve kendi ses dalga boyunuzu (yeşil) karşılaştırarak ritim uyumu çalışabilirsiniz.\n• '📅 Günün 15 Tekrarı' bilimsel SM-2 aralıklı tekrar algoritmasıyla zorlandığınız kelimeleri seçer."
-                    )
-                    GuideSectionCard(
-                        title = "🌿 3. Sarf Sözlüğü, Altıgen Kök Rozeti ve Türev Ağacı",
-                        body = "Görselsiz sözlük kartlarında kelimenin 3 asli kök harfi (ك ت ب vb.) altıgen rozet içinde gösterilir. İsimlerde 'Müfret & Cemî', fiillerde 'Mâzî • Muzâri • Masdar' kutularına dokunarak her çekimi ayrı ayrı dinleyip telaffuz edebilirsiniz."
-                    )
-                    GuideSectionCard(
-                        title = "🎯 4. Canlı Mahreç, Kök Harf ve Hareke Koçu",
-                        body = "Birbirine yakın mahreçli harfleri (ص↔س, ط↔ت, ض↔د, ع↔ء, ح↔ه, ق↔ك, ذ↔ز, ث↔س, ن↔ر vb.), kök harf değişimlerini (نَحْلَة vs رحلة) ve vezin/med farklarını (كِتَاب vs كتب) yakalar ve hatalı kelimeyi kırmızıyla vurgular."
-                    )
-                    GuideSectionCard(
-                        title = "🖨️ 5. A4 Yazılı Sınav, Karma Quiz ve Ders Notu (Handout) PDF",
-                        body = "Ayrık havuzlu (Arapça➔Türkçe ve Türkçe➔Arapça bölümlerinde aynı sorunun tekrarlanmadığı) yazılı sınavlar veya sınavsız temiz 'Ders Notu / Okuma Metni' A4 PDF çıktıları üretebilirsiniz."
-                    )
+                    2 -> {
+                        GuideSectionCard(
+                            title = "📥 1. Kolay Paket ve Veritabanı (.db / .json / .csv) Yükleme",
+                            body = "• Ana Sayfadaki '🛠️ İçerik Ekle' (veya Öğretmen / İçerik Yönetimi) ekranını açın.\n• Telefonunuzdaki '.db', '.json' veya '.csv' uzantılı kelime, cümle ve diyalog paketlerini tek dokunuşla seçerek uygulamaya aktarın."
+                        )
+                        GuideSectionCard(
+                            title = "📋 2. Panodan Hızlı Kelime / Cümle Ekleme ve Medya Eşleştirme",
+                            body = "• Yeni bir kategori adı belirleyip kelime, cümle veya diyaloglarınızı doğrudan form üzerinden ya da panodan toplu yapıştırarak ekleyebilirsiniz.\n• Dilerseniz eklediğiniz kelime ve cümlelere telefonunuzdan görsel (.png/.jpg) ve ses (.mp3/.wav) dosyası bağlayabilirsiniz."
+                        )
+                    }
                 }
 
                 Button(
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
+                    onClick = { openUrl("https://arapca.muallimun.net/arapca-telaffuz-asistani/") },
+                    colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
                     shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
                 ) {
-                    Text("Anladım, Kapat", fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "🌐 Web Tanıtım & Kılavuz Sayfası",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1
+                    )
                 }
+            }
+
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+            ) {
+                Text("✅ Anladım, Kapat", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
             }
         }
     }
@@ -736,15 +830,27 @@ private fun GuideSectionCard(title: String, body: String) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.accentHead)
+            Text(text = title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.accentHead)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = body, fontSize = 12.sp, color = palette.textMain, lineHeight = 19.sp)
+            Text(text = body, fontSize = 12.sp, color = palette.textMain, lineHeight = 18.sp)
         }
     }
 }
 
+// =============================================================================
+// 4B. ℹ️ HAKKINDA PENCERESİ (AboutAppModal / AboutInfoModal - resim_7.jpg)
+// =============================================================================
+@Composable
+fun AboutAppModal(
+    viewModel: MainAppViewModel? = null,
+    onDismiss: () -> Unit
+) {
+    AboutInfoModal(viewModel = viewModel, onDismiss = onDismiss)
+}
+
 @Composable
 fun AboutInfoModal(
+    viewModel: MainAppViewModel? = null,
     onDismiss: () -> Unit
 ) {
     val palette = LocalMuallimunPalette.current
@@ -761,46 +867,106 @@ fun AboutInfoModal(
         onDismissRequest = onDismiss,
         containerColor = palette.cardColor,
         title = {
-            Text(
-                text = "ℹ️ Arapça Telaffuz Asistanı v40.0",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = palette.accentHead
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "ℹ️ Arapça Telaffuz Asistanı",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = palette.accentHead,
+                    maxLines = 1
+                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = RoyalBlue.copy(alpha = 0.18f),
+                    border = BorderStroke(1.dp, RoyalBlue)
+                ) {
+                    Text(
+                        text = "Mobil Sürüm v40.0",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.accentHead,
+                        maxLines = 1,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "Muallimun.Net tarafından geliştirilen Yapay Zekâ Destekli Mahreç, Sarf Sözlüğü, Diyalog Canlandırma ve Sınav Üretim Platformu (Android Mobil Sürümü).",
+                    text = "Muallimun.Net tarafından geliştirilen Yapay Zekâ Destekli Mahreç ve Telaffuz Koçu, Sarf Kök Sözlüğü, Diyalog Canlandırma (Roleplay) ve Dinle & Bul Mobil Eğitim Platformu.",
                     fontSize = 13.sp,
-                    color = palette.textMain
+                    color = palette.textMain,
+                    lineHeight = 19.sp
                 )
 
-                Button(
-                    onClick = { openUrl("https://www.youtube.com/watch?v=vqttBAoov00") },
-                    colors = ButtonDefaults.buttonColors(containerColor = CoralRed, contentColor = Color.White),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("▶️ YouTube Tanıtım Videosunu İzle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-
+                // Tek ana dış bağlantı butonu
                 Button(
                     onClick = { openUrl("https://arapca.muallimun.net/arapca-telaffuz-asistani/") },
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
                     shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
                 ) {
-                    Text("🌐 Web Tanıtım & Kılavuz Sayfası", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "🌐 Web Tanıtım & Kılavuz Sayfası",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1
+                    )
                 }
 
-                Button(
-                    onClick = { openUrl("https://arapca.muallimun.net/arapca-telaffuz-asistani/Arapca_Telaffuz_Asistani_Kullanim_Kilavuzu.pdf") },
-                    colors = ButtonDefaults.buttonColors(containerColor = TealAccent, contentColor = Color.White),
-                    shape = RoundedCornerShape(10.dp),
+                // Yan yana iki kompakt uygulama içi yardımcı buton
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("📕 Resimli PDF Kullanım Kılavuzu (A4)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Button(
+                        onClick = {
+                            viewModel?.openModal(ActiveModal.USER_GUIDE)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = TealAccent, contentColor = Color.White),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                    ) {
+                        Text(
+                            text = "📖 Mobil Kullanım Kılavuzu",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            viewModel?.openModal(ActiveModal.ONBOARDING_TOUR)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                    ) {
+                        Text(
+                            text = "🔄 7 Adımlı Tanıtım Turu",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
                 Text(
@@ -815,7 +981,8 @@ fun AboutInfoModal(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A))
+                colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Kapat", fontWeight = FontWeight.Bold)
             }
@@ -841,23 +1008,18 @@ fun RoleplayReportCardModal(
     val okWords = finalResults.values.sumOf { list -> list.count { it.second } }
     val scorePct = if (totalWords > 0) ((okWords.toDouble() / totalWords) * 100).roundToInt() else 100
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 14.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -973,7 +1135,6 @@ fun RoleplayReportCardModal(
                         Text("✅ Kapat", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-            }
         }
     }
 }

@@ -64,8 +64,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.data.SentenceEntity
 import com.example.data.WordEntity
 import com.example.nlp.ArabicNlpEngine
@@ -118,24 +120,18 @@ fun AnalyticsAndReportsModal(
 
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 14.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
                 // Header
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -371,7 +367,9 @@ fun AnalyticsAndReportsModal(
                 // Alt Aksiyon Çubuğu: 📦 Ödev & Ses Paketi (.ZIP / CSV) Paylaş | 🖨️ Yazılı Sınav Üret
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
                 ) {
                     Button(
                         onClick = {
@@ -390,21 +388,38 @@ fun AnalyticsAndReportsModal(
                         colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(1.4f)
+                            .height(46.dp)
                             .testTag("btn_share_homework_zip")
                     ) {
-                        Text("📦 Ödev & Karne Paylaş (.ZIP/CSV)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "📦 Ödev & Karne Paylaş",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
 
                     Button(
                         onClick = { viewModel.openModal(ActiveModal.WORKSHEET_GENERATOR) },
                         colors = ButtonDefaults.buttonColors(containerColor = TealAccent, contentColor = Color.White),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp)
                     ) {
-                        Text("🖨️ Sınav Üret", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "🖨️ Sınav Üret",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
-            }
         }
     }
 }
@@ -455,25 +470,19 @@ fun WorksheetAndHandoutGeneratorModal(
     var showSourceMenu by remember { mutableStateOf(false) }
     var showLevelMenu by remember { mutableStateOf(false) }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 14.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -700,7 +709,6 @@ fun WorksheetAndHandoutGeneratorModal(
                         fontSize = 14.sp
                     )
                 }
-            }
         }
     }
 }
@@ -858,24 +866,18 @@ fun UnifiedAdminPanelModal(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
                 // Header
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1546,7 +1548,6 @@ fun UnifiedAdminPanelModal(
                         }
                     }
                 }
-            }
         }
     }
 }

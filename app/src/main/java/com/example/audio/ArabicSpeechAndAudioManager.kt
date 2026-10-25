@@ -299,17 +299,31 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         }
     }
 
+    fun startListening(
+        itemIdPrefix: String = "rec",
+        onResult: (heardText: String, confidence: Float, errorMsg: String?) -> Unit
+    ) = startSpeechRecognition(itemIdPrefix, onResult)
+
+    fun startContinuousEvaluation(
+        itemIdPrefix: String = "rec",
+        onResult: (heardText: String, confidence: Float, errorMsg: String?) -> Unit
+    ) = startSpeechRecognition(itemIdPrefix, onResult)
+
     fun startSpeechRecognition(
         itemIdPrefix: String = "rec",
         onResult: (heardText: String, confidence: Float, errorMsg: String?) -> Unit
     ) {
-        stopAllAudio()
+        // Hoparlör yankısını mikrofonun kendi sesi sanmaması için önce tüm sesleri derhal sustur
+        stopSpeaking()
+        mainHandler.removeCallbacksAndMessages(null)
         playBeep()
         currentRecognitionCallback = onResult
         _isRecording.value = true
         _waveBars.value = List(20) { 0.1f }
 
+        // Hoparlör yankısının sönümlenmesi için 150ms bekle ve mikrofonu öyle aç
         mainHandler.postDelayed({
+            if (!_isRecording.value) return@postDelayed
             try {
                 if (speechRecognizer == null && SpeechRecognizer.isRecognitionAvailable(context)) {
                     speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
@@ -380,13 +394,19 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                 _isRecording.value = false
                 onResult("", 0f, "Ses tanıma başlatılamadı: ${ex.localizedMessage}")
             }
-        }, 200)
+        }, 150L)
+    }
+
+    fun stopListening() {
+        stopSpeechRecognition()
     }
 
     fun stopSpeechRecognition() {
         _isRecording.value = false
+        mainHandler.removeCallbacksAndMessages(null)
         try {
             speechRecognizer?.stopListening()
+            speechRecognizer?.cancel()
         } catch (_: Exception) {
         }
         audioRecordJob?.cancel()
@@ -399,12 +419,12 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         onProgressBars: (List<Float>) -> Unit,
         onFinished: (wavFile: File?, envelope48: List<Float>, durationSec: Float) -> Unit
     ) {
-        stopAllAudio()
+        stopSpeaking()
         playBeep()
         _isRecording.value = true
 
         audioRecordJob = scope.launch(Dispatchers.IO) {
-            delay(180)
+            delay(150L)
             val sampleRate = 16000
             val minBuf = AudioRecord.getMinBufferSize(
                 sampleRate,
@@ -620,6 +640,10 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         return deleted
     }
 
+    fun stopSpeaking() {
+        stopAllAudio()
+    }
+
     fun stopAllAudio() {
         _isSpeakingTts.value = false
         currentTtsDoneCallback = null
@@ -628,7 +652,9 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         } catch (_: Exception) {
         }
         try {
-            mediaPlayer?.stop()
+            if (mediaPlayer?.isPlaying == true) {
+                mediaPlayer?.stop()
+            }
             mediaPlayer?.release()
         } catch (_: Exception) {
         }
@@ -636,8 +662,8 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
     }
 
     fun shutdown() {
-        stopAllAudio()
-        stopSpeechRecognition()
+        stopSpeaking()
+        stopListening()
         try {
             speechRecognizer?.destroy()
             tts?.shutdown()

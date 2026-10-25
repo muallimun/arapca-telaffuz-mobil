@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +49,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -117,7 +119,8 @@ fun HexagonRootBadge(
                 fontWeight = FontWeight.Bold,
                 fontSize = 19.sp,
                 color = if (palette.isDark) WarmGold else DeepNavy,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
             )
             Text(
                 text = "SÜLÂSÎ KÖK",
@@ -203,44 +206,47 @@ fun WordMorphologyCardBar(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        morphInfo.forms.forEach { form ->
-                            val isSelected = form.arabic == currentSelected
-                            val bgCol = if (isSelected) EmeraldGreen else palette.cardColor
-                            val fgCol = if (isSelected) Color(0xFF0F172A) else palette.textArabic
-                            val borderCol = if (isSelected) EmeraldGreen else Color(form.colorHex)
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            morphInfo.forms.forEach { form ->
+                                val isSelected = form.arabic == currentSelected
+                                val bgCol = if (isSelected) EmeraldGreen else palette.cardColor
+                                val fgCol = if (isSelected) Color(0xFF0F172A) else palette.textArabic
+                                val borderCol = if (isSelected) EmeraldGreen else Color(form.colorHex)
 
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = bgCol,
-                                border = BorderStroke(if (isSelected) 2.dp else 1.dp, borderCol),
-                                modifier = Modifier
-                                    .clickable {
-                                        onSelectForm(form.arabic, form.label)
-                                        tooltipMessage = ArabicNlpEngine.TERM_TOOLTIPS[form.label]
-                                    }
-                                    .testTag("morph_form_${form.role}")
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = bgCol,
+                                    border = BorderStroke(if (isSelected) 2.dp else 1.dp, borderCol),
+                                    modifier = Modifier
+                                        .clickable {
+                                            onSelectForm(form.arabic, form.label)
+                                            tooltipMessage = ArabicNlpEngine.TERM_TOOLTIPS[form.label]
+                                        }
+                                        .testTag("morph_form_${form.role}")
                                 ) {
-                                    Text(
-                                        text = form.label,
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) Color(0xFF0F172A) else palette.textDim
-                                    )
-                                    Text(
-                                        text = form.arabic,
-                                        fontFamily = AmiriArabicFontFamily,
-                                        fontSize = 17.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = fgCol
-                                    )
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = form.label,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color(0xFF0F172A) else palette.textDim
+                                        )
+                                        Text(
+                                            text = form.arabic,
+                                            fontFamily = AmiriArabicFontFamily,
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = fgCol,
+                                            style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -405,7 +411,8 @@ fun LiveMakhrajAndHarakaCoachCard(
                                         fontFamily = AmiriArabicFontFamily,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 20.sp,
-                                        color = if (isOk) palette.okGreen else CoralRed
+                                        color = if (isOk) palette.okGreen else CoralRed,
+                                        style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                                     )
                                 }
                             }
@@ -450,7 +457,8 @@ fun LiveMakhrajAndHarakaCoachCard(
                                                     fontFamily = AmiriArabicFontFamily,
                                                     fontSize = 16.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = Color.White
+                                                    color = Color.White,
+                                                    style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                                                 )
                                             }
                                             Text(
@@ -458,7 +466,8 @@ fun LiveMakhrajAndHarakaCoachCard(
                                                 fontFamily = AmiriArabicFontFamily,
                                                 fontSize = 15.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = palette.textMain
+                                                color = palette.textMain,
+                                                style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                                             )
                                         }
                                     }

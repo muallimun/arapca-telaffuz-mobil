@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,9 +29,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,6 +50,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -119,58 +122,31 @@ fun DialogueModeScreen(
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = palette.panelColor),
             border = BorderStroke(1.dp, palette.border),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                // Üst Seçici Bar: Diyalog (weight 1.2f) | Seviye (weight 1f) -> Hepsi 38.dp
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box {
-                        OutlinedButton(
-                            onClick = { showLevelMenu = true },
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Text(
-                                text = "Seviye: $selectedLevel",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.textMain,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
-                        }
-                        DropdownMenu(
-                            expanded = showLevelMenu,
-                            onDismissRequest = { showLevelMenu = false }
-                        ) {
-                            listOf("Tümü", "A1", "A2", "B1", "B2", "C1").forEach { lvl ->
-                                DropdownMenuItem(
-                                    text = { Text(lvl, fontWeight = FontWeight.Bold) },
-                                    onClick = {
-                                        showLevelMenu = false
-                                        viewModel.selectDialogueLevel(lvl)
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(1.2f)) {
                         OutlinedButton(
                             onClick = { showDialogueMenu = true },
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(34.dp)
+                                .height(38.dp)
                                 .testTag("dialogue_selector")
                         ) {
                             val titleDisp = if (currentDialogue != null) {
@@ -182,10 +158,11 @@ fun DialogueModeScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = palette.accentHead,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 softWrap = false,
                                 modifier = Modifier.weight(1f)
                             )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead, modifier = Modifier.size(16.dp))
                         }
                         DropdownMenu(
                             expanded = showDialogueMenu,
@@ -202,6 +179,43 @@ fun DialogueModeScreen(
                                     onClick = {
                                         showDialogueMenu = false
                                         viewModel.selectDialogue(dlg.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Box(modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { showLevelMenu = true },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(38.dp)
+                        ) {
+                            Text(
+                                text = "Seviye: $selectedLevel",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = palette.textMain,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain, modifier = Modifier.size(16.dp))
+                        }
+                        DropdownMenu(
+                            expanded = showLevelMenu,
+                            onDismissRequest = { showLevelMenu = false }
+                        ) {
+                            listOf("Tümü", "A1", "A2", "B1", "B2", "C1").forEach { lvl ->
+                                DropdownMenuItem(
+                                    text = { Text(lvl, fontWeight = FontWeight.Bold) },
+                                    onClick = {
+                                        showLevelMenu = false
+                                        viewModel.selectDialogueLevel(lvl)
                                     }
                                 )
                             }
@@ -228,7 +242,14 @@ fun DialogueModeScreen(
                             .height(34.dp)
                             .testTag("btn_submode_learn")
                     ) {
-                        Text("📖 Öğrenme Modu", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                        Text(
+                            text = "📖 Öğrenme Modu",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false
+                        )
                     }
 
                     Button(
@@ -244,14 +265,21 @@ fun DialogueModeScreen(
                             .height(34.dp)
                             .testTag("btn_submode_roleplay")
                     ) {
-                        Text("🎭 Canlandırma (Roleplay)", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                        Text(
+                            text = "🎭 Canlandırma (Roleplay)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false
+                        )
                     }
                 }
 
                 // Öğrenme veya Roleplay Kontrol Çubuğu
                 if (submode == "learn") {
                     Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -262,9 +290,10 @@ fun DialogueModeScreen(
                                 contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             modifier = Modifier
-                                .height(32.dp)
+                                .weight(1.1f)
+                                .height(34.dp)
                                 .testTag("btn_play_all_dialogue")
                         ) {
                             Text(
@@ -272,21 +301,78 @@ fun DialogueModeScreen(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 softWrap = false
                             )
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            FilterChip(
-                                selected = showTashkeel,
-                                onClick = { viewModel.setChatShowTashkeel(!showTashkeel) },
-                                label = { Text("Hareke", fontSize = 10.sp) }
-                            )
-                            FilterChip(
-                                selected = showTr,
-                                onClick = { viewModel.setChatShowTr(!showTr) },
-                                label = { Text("🇹🇷 Çeviri", fontSize = 10.sp) }
-                            )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (showTashkeel) RoyalBlue else palette.btnSec,
+                            border = BorderStroke(1.dp, if (showTashkeel) RoyalBlue else palette.border),
+                            modifier = Modifier
+                                .weight(0.95f)
+                                .height(34.dp)
+                                .clickable { viewModel.setChatShowTashkeel(!showTashkeel) }
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
+                                Text(
+                                    text = "✨ Hareke",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (showTashkeel) Color.White else palette.textMain,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (showTr) RoyalBlue else palette.btnSec,
+                            border = BorderStroke(1.dp, if (showTr) RoyalBlue else palette.border),
+                            modifier = Modifier
+                                .weight(0.95f)
+                                .height(34.dp)
+                                .clickable { viewModel.setChatShowTr(!showTr) }
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
+                                Text(
+                                    text = "🇹🇷 Anlam",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (showTr) Color.White else palette.textMain,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = palette.btnSec,
+                            border = BorderStroke(1.dp, palette.border),
+                            modifier = Modifier
+                                .height(34.dp)
+                                .clickable { viewModel.changeChatFontSize(-2) }
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 7.dp)) {
+                                Text("A-", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = palette.textMain, maxLines = 1)
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = palette.btnSec,
+                            border = BorderStroke(1.dp, palette.border),
+                            modifier = Modifier
+                                .height(34.dp)
+                                .clickable { viewModel.changeChatFontSize(2) }
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 7.dp)) {
+                                Text("A+", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = palette.textMain, maxLines = 1)
+                            }
                         }
                     }
                 } else {
@@ -510,7 +596,8 @@ fun DialogueModeScreen(
                                                 fontFamily = AmiriArabicFontFamily,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = fontSizeSp.sp,
-                                                color = if (isRev) palette.okGreen else palette.textDim
+                                                color = if (isRev) palette.okGreen else palette.textDim,
+                                                style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                                             )
                                         }
                                     }
@@ -544,22 +631,29 @@ fun DialogueModeScreen(
                                             fontFamily = AmiriArabicFontFamily,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = fontSizeSp.sp,
-                                            color = if (isOk) palette.okGreen else CoralRed
+                                            color = if (isOk) palette.okGreen else CoralRed,
+                                            style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl),
+                                            modifier = Modifier.clickable {
+                                                viewModel.audioManager.speakArabic(wStr, "male", viewModel.slowTts.value)
+                                            }
                                         )
                                     }
                                 }
                             }
                         } else {
-                            Text(
-                                text = dispAr,
-                                fontFamily = AmiriArabicFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = fontSizeSp.sp,
-                                color = palette.textArabic,
-                                textAlign = TextAlign.End,
-                                lineHeight = (fontSizeSp + 12).sp,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                                Text(
+                                    text = dispAr,
+                                    fontFamily = AmiriArabicFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = fontSizeSp.sp,
+                                    color = palette.textArabic,
+                                    textAlign = TextAlign.Start,
+                                    lineHeight = (fontSizeSp + 12).sp,
+                                    style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
 
                         // Alt Satır: Türkçe Çeviri (Roleplay Modunda Akıllı Gizleme + 💡 Türkçe İpucu Göster Butonu)

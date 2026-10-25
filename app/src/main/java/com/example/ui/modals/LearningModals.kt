@@ -62,8 +62,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextDirection
+import androidx.core.content.ContextCompat
 import com.example.data.ListeningQuestion
 import com.example.data.SozlukEntity
 import com.example.nlp.ArabicNlpEngine
@@ -132,23 +141,18 @@ fun SarfExplorerModal(
         mutableStateOf(filteredEntries.firstOrNull() ?: allSozluk.firstOrNull())
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
                 // Header
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -472,7 +476,6 @@ fun SarfExplorerModal(
                         }
                     }
                 }
-            }
         }
     }
 }
@@ -546,27 +549,19 @@ fun ListeningExamModal(
 
     val currentQuestion = if (examStarted && currentIndex in questions.indices) questions[currentIndex] else null
 
-    Dialog(
-        onDismissRequest = {
-            viewModel.audioManager.stopAllAudio()
-            onDismiss()
-        },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 14.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 // Header
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -935,7 +930,6 @@ fun ListeningExamModal(
                         }
                     }
                 }
-            }
         }
     }
 }
@@ -950,6 +944,7 @@ fun ShadowingTrainerModal(
     onDismiss: () -> Unit
 ) {
     val palette = LocalMuallimunPalette.current
+    val context = LocalContext.current
     val target by viewModel.shadowingTarget.collectAsState()
 
     var isRunning by remember { mutableStateOf(false) }
@@ -1005,28 +1000,41 @@ fun ShadowingTrainerModal(
         }
     }
 
-    Dialog(
-        onDismissRequest = {
-            viewModel.audioManager.stopAllAudio()
-            viewModel.audioManager.stopSpeechRecognition()
-            onDismiss()
-        },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            color = palette.bgColor,
+    val shadowPermLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startShadowingCycle()
+        } else {
+            viewModel.showToast("Mikrofon izni verilmedi.")
+        }
+    }
+
+    fun requestMicAndStartShadowing() {
+        val hasPerm = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPerm) {
+            startShadowingCycle()
+        } else {
+            shadowPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
+        containerColor = palette.bgColor,
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
-                .safeDrawingPadding()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 14.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 // Header
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1081,7 +1089,8 @@ fun ShadowingTrainerModal(
                                             fontFamily = AmiriArabicFontFamily,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 28.sp,
-                                            color = if (isOk) palette.okGreen else CoralRed
+                                            color = if (isOk) palette.okGreen else CoralRed,
+                                            style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                                         )
                                     }
                                 }
@@ -1093,7 +1102,8 @@ fun ShadowingTrainerModal(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 30.sp,
                                 color = palette.textArabic,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                             )
                         }
 
@@ -1172,7 +1182,7 @@ fun ShadowingTrainerModal(
 
                 // Kontrol Butonları
                 Button(
-                    onClick = { startShadowingCycle() },
+                    onClick = { requestMicAndStartShadowing() },
                     enabled = !isRunning,
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
                     shape = RoundedCornerShape(12.dp),
@@ -1215,7 +1225,6 @@ fun ShadowingTrainerModal(
                         Text("🎧 Sesimi Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-            }
         }
     }
 }

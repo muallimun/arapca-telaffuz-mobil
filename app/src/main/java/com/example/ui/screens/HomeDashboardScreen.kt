@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AccentCoral
@@ -77,9 +78,9 @@ fun HomeDashboardScreen(
 
     val wrongWordsCount = allWords.count { it.yanlis > 0 }
     val smartTip = when {
-        dailyCount == 0 -> "🎯 Bugünün Önerisi: Günlük serinizi başlatmak için '📅 Günün 15 Tekrarı' ile ısınma yapın."
-        wrongWordsCount >= 3 -> "🎯 Akıllı Koç Önerisi: Zorlandığınız $wrongWordsCount kelime var; '🎯 Zayıflar' listesini tekrar edebilirsiniz."
-        else -> "🎯 Akıllı Koç Önerisi: Kelime köklerini keşfedip '🎧 Dinle & Bul' sınavıyla bilginizi pekiştirin."
+        dailyCount == 0 -> "🎯 Öneri: Günlük serinizi başlatmak için '📅 Günün 15 Tekrarı' ile ısınma yapın."
+        wrongWordsCount >= 3 -> "🎯 Koç Önerisi: Zorlandığınız $wrongWordsCount kelime var; '🎯 Zayıflar' listesini tekrar edin."
+        else -> "🎯 Koç Önerisi: Kelime köklerini keşfedip '🎧 Dinle & Bul Sınavı' ile bilginizi pekiştirin."
     }
 
     val lastModeLabel = when (lastMode) {
@@ -92,12 +93,12 @@ fun HomeDashboardScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 1. Üst Karşılama & Günlük Hedef Banner'ı (Kompakt Mobil Düzen)
+        // 1. Üst Karşılama & Günlük Hedef Banner'ı (Ultra-Kompakt Mobil Düzen)
         Card(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = palette.panelColor),
             border = BorderStroke(1.dp, palette.border),
             modifier = Modifier.fillMaxWidth()
@@ -113,29 +114,31 @@ fun HomeDashboardScreen(
                             )
                         )
                     )
-                    .padding(12.dp)
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = "أَهْلاً وَسَهْلاً بِكُمْ فِي مُخْتَبَرِ النُّطْقِ وَالْمُحَادَثَةِ",
                         fontFamily = AmiriArabicFontFamily,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 19.sp,
-                        lineHeight = 26.sp,
+                        fontSize = 17.sp,
+                        lineHeight = 22.sp,
                         color = palette.textArabic,
                         textAlign = TextAlign.End,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
                         text = "👋 Hoş geldin $studentName! Bugün hangi modda Arapça konuşma pratiği yapmak istersin?",
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.textMain
                     )
 
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = palette.cardColor,
                         border = BorderStroke(1.dp, palette.border),
                         modifier = Modifier
@@ -144,27 +147,32 @@ fun HomeDashboardScreen(
                             .testTag("student_profile_badge")
                     ) {
                         Column(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            FlowRow(
+                            Row(
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = "👤 $studentName ✏️",
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = palette.accentHead,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = viewModel.getLevelTitle(),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = palette.okGreen,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                             Text(
@@ -172,7 +180,8 @@ fun HomeDashboardScreen(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = palette.textDim,
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -182,20 +191,22 @@ fun HomeDashboardScreen(
 
         // 2. "📍 Kaldığınız Yerden Devam Edin" + "🎯 Akıllı Öneri" Şeridi
         Card(
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = palette.cardColor),
             border = BorderStroke(1.dp, palette.border),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Text(
                     text = "📍 Son Çalışılan: $lastModeLabel",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = palette.accentHead
+                    color = palette.accentHead,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = smartTip,
@@ -212,25 +223,27 @@ fun HomeDashboardScreen(
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(40.dp)
+                        .height(38.dp)
                         .testTag("resume_session_button")
                 ) {
                     Text(
                         text = "▶️ Kaldığım Yerden Devam Et",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
         }
 
-        // 3. Öğrenci Odaklı 4 Ana Modül Kartı (2x2 Mobil Uyumlu Izgara)
+        // 3. Öğrenci Odaklı 4 Ana Modül Kartı (Tek Satır Kısa ve Net Butonlar)
         DashboardModuleCard(
             icon = "🏠",
             title = "1. Görselli Kelime Öğren & Konuş",
             statText = "🖼️ $visualWordsCount Görselli Kelime Kartı  •  🎯 Canlı Mahreç Koçu",
             description = "Yeni başlayanlar için görsel destekli kelimeler, kadın/erkek telaffuzu, canlı mahreç koçu ve gölgeleme antrenmanı.",
-            primaryBtnText = "🚀 Hemen Kelime Öğrenmeye Başla",
+            primaryBtnText = "🚀 Kelimeye Başla",
             primaryBtnColor = RoyalBlue,
             primaryBtnContentColor = Color.White,
             onPrimaryClick = {
@@ -240,7 +253,7 @@ fun HomeDashboardScreen(
                 viewModel.selectWordCategory(firstVisualPkg)
                 viewModel.switchMode(AppMode.WORDS)
             },
-            secondaryBtnText = "📅 Günün 15 Akıllı Tekrarı (SM-2)",
+            secondaryBtnText = "📅 Günün 15 Tekrarı",
             onSecondaryClick = {
                 viewModel.selectWordCategory("gunluk_tekrar")
                 viewModel.switchMode(AppMode.WORDS)
@@ -253,14 +266,14 @@ fun HomeDashboardScreen(
             title = "2. Sarf Sözlüğü & Kelime Kökleri",
             statText = "🌿 $sozlukCount Sözlük Maddesi  •  🏷️ 6 Tematik Kategori",
             description = "Kelimelerin 3 harfli köklerini (Sülâsî), tekil/çoğul (Müfret/Cemî) ve geçmiş/şimdiki zaman (Mâzî/Muzâri) çekimlerini öğrenin.",
-            primaryBtnText = "🎤 Sözlük Kartlarıyla Telaffuz Çalış",
+            primaryBtnText = "🌿 Sözlük Kartları",
             primaryBtnColor = TealAccent,
             primaryBtnContentColor = Color.White,
             onPrimaryClick = {
                 viewModel.selectWordCategory("sozluk_tumu")
                 viewModel.switchMode(AppMode.WORDS)
             },
-            secondaryBtnText = "🔍 Kök Ailesi Keşif Atölyesini Aç",
+            secondaryBtnText = "🔎 Kök Atölyesi",
             onSecondaryClick = { viewModel.openModal(ActiveModal.SARF_EXPLORER) },
             testTagPrefix = "module_sarf"
         )
@@ -270,14 +283,14 @@ fun HomeDashboardScreen(
             title = "3. Günlük Diyaloglar & Rol Yapma",
             statText = "🎭 $dialoguesCount Günlük Diyalog  •  💬 $linesCount Konuşma Satırı",
             description = "Günlük hayat diyaloglarını dinleyin; ardından bir rol seçip uygulama ile karşılıklı Arapça konuşma canlandırması yapın.",
-            primaryBtnText = "💬 Diyalogları Dinle ve Çalış",
+            primaryBtnText = "💬 Diyalog Dinle",
             primaryBtnColor = AccentCoral,
             primaryBtnContentColor = Color.White,
             onPrimaryClick = {
                 viewModel.switchDialogueSubmode("learn")
                 viewModel.switchMode(AppMode.DIALOGUE)
             },
-            secondaryBtnText = "🎭 Karşılıklı Canlandırma (Roleplay)",
+            secondaryBtnText = "🎭 Rol Yap (Roleplay)",
             onSecondaryClick = {
                 viewModel.switchDialogueSubmode("roleplay")
                 viewModel.switchMode(AppMode.DIALOGUE)
@@ -290,11 +303,11 @@ fun HomeDashboardScreen(
             title = "4. Anahtar Cümleler & Sesli Sınav",
             statText = "📜 $sentencesCount Cümle (A1-C1)  •  🎧 4 Şıklı Dinleme Sınavı",
             description = "Kelime kelime renkli doğruluk analiziyle cümle telaffuzu çalışın veya 10/20/50 soruluk Dinle & Bul sınavına girin.",
-            primaryBtnText = "📜 Anahtar Cümle Moduna Başla",
+            primaryBtnText = "📝 Cümle Çalış",
             primaryBtnColor = EmeraldGreen,
             primaryBtnContentColor = Color(0xFF0F172A),
             onPrimaryClick = { viewModel.switchMode(AppMode.SENTENCES) },
-            secondaryBtnText = "🎧 Dinle & Bul Sesli Sınav Merkezi",
+            secondaryBtnText = "🎧 Dinle & Bul Sınavı",
             onSecondaryClick = { viewModel.openModal(ActiveModal.LISTENING_EXAM) },
             testTagPrefix = "module_sentences"
         )
@@ -310,19 +323,20 @@ fun HomeDashboardScreen(
                     .testTag("teacher_tools_bar")
             ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "👨‍🏫 Öğretmen, Yazılı Sınav, Ders Notu & Yönetim Araçları:",
+                        text = "👨‍🏫 Öğretmen, Sınav & Yönetim Araçları:",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = palette.accentHead
+                        color = palette.accentHead,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
 
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Button(
@@ -331,13 +345,17 @@ fun HomeDashboardScreen(
                                 containerColor = WarmGold,
                                 contentColor = Color(0xFF0F172A)
                             ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.testTag("open_worksheet_btn")
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("open_worksheet_btn")
                         ) {
                             Text(
-                                text = "🖨️ A4 Yazılı Sınav & Ders Notu Üret",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "🖨️ Sınav & PDF",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
@@ -347,13 +365,17 @@ fun HomeDashboardScreen(
                                 containerColor = RoyalPurple,
                                 contentColor = Color.White
                             ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.testTag("open_reports_btn")
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("open_reports_btn")
                         ) {
                             Text(
-                                text = "📊 Gelişim Karnesi & Rozetler",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "📊 Karne & Ödev",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
@@ -363,13 +385,17 @@ fun HomeDashboardScreen(
                                 containerColor = palette.btnSec,
                                 contentColor = palette.textMain
                             ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.testTag("open_admin_btn")
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("open_admin_btn")
                         ) {
                             Text(
-                                text = "🛠️ Yönetim & Excel Paket Paneli",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "🛠️ Yönetim",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -395,77 +421,95 @@ private fun DashboardModuleCard(
 ) {
     val palette = LocalMuallimunPalette.current
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = palette.cardColor),
         border = BorderStroke(1.dp, palette.border),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = icon,
-                    fontSize = 30.sp,
-                    modifier = Modifier.padding(end = 10.dp)
+                    fontSize = 26.sp,
+                    modifier = Modifier.padding(end = 8.dp)
                 )
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title,
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = palette.accentHead
+                        color = palette.accentHead,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = statText,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = palette.okGreen
+                        color = palette.okGreen,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
             Text(
                 text = description,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
                 color = palette.textDim
             )
 
-            Button(
-                onClick = onPrimaryClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = primaryBtnColor,
-                    contentColor = primaryBtnContentColor
-                ),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("${testTagPrefix}_primary_btn")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = primaryBtnText,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                )
-            }
+                Button(
+                    onClick = onPrimaryClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = primaryBtnColor,
+                        contentColor = primaryBtnContentColor
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                        .testTag("${testTagPrefix}_primary_btn")
+                ) {
+                    Text(
+                        text = primaryBtnText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
-            Button(
-                onClick = onSecondaryClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = palette.btnSec,
-                    contentColor = palette.textMain
-                ),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("${testTagPrefix}_secondary_btn")
-            ) {
-                Text(
-                    text = secondaryBtnText,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp
-                )
+                Button(
+                    onClick = onSecondaryClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = palette.btnSec,
+                        contentColor = palette.textMain
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                        .testTag("${testTagPrefix}_secondary_btn")
+                ) {
+                    Text(
+                        text = secondaryBtnText,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

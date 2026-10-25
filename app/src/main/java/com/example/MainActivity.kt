@@ -25,12 +25,15 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -47,6 +50,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,6 +67,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.modals.AboutInfoModal
 import com.example.ui.modals.AnalyticsAndReportsModal
@@ -110,6 +117,7 @@ class MainActivity : ComponentActivity() {
 fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
     val palette = LocalMuallimunPalette.current
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val currentMode by viewModel.currentMode.collectAsState()
     val activeModal by viewModel.activeModal.collectAsState()
@@ -117,9 +125,32 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
     val toastMsg by viewModel.toastMessage.collectAsState()
     val isDark by viewModel.isDarkTheme.collectAsState()
 
-    // BackHandler for non-Home modes
-    BackHandler(enabled = currentMode != AppMode.HOME) {
+    // Uygulama arka plana atıldığında veya ekran kapandığında (ON_PAUSE / ON_STOP) sesi ve mikrofonu otomatik durdur
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                viewModel.audioManager.stopSpeaking()
+                viewModel.audioManager.stopListening()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // BackHandler: Modal kapalıysa ve HOME dışındaki bir sekmedeyse HOME ekranına dön
+    BackHandler(enabled = activeModal == ActiveModal.NONE && currentMode != AppMode.HOME) {
+        viewModel.audioManager.stopSpeaking()
+        viewModel.audioManager.stopListening()
         viewModel.switchMode(AppMode.HOME)
+    }
+
+    // BackHandler: Açık bir modal varsa uygulamadan çıkmak yerine modalı kapat
+    BackHandler(enabled = activeModal != ActiveModal.NONE) {
+        viewModel.audioManager.stopSpeaking()
+        viewModel.audioManager.stopListening()
+        viewModel.closeModal()
     }
 
     val micPermissionLauncher = rememberLauncherForActivityResult(
@@ -149,126 +180,148 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
         }
     }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        containerColor = palette.bgColor,
-        topBar = {
-            MuallimunTopAppBar(
-                isDark = isDark,
-                currentMode = currentMode,
-                onOpenSarf = { viewModel.openModal(ActiveModal.SARF_EXPLORER) },
-                onOpenListeningExam = { viewModel.openModal(ActiveModal.LISTENING_EXAM) },
-                onOpenReports = { viewModel.openModal(ActiveModal.ANALYTICS_REPORTS) },
-                onOpenGuide = { viewModel.openModal(ActiveModal.USER_GUIDE) },
-                onOpenAbout = { viewModel.openModal(ActiveModal.ABOUT_INFO) },
-                onOpenSettings = { viewModel.openModal(ActiveModal.SETTINGS) },
-                onToggleTheme = { viewModel.toggleTheme() }
-            )
-        },
-        bottomBar = {
-            MuallimunCompactBottomBar(
-                currentMode = currentMode,
-                onSelectMode = { viewModel.switchMode(it) }
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (currentMode) {
-                AppMode.HOME -> HomeDashboardScreen(viewModel = viewModel)
-                AppMode.WORDS -> WordsModeScreen(
-                    viewModel = viewModel,
-                    onRequestMicPermissionAndRecord = { requestMicAndStart(false) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+    ) {
+        Scaffold(
+            contentWindowInsets = WindowInsets.safeDrawing,
+            containerColor = palette.bgColor,
+            topBar = {
+                MuallimunTopAppBar(
+                    isDark = isDark,
+                    currentMode = currentMode,
+                    onOpenSarf = { viewModel.openModal(ActiveModal.SARF_EXPLORER) },
+                    onOpenListeningExam = { viewModel.openModal(ActiveModal.LISTENING_EXAM) },
+                    onOpenReports = { viewModel.openModal(ActiveModal.ANALYTICS_REPORTS) },
+                    onOpenGuideAndAbout = { viewModel.openModal(ActiveModal.ABOUT_INFO) },
+                    onOpenSettings = { viewModel.openModal(ActiveModal.SETTINGS) },
+                    onToggleTheme = { viewModel.toggleTheme() }
                 )
-                AppMode.DIALOGUE -> DialogueModeScreen(
-                    viewModel = viewModel,
-                    onRequestMicForRoleplay = { requestMicAndStart(true) }
-                )
-                AppMode.SENTENCES -> SentencesModeScreen(
-                    viewModel = viewModel,
-                    onRequestMicPermissionAndRecord = { requestMicAndStart(false) }
+            },
+            bottomBar = {
+                MuallimunCompactBottomBar(
+                    currentMode = currentMode,
+                    onSelectMode = { viewModel.switchMode(it) }
                 )
             }
-
-            // Floating Toast Banner
-            AnimatedVisibility(
-                visible = !toastMsg.isNullOrBlank(),
+        ) { innerPadding ->
+            Box(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = WarmGold,
-                    border = BorderStroke(1.dp, Color(0xFF0F172A)),
-                    shadowElevation = 6.dp
-                ) {
-                    Text(
-                        text = toastMsg ?: "",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A),
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                when (currentMode) {
+                    AppMode.HOME -> HomeDashboardScreen(viewModel = viewModel)
+                    AppMode.WORDS -> WordsModeScreen(
+                        viewModel = viewModel,
+                        onRequestMicPermissionAndRecord = { requestMicAndStart(false) }
+                    )
+                    AppMode.DIALOGUE -> DialogueModeScreen(
+                        viewModel = viewModel,
+                        onRequestMicForRoleplay = { requestMicAndStart(true) }
+                    )
+                    AppMode.SENTENCES -> SentencesModeScreen(
+                        viewModel = viewModel,
+                        onRequestMicPermissionAndRecord = { requestMicAndStart(false) }
                     )
                 }
             }
         }
-    }
 
-    // Active Full-Screen / Dialog Modals
-    when (activeModal) {
-        ActiveModal.NONE -> {}
-        ActiveModal.ONBOARDING_TOUR -> OnboardingTourModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.STUDENT_NAME -> StudentNameModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.SARF_EXPLORER -> SarfExplorerModal(
-            viewModel = viewModel,
-            initialQuery = sarfInitQuery,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.LISTENING_EXAM -> ListeningExamModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.SHADOWING_TRAINER -> ShadowingTrainerModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.ANALYTICS_REPORTS -> AnalyticsAndReportsModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.WORKSHEET_GENERATOR -> WorksheetAndHandoutGeneratorModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.ADMIN_PANEL -> UnifiedAdminPanelModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.SETTINGS -> SettingsModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.USER_GUIDE -> UserGuideModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.ABOUT_INFO -> AboutInfoModal(
-            onDismiss = { viewModel.closeModal() }
-        )
-        ActiveModal.ROLEPLAY_REPORT_CARD -> RoleplayReportCardModal(
-            viewModel = viewModel,
-            onDismiss = { viewModel.closeModal() }
-        )
+        // Tam Ekran Modallar: Dialog yerine doğrudan ana Activity penceresinde WindowInsets.safeDrawing ile render edilir
+        if (activeModal != ActiveModal.NONE) {
+            when (activeModal) {
+                ActiveModal.NONE -> {}
+                ActiveModal.STUDENT_NAME -> StudentNameModal(
+                    viewModel = viewModel,
+                    onDismiss = { viewModel.closeModal() }
+                )
+                ActiveModal.ABOUT_INFO -> AboutInfoModal(
+                    viewModel = viewModel,
+                    onDismiss = { viewModel.closeModal() }
+                )
+                else -> {
+                    Surface(
+                        color = palette.bgColor,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .windowInsetsPadding(WindowInsets.safeDrawing)
+                            .imePadding()
+                    ) {
+                        when (activeModal) {
+                            ActiveModal.ONBOARDING_TOUR -> OnboardingTourModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.SARF_EXPLORER -> SarfExplorerModal(
+                                viewModel = viewModel,
+                                initialQuery = sarfInitQuery,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.LISTENING_EXAM -> ListeningExamModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.SHADOWING_TRAINER -> ShadowingTrainerModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.ANALYTICS_REPORTS -> AnalyticsAndReportsModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.WORKSHEET_GENERATOR -> WorksheetAndHandoutGeneratorModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.ADMIN_PANEL -> UnifiedAdminPanelModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.SETTINGS -> SettingsModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.USER_GUIDE -> UserGuideModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            ActiveModal.ROLEPLAY_REPORT_CARD -> RoleplayReportCardModal(
+                                viewModel = viewModel,
+                                onDismiss = { viewModel.closeModal() }
+                            )
+                            else -> {}
+                        }
+                    }
+                }
+            }
+        }
+
+        // Floating Toast Banner (Her zaman en üstte görünür)
+        AnimatedVisibility(
+            visible = !toastMsg.isNullOrBlank(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = WarmGold,
+                border = BorderStroke(1.dp, Color(0xFF0F172A)),
+                shadowElevation = 6.dp
+            ) {
+                Text(
+                    text = toastMsg ?: "",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                )
+            }
+        }
     }
 }
 
@@ -279,8 +332,7 @@ private fun MuallimunTopAppBar(
     onOpenSarf: () -> Unit,
     onOpenListeningExam: () -> Unit,
     onOpenReports: () -> Unit,
-    onOpenGuide: () -> Unit,
-    onOpenAbout: () -> Unit,
+    onOpenGuideAndAbout: () -> Unit,
     onOpenSettings: () -> Unit,
     onToggleTheme: () -> Unit
 ) {
@@ -300,7 +352,7 @@ private fun MuallimunTopAppBar(
                 .fillMaxWidth()
                 .padding(horizontal = 10.dp, vertical = 2.dp)
         ) {
-            // Üst Satır (Maksimum 40.dp yükseklik, tek satır başlık + 32.dp kompakt ikonlar)
+            // Üst Satır (Maksimum 40.dp yükseklik, tek satır başlık + sadeleştirilmiş 32.dp kompakt ikonlar)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -323,7 +375,7 @@ private fun MuallimunTopAppBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Çalışma sekmelerinde araç şeridini açıp kapatan kompakt buton
+                    // Çalışma sekmelerinde araç şeridini açıp kapatan kompakt buton (🔧)
                     if (currentMode != AppMode.HOME) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
@@ -344,6 +396,7 @@ private fun MuallimunTopAppBar(
                         }
                     }
 
+                    // Tema Değiştirici (☀️/🌙)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = palette.btnSec,
@@ -357,37 +410,26 @@ private fun MuallimunTopAppBar(
                         }
                     }
 
+                    // Birleştirilmiş Rehber & Hakkında Butonu (ℹ️)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = palette.btnSec,
                         modifier = Modifier
                             .size(32.dp)
-                            .clickable { onOpenGuide() }
+                            .clickable { onOpenGuideAndAbout() }
                             .testTag("btn_open_guide")
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(text = "📖", fontSize = 13.sp)
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = palette.btnSec,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clickable { onOpenAbout() }
-                            .testTag("btn_open_about")
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.Info,
-                                contentDescription = "Uygulama Hakkında",
+                                contentDescription = "Rehber ve Uygulama Hakkında",
                                 tint = palette.accentHead,
                                 modifier = Modifier.size(17.dp)
                             )
                         }
                     }
 
+                    // Ayarlar Butonu (⚙️)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = palette.btnSec,
@@ -408,31 +450,32 @@ private fun MuallimunTopAppBar(
                 }
             }
 
-            // Yatay Aksiyon Şeridi (Varsayılan olarak sadece Ana Sayfa'da açık, diğer sekmelerde gizli/açılır)
+            // Eşit Genişlikli 3 Kompakt Aksiyon Butonu (Kaydırmasız, %100 Ekran Uyumu)
             if (showActionStrip) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
                         .padding(bottom = 4.dp)
                 ) {
                     Button(
                         onClick = onOpenSarf,
                         colors = ButtonDefaults.buttonColors(containerColor = TealAccent, contentColor = Color.White),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
                         modifier = Modifier
+                            .weight(1f)
                             .height(32.dp)
                             .testTag("top_btn_sarf")
                     ) {
                         Text(
-                            text = "📖 Sarf Sözlüğü",
-                            fontSize = 12.sp,
+                            text = "📖 Sözlük",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            softWrap = false
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -440,17 +483,19 @@ private fun MuallimunTopAppBar(
                         onClick = onOpenListeningExam,
                         colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
                         modifier = Modifier
+                            .weight(1f)
                             .height(32.dp)
                             .testTag("top_btn_listening_exam")
                     ) {
                         Text(
-                            text = "🎧 Dinle & Bul",
-                            fontSize = 12.sp,
+                            text = "🎧 Sınav",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            softWrap = false
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -458,17 +503,19 @@ private fun MuallimunTopAppBar(
                         onClick = onOpenReports,
                         colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
                         modifier = Modifier
+                            .weight(1f)
                             .height(32.dp)
                             .testTag("top_btn_reports")
                     ) {
                         Text(
-                            text = "📊 Raporlar & Karne",
-                            fontSize = 12.sp,
+                            text = "📊 Karne",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            softWrap = false
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -502,14 +549,15 @@ private fun MuallimunCompactBottomBar(
     Surface(
         color = palette.panelColor,
         border = BorderStroke(0.5.dp, palette.border),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .height(52.dp)
                 .padding(horizontal = 4.dp)
         ) {

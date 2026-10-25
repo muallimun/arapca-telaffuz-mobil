@@ -292,8 +292,10 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         _randomOrder
     ) { words, catId, level, rnd ->
         val baseList = when (catId) {
+            "tumu" -> words
             "gunluk_tekrar" -> repository.buildDailySmartReviewWords(words, 15)
             "tekrar" -> words.filter { it.isFav == 1 }
+            "ezberlenmeyen" -> words.filter { it.isLearned == 0 }
             "zayif" -> words.filter { it.yanlis > 0 }.sortedByDescending { it.yanlis - it.dogru }
             "sozluk_tumu" -> words.filter { it.paketId.startsWith("szl_") }
             "gorselli_tumu" -> words.filter { !it.paketId.startsWith("szl_") }
@@ -311,10 +313,11 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         _randomOrder
     ) { sents, filter, level, rnd ->
         val baseList = when (filter) {
-            "📅 Günün 15 Tekrarı" -> repository.buildDailySmartReviewSentences(sents, 15)
-            "Favoriler" -> sents.filter { it.isFav == 1 }
+            "📅 Günün 15 Tekrarı", "📅 Günlük 15" -> repository.buildDailySmartReviewSentences(sents, 15)
+            "Favoriler", "⭐ Favori" -> sents.filter { it.isFav == 1 }
+            "Ezberlenmeyen", "📌 Ezberlenmeyen" -> sents.filter { it.isLearned == 0 }
             "Öğrendiklerim" -> sents.filter { it.isLearned == 1 }
-            "Zorlandıklarım" -> sents.filter { it.yanlis > 0 }.sortedByDescending { it.yanlis - it.dogru }
+            "Zorlandıklarım", "⚠️ Zayıf" -> sents.filter { it.yanlis > 0 }.sortedByDescending { it.yanlis - it.dogru }
             else -> sents
         }
         val levelFiltered = if (level == "Tümü") baseList else baseList.filter { it.seviye == level }
