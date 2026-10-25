@@ -17,13 +17,14 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Gradle Calistirma Izni Ver
-        run: chmod +x gradlew
+      - name: Gradle Kurulumu
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
 
       - name: Debug APK Derle
-        run: ./gradlew assembleDebug
+        run: gradle assembleDebug
 
       - name: APK Dosyasini Indirilebilir Yap
         uses: actions/upload-artifact@v4
