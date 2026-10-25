@@ -12,16 +12,16 @@ jobs:
       - name: Kodlari Cek
         uses: actions/checkout@v4
 
-      - name: JDK 17 Kurulumu
+      - name: JDK 21 Kurulumu
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
-      - name: Gradle Kurulumu
-        uses: gradle/actions/setup-gradle@v3
+      - name: Gradle 9.3.1 Kurulumu
+        uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '9.3.1'
 
       - name: Debug APK Derle
         run: gradle assembleDebug
