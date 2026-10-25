@@ -1,0 +1,7 @@
+BURAYA_VERITABANI_DOSYALARINI_YUKLEYIN.txt
+
+Bu klasöre (app/src/main/assets/) aşağıdaki dosyaları sol menüdeki Dosya Gezgininden (Upload) yükleyebilirsiniz:
+- kelimeler.db (veya kelimeler.json)
+- sozluk.db (veya sozluk.json)
+- diyaloglar.db (veya diyalog_paketi.json)
+- cumleler.db (veya anahtar_cumleler.csv)

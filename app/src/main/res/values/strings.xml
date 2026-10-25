@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Arapça Asistanı</string>
+    <string name="welcome_arabic">أَهْلاً وَسَهْلاً بِكُمْ فِي مُخْتَبَرِ النُّطْقِ وَالْمُحَادَثَةِ</string>
+    <string name="brand_subtitle">Muallimun.Net • Telaffuz, Sarf ve Konuşma Laboratuvarı</string>
+    <string name="mic_permission_rationale">Telaffuz ve mahreç analizi yapabilmek için mikrofon izni gereklidir.</string>
+</resources>

@@ -1,0 +1,20 @@
+# ==============================================================================
+# Arapça Telaffuz ve Konuşma Asistanı — Muallimun.Net (v40.0 Gold Master)
+# Kurulum: pip install -r requirements.txt
+# ==============================================================================
+
+# Sayısal İşleme ve Görsel/İkon Yönetimi
+numpy>=1.26.0
+Pillow>=10.0.0
+
+# Ses Çalma, Dalga Boyu Analizi ve Mikrofon Kayıt Motoru
+pygame-ce>=2.5.0
+sounddevice>=0.4.6
+
+# Çevrimdışı Yapay Zeka Ses Tanıma (STT - Faster Whisper) ve Ses Çözücü
+faster-whisper>=1.0.0
+huggingface_hub<0.26.0
+av==12.3.0
+
+# Doğal Arapça Sinirsel Seslendirme (TTS - Microsoft Edge Neural Voices)
+edge-tts>=6.1.12

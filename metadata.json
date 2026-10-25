@@ -1,0 +1,10 @@
+{
+  "name": "Arapça Asistanı",
+  "description": "Muallimun.Net Yapay Zekâ Destekli Arapça Telaffuz, Mahreç Koçu, Sarf Sözlüğü ve Konuşma Laboratuvarı",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
