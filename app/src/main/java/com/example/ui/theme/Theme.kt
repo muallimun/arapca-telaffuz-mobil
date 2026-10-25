@@ -20,7 +20,10 @@ data class MuallimunPalette(
     val accentHead: Color,
     val border: Color,
     val btnSec: Color,
-    val okGreen: Color
+    val okGreen: Color,
+    val amberText: Color = WarmGold,
+    val amberBorder: Color = WarmGold.copy(alpha = 0.65f),
+    val amberBg: Color = DarkPanelColor
 )
 
 val LocalMuallimunPalette = staticCompositionLocalOf {
@@ -36,7 +39,10 @@ val LocalMuallimunPalette = staticCompositionLocalOf {
         accentHead = WarmGold,
         border = DarkBorder,
         btnSec = DarkBtnSec,
-        okGreen = EmeraldGreen
+        okGreen = EmeraldGreen,
+        amberText = WarmGold,
+        amberBorder = WarmGold.copy(alpha = 0.65f),
+        amberBg = DarkPanelColor
     )
 }
 
@@ -73,26 +79,55 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = true,
+    themeMode: String = if (darkTheme) "gece" else "gunduz",
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    val palette = if (darkTheme) {
-        MuallimunPalette(
+    val normalizedMode = when (themeMode.lowercase()) {
+        "dark", "gece" -> "gece"
+        "light", "gunduz" -> "gunduz"
+        "okul" -> "okul"
+        "kurumsal" -> "kurumsal"
+        else -> if (darkTheme) "gece" else "gunduz"
+    }
+    val isDarkResolved = normalizedMode == "gece" || normalizedMode == "kurumsal"
+    val colorScheme = if (isDarkResolved) DarkColorScheme else LightColorScheme
+
+    val palette = when (normalizedMode) {
+        "kurumsal" -> MuallimunPalette(
             isDark = true,
-            bgColor = DarkBgColor,
-            cardColor = DarkCardColor,
-            panelColor = DarkPanelColor,
-            chatBg = DarkChatBg,
-            textMain = DarkTextMain,
-            textDim = DarkTextDim,
-            textArabic = DarkTextArabic,
-            accentHead = WarmGold,
-            border = DarkBorder,
-            btnSec = DarkBtnSec,
-            okGreen = EmeraldGreen
+            bgColor = Color(0xFF0A192F),
+            cardColor = Color(0xFF112240),
+            panelColor = Color(0xFF172A45),
+            chatBg = Color(0xFF071120),
+            textMain = Color(0xFFE6F1FF),
+            textDim = Color(0xFF8892B0),
+            textArabic = WarmGold,
+            accentHead = Color(0xFF64FFDA),
+            border = Color(0xFF233554),
+            btnSec = Color(0xFF1D3557),
+            okGreen = EmeraldGreen,
+            amberText = WarmGold,
+            amberBorder = WarmGold.copy(alpha = 0.65f),
+            amberBg = Color(0xFF172A45)
         )
-    } else {
-        MuallimunPalette(
+        "okul" -> MuallimunPalette(
+            isDark = false,
+            bgColor = Color(0xFFFDFBF7),
+            cardColor = Color(0xFFFFFFFF),
+            panelColor = Color(0xFFF3EFE6),
+            chatBg = Color(0xFFFAF6EE),
+            textMain = Color(0xFF1C1917),
+            textDim = Color(0xFF57534E),
+            textArabic = Color(0xFF0F4C81),
+            accentHead = Color(0xFF0F4C81),
+            border = Color(0xFFD6D3D1),
+            btnSec = Color(0xFFE7E2D8),
+            okGreen = EmeraldGreenLightMode,
+            amberText = AmberTextLightMode,
+            amberBorder = AmberBorderLightMode,
+            amberBg = AmberBgLightMode
+        )
+        "gunduz" -> MuallimunPalette(
             isDark = false,
             bgColor = LightBgColor,
             cardColor = LightCardColor,
@@ -104,7 +139,27 @@ fun MyApplicationTheme(
             accentHead = DeepNavy,
             border = LightBorder,
             btnSec = LightBtnSec,
-            okGreen = EmeraldGreenLightMode
+            okGreen = EmeraldGreenLightMode,
+            amberText = AmberTextLightMode,
+            amberBorder = AmberBorderLightMode,
+            amberBg = AmberBgLightMode
+        )
+        else -> MuallimunPalette(
+            isDark = true,
+            bgColor = DarkBgColor,
+            cardColor = DarkCardColor,
+            panelColor = DarkPanelColor,
+            chatBg = DarkChatBg,
+            textMain = DarkTextMain,
+            textDim = DarkTextDim,
+            textArabic = DarkTextArabic,
+            accentHead = WarmGold,
+            border = DarkBorder,
+            btnSec = DarkBtnSec,
+            okGreen = EmeraldGreen,
+            amberText = WarmGold,
+            amberBorder = WarmGold.copy(alpha = 0.65f),
+            amberBg = DarkPanelColor
         )
     }
 

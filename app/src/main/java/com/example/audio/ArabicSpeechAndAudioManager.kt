@@ -9,9 +9,13 @@ import android.media.AudioRecord
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.media.ToneGenerator
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -26,6 +30,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -65,6 +70,16 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
 
     private var audioRecordJob: Job? = null
     private var lastRecordedWavPath: String? = null
+
+    private val pcmBufferStream = ByteArrayOutputStream()
+    private var pcmBufferFlushed = false
+    private var currentRecordingPrefix: String = "rec"
+    private var speechStartTimeMs: Long = 0L
+    private var lastSpeechDurationSec: Float = 0f
+    private val liveRmsHistory = mutableListOf<Float>()
+
+    var hapticEnabled: Boolean = true
+    var ttsSpeechRate: Float = 1.0f
 
     val recordingsDir: File by lazy {
         File(context.filesDir, "recordings").apply { mkdirs() }
@@ -128,6 +143,38 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    fun vibrateHaptic(type: String = "start") {
+        if (!hapticEnabled) return
+        try {
+            val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vm?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+            if (vibrator == null || !vibrator.hasVibrator()) return
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val effect = when (type) {
+                    "success" -> VibrationEffect.createWaveform(longArrayOf(0, 45, 60, 90), -1)
+                    "warning" -> VibrationEffect.createWaveform(longArrayOf(0, 75, 50, 75), -1)
+                    else -> VibrationEffect.createOneShot(35L, VibrationEffect.DEFAULT_AMPLITUDE)
+                }
+                vibrator.vibrate(effect)
+            } else {
+                @Suppress("DEPRECATION")
+                when (type) {
+                    "success" -> vibrator.vibrate(longArrayOf(0, 45, 60, 90), -1)
+                    "warning" -> vibrator.vibrate(longArrayOf(0, 75, 50, 75), -1)
+                    else -> vibrator.vibrate(35L)
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
     /**
      * Kelimeye, cümleye veya diyaloğa atanmış gerçek ses dosyası (.mp3 / .wav)
      * filesDir/custom_media/ veya assets/categories/ altında mevcutsa MediaPlayer ile çalar.
@@ -138,6 +185,7 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         itemId: String? = null,
         paketId: String? = null,
         voiceType: String = "male",
+        slow: Boolean = false,
         onComplete: (() -> Unit)? = null
     ): Boolean {
         val cleanPath = audioPath?.trim()?.replace("\\", "/")?.trimStart('/') ?: ""
@@ -145,6 +193,7 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         val vSuffix = if (voiceType == "female") "female" else "male"
         val vShort = if (voiceType == "female") "f" else "m"
         val exts = listOf("mp3", "wav", "m4a", "ogg")
+        val effectiveRate = (if (slow) min(ttsSpeechRate, 0.75f) else ttsSpeechRate).coerceIn(0.5f, 2.0f)
 
         // 1. Yerel Dosya Sistemi (filesDir / custom_media) adayları
         val localCandidates = mutableListOf<File>()
@@ -188,6 +237,12 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                             true
                         }
                         prepare()
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && kotlin.math.abs(effectiveRate - 1.0f) > 0.03f) {
+                            try {
+                                playbackParams = playbackParams.setSpeed(effectiveRate)
+                            } catch (_: Exception) {
+                            }
+                        }
                         start()
                     }
                     return true
@@ -238,6 +293,12 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                         true
                     }
                     prepare()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && kotlin.math.abs(effectiveRate - 1.0f) > 0.03f) {
+                        try {
+                            playbackParams = playbackParams.setSpeed(effectiveRate)
+                        } catch (_: Exception) {
+                        }
+                    }
                     start()
                 }
                 return true
@@ -266,6 +327,7 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                 itemId = itemId,
                 paketId = paketId,
                 voiceType = voiceType,
+                slow = slow,
                 onComplete = onComplete
             )
             if (playedRealFile) return
@@ -275,7 +337,15 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
             return
         }
         val pitch = if (voiceType == "female") 1.16f else 0.94f
-        val rate = if (slow) 0.75f else 1.0f
+        val rate = if (slow) min(ttsSpeechRate, 0.75f) else ttsSpeechRate
+        try {
+            val arSa = Locale("ar", "SA")
+            val res = tts?.setLanguage(arSa)
+            if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
+                tts?.setLanguage(Locale("ar"))
+            }
+        } catch (_: Exception) {
+        }
         tts?.setPitch(pitch)
         tts?.setSpeechRate(rate)
 
@@ -299,6 +369,45 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         }
     }
 
+    fun speakTurkish(
+        text: String,
+        slow: Boolean = false,
+        onComplete: (() -> Unit)? = null
+    ) {
+        stopAllAudio()
+        val cleanText = text.trim()
+        if (cleanText.isBlank()) {
+            onComplete?.invoke()
+            return
+        }
+        currentTtsDoneCallback = onComplete
+        _isSpeakingTts.value = true
+
+        if (ttsReady && tts != null) {
+            try {
+                val trLocale = Locale("tr", "TR")
+                val res = tts?.setLanguage(trLocale)
+                if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    tts?.setLanguage(Locale.getDefault())
+                }
+                tts?.setPitch(1.0f)
+                tts?.setSpeechRate(if (slow) 0.85f else ttsSpeechRate)
+                val utteranceId = "utt_tr_${System.currentTimeMillis()}"
+                tts?.speak(cleanText, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            } catch (_: Exception) {
+                _isSpeakingTts.value = false
+                onComplete?.invoke()
+            }
+        } else {
+            scope.launch {
+                val estMs = max(1000L, cleanText.length * 75L)
+                delay(estMs)
+                _isSpeakingTts.value = false
+                onComplete?.invoke()
+            }
+        }
+    }
+
     fun startListening(
         itemIdPrefix: String = "rec",
         onResult: (heardText: String, confidence: Float, errorMsg: String?) -> Unit
@@ -309,6 +418,27 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         onResult: (heardText: String, confidence: Float, errorMsg: String?) -> Unit
     ) = startSpeechRecognition(itemIdPrefix, onResult)
 
+    @Synchronized
+    private fun flushAccumulatedPcmToWav(itemIdPrefix: String) {
+        if (!pcmBufferFlushed && pcmBufferStream.size() > 0) {
+            pcmBufferFlushed = true
+            val allBytes = pcmBufferStream.toByteArray()
+            pcmBufferStream.reset()
+            saveRawPcmToWav(allBytes, itemIdPrefix)
+        }
+    }
+
+    fun getLastSpeechDurationSec(): Float = lastSpeechDurationSec
+
+    fun getLastSpeechEnvelope48(): List<Float> {
+        if (liveRmsHistory.isEmpty()) return List(48) { 0.12f }
+        if (liveRmsHistory.size == 48) return liveRmsHistory.toList()
+        return List(48) { idx ->
+            val srcIdx = ((idx.toFloat() / 48f) * liveRmsHistory.size).toInt().coerceIn(0, liveRmsHistory.size - 1)
+            liveRmsHistory[srcIdx]
+        }
+    }
+
     fun startSpeechRecognition(
         itemIdPrefix: String = "rec",
         onResult: (heardText: String, confidence: Float, errorMsg: String?) -> Unit
@@ -317,7 +447,13 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         stopSpeaking()
         mainHandler.removeCallbacksAndMessages(null)
         playBeep()
+        vibrateHaptic("start")
         currentRecognitionCallback = onResult
+        currentRecordingPrefix = itemIdPrefix
+        pcmBufferStream.reset()
+        pcmBufferFlushed = false
+        liveRmsHistory.clear()
+        speechStartTimeMs = System.currentTimeMillis()
         _isRecording.value = true
         _waveBars.value = List(20) { 0.1f }
 
@@ -332,15 +468,21 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                 val recognizer = speechRecognizer
                 if (recognizer == null) {
                     _isRecording.value = false
-                    onResult("", 0f, "Cihazda ses tanıma servisi bulunamadı. '🎯 Örnek Okuma Simülasyonu' butonunu kullanabilirsiniz.")
+                    onResult("", 0f, "Cihazda ses tanıma servisi bulunamadı.")
                     return@postDelayed
                 }
 
+                speechStartTimeMs = System.currentTimeMillis()
                 recognizer.setRecognitionListener(object : RecognitionListener {
-                    override fun onReadyForSpeech(params: Bundle?) {}
-                    override fun onBeginningOfSpeech() {}
+                    override fun onReadyForSpeech(params: Bundle?) {
+                        speechStartTimeMs = System.currentTimeMillis()
+                    }
+                    override fun onBeginningOfSpeech() {
+                        speechStartTimeMs = System.currentTimeMillis()
+                    }
                     override fun onRmsChanged(rmsdB: Float) {
                         val norm = ((rmsdB + 2f) / 12f).coerceIn(0.06f, 1.0f)
+                        liveRmsHistory.add(norm)
                         val updated = _waveBars.value.drop(1) + norm
                         _waveBars.value = updated
                         _volumeScore.value = (norm * 100).roundToInt().coerceIn(45, 100)
@@ -348,16 +490,20 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
 
                     override fun onBufferReceived(buffer: ByteArray?) {
                         if (buffer != null && buffer.isNotEmpty()) {
-                            saveRawPcmToWav(buffer, itemIdPrefix)
+                            pcmBufferStream.write(buffer, 0, buffer.size)
                         }
                     }
 
                     override fun onEndOfSpeech() {
                         _isRecording.value = false
+                        val elapsed = ((System.currentTimeMillis() - speechStartTimeMs) / 100f).roundToInt() / 10f
+                        lastSpeechDurationSec = elapsed.coerceAtLeast(0.6f)
+                        flushAccumulatedPcmToWav(itemIdPrefix)
                     }
 
                     override fun onError(error: Int) {
                         _isRecording.value = false
+                        flushAccumulatedPcmToWav(itemIdPrefix)
                         val msg = when (error) {
                             SpeechRecognizer.ERROR_NO_MATCH -> "Sesiniz net algılanamadı, lütfen mikrofona yakın ve net konuşun."
                             SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Konuşma sesi duyulamadı."
@@ -370,6 +516,11 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
 
                     override fun onResults(results: Bundle?) {
                         _isRecording.value = false
+                        val elapsed = ((System.currentTimeMillis() - speechStartTimeMs) / 100f).roundToInt() / 10f
+                        if (lastSpeechDurationSec <= 0f) {
+                            lastSpeechDurationSec = elapsed.coerceAtLeast(0.8f)
+                        }
+                        flushAccumulatedPcmToWav(itemIdPrefix)
                         val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                         val scores = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
                         val bestText = matches?.firstOrNull()?.trim() ?: ""
@@ -403,6 +554,7 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
 
     fun stopSpeechRecognition() {
         _isRecording.value = false
+        flushAccumulatedPcmToWav(currentRecordingPrefix)
         mainHandler.removeCallbacksAndMessages(null)
         try {
             speechRecognizer?.stopListening()

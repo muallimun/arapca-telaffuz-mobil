@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -58,10 +59,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -106,7 +111,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val appViewModel: MainAppViewModel = viewModel()
             val isDark by appViewModel.isDarkTheme.collectAsState()
-            MyApplicationTheme(darkTheme = isDark) {
+            val themeMode by appViewModel.appThemeMode.collectAsState()
+            MyApplicationTheme(darkTheme = isDark, themeMode = themeMode) {
                 MuallimunArabicAppRoot(viewModel = appViewModel)
             }
         }
@@ -117,6 +123,7 @@ class MainActivity : ComponentActivity() {
 fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
     val palette = LocalMuallimunPalette.current
     val context = LocalContext.current
+    val currentView = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val currentMode by viewModel.currentMode.collectAsState()
@@ -124,11 +131,26 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
     val sarfInitQuery by viewModel.sarfExplorerInitialQuery.collectAsState()
     val toastMsg by viewModel.toastMessage.collectAsState()
     val isDark by viewModel.isDarkTheme.collectAsState()
+    val isPlayingAllDialogue by viewModel.isPlayingAllDialogue.collectAsState()
+    val roleplayActive by viewModel.roleplayActive.collectAsState()
+    val handsFreeAutoStart by viewModel.handsFreeAutoStart.collectAsState()
+    val isRadioModeActive by viewModel.isRadioModeActive.collectAsState()
+    val isRecording by viewModel.audioManager.isRecording.collectAsState()
+
+    // Diyalog Tümünü Oynat, Rol Yapma, Oto-Dinle (Radyo) veya Eller Serbest modundayken ekranın kapanıp sesi kesmesini önle
+    val keepScreenAwake = isPlayingAllDialogue || roleplayActive || handsFreeAutoStart || isRadioModeActive || isRecording
+    DisposableEffect(currentView, keepScreenAwake) {
+        currentView.keepScreenOn = keepScreenAwake
+        onDispose {
+            currentView.keepScreenOn = false
+        }
+    }
 
     // Uygulama arka plana atıldığında veya ekran kapandığında (ON_PAUSE / ON_STOP) sesi ve mikrofonu otomatik durdur
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                viewModel.stopRadioMode()
                 viewModel.audioManager.stopSpeaking()
                 viewModel.audioManager.stopListening()
             }
@@ -141,6 +163,7 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
 
     // BackHandler: Modal kapalıysa ve HOME dışındaki bir sekmedeyse HOME ekranına dön
     BackHandler(enabled = activeModal == ActiveModal.NONE && currentMode != AppMode.HOME) {
+        viewModel.stopRadioMode()
         viewModel.audioManager.stopSpeaking()
         viewModel.audioManager.stopListening()
         viewModel.switchMode(AppMode.HOME)
@@ -148,6 +171,7 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
 
     // BackHandler: Açık bir modal varsa uygulamadan çıkmak yerine modalı kapat
     BackHandler(enabled = activeModal != ActiveModal.NONE) {
+        viewModel.stopRadioMode()
         viewModel.audioManager.stopSpeaking()
         viewModel.audioManager.stopListening()
         viewModel.closeModal()
@@ -338,7 +362,7 @@ private fun MuallimunTopAppBar(
 ) {
     val palette = LocalMuallimunPalette.current
     var showToolsInSubMode by remember(currentMode) { mutableStateOf(false) }
-    val showActionStrip = currentMode == AppMode.HOME || showToolsInSubMode
+    val showActionStrip = currentMode != AppMode.HOME && showToolsInSubMode
 
     Surface(
         color = palette.panelColor,
@@ -360,16 +384,29 @@ private fun MuallimunTopAppBar(
                     .fillMaxWidth()
                     .height(40.dp)
             ) {
-                Text(
-                    text = "🕌 Arapça Asistanı",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.accentHead,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.weight(1f)
-                )
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.app_icon),
+                        contentDescription = "Uygulama Simgesi",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                    )
+                    Text(
+                        text = "Arapça Asistanı",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.accentHead,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

@@ -1,18 +1,19 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,10 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -32,19 +30,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +50,9 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
 import com.example.data.WordMorphologyInfo
 import com.example.nlp.ArabicNlpEngine
 import com.example.ui.theme.AmiriArabicFontFamily
@@ -63,92 +63,58 @@ import com.example.ui.theme.LocalMuallimunPalette
 import com.example.ui.theme.RoyalBlue
 import com.example.ui.theme.WarmGold
 import com.example.viewmodel.EvaluationSummaryState
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
 fun HexagonRootBadge(
     rootText: String,
-    emoji: String,
+    emoji: String = "",
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalMuallimunPalette.current
-    val hexFill = if (palette.isDark) DeepNavy else Color(0xFFDBEAFE)
-    val hexStroke = if (palette.isDark) Color(0xFF38BDF8) else RoyalBlue
+    val boxFill = if (palette.isDark) DeepNavy else Color(0xFFDBEAFE)
+    val boxStroke = if (palette.isDark) Color(0xFF38BDF8) else RoyalBlue
 
-    Box(
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = boxFill,
+        border = BorderStroke(1.5.dp, boxStroke),
         modifier = modifier
-            .size(width = 106.dp, height = 92.dp)
-            .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
-            .testTag("hexagon_root_badge"),
-        contentAlignment = Alignment.Center
+            .testTag("hexagon_root_badge")
     ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val cx = size.width / 2f
-            val cy = size.height / 2f - 4.dp.toPx()
-            val radius = minOf(size.width, size.height) * 0.40f
-            val path = Path()
-            for (i in 0 until 6) {
-                val angleRad = Math.toRadians((60.0 * i) - 30.0)
-                val x = cx + (radius * cos(angleRad)).toFloat()
-                val y = cy + (radius * sin(angleRad)).toFloat()
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            path.close()
-            drawPath(path = path, color = hexFill)
-            drawPath(path = path, color = hexStroke, style = Stroke(width = 2.dp.toPx()))
-        }
-
-        Text(
-            text = emoji,
-            fontSize = 15.sp,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 6.dp, top = 2.dp)
-        )
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(bottom = 8.dp)
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
             Text(
-                text = rootText,
+                text = rootText.ifBlank { "—" },
                 fontFamily = AmiriArabicFontFamily,
                 fontWeight = FontWeight.Bold,
-                fontSize = 19.sp,
+                fontSize = 18.sp,
                 color = if (palette.isDark) WarmGold else DeepNavy,
                 textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
                 style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
             )
-            Text(
-                text = "SÜLÂSÎ KÖK",
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (palette.isDark) Color(0xFF93C5FD) else DeepNavy
-            )
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 1.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Kök Ailesi",
-                tint = palette.textDim,
-                modifier = Modifier.size(11.dp)
-            )
-            Spacer(modifier = Modifier.width(2.dp))
-            Text(
-                text = "Kök Ailesi",
-                fontSize = 9.sp,
-                color = palette.textDim,
-                fontWeight = FontWeight.SemiBold
-            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = if (palette.isDark) Color(0xFF1E293B) else Color.White,
+                border = BorderStroke(1.dp, boxStroke.copy(alpha = 0.5f))
+            ) {
+                Text(
+                    text = "🔍 Kök Ailesi",
+                    fontSize = 10.sp,
+                    color = if (palette.isDark) Color(0xFF93C5FD) else RoyalBlue,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
         }
     }
 }
@@ -193,7 +159,7 @@ fun WordMorphologyCardBar(
                         "⚡ FİİL (Mâzî • Muzâri • Masdar)"
                     }
                     Text(
-                        text = "${morphInfo.entry.kategori}  |  $turBadge",
+                        text = turBadge,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.accentHead
@@ -335,9 +301,8 @@ fun LiveWaveformBars(
             val y = (size.height - h) / 2f
             val col = barColorOverride ?: when {
                 !isRecording -> palette.border
-                rms < 0.35f -> EmeraldGreen
-                rms < 0.70f -> WarmGold
-                else -> CoralRed
+                rms < 0.60f -> EmeraldGreen
+                else -> WarmGold
             }
             drawRoundRect(
                 color = col,
@@ -353,166 +318,324 @@ fun LiveWaveformBars(
 @Composable
 fun LiveMakhrajAndHarakaCoachCard(
     evalState: EvaluationSummaryState,
+    activeArabicText: String = evalState.expectedArabic,
+    onSpeakWord: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalMuallimunPalette.current
-    var expanded by remember { mutableStateOf(true) }
+    val targetAr = activeArabicText.ifBlank { evalState.expectedArabic }
+    val hasResult = evalState.isCorrect != null &&
+        (evalState.expectedArabic == targetAr || activeArabicText.isBlank())
+    val isListeningNow = !hasResult && evalState.verdictTitle.startsWith("🎙️")
+
+    val borderColor = when {
+        isListeningNow -> EmeraldGreen
+        !hasResult -> palette.border
+        evalState.isCorrect == true -> EmeraldGreen
+        else -> CoralRed
+    }
+    val borderWidth = if (hasResult || isListeningNow) 2.dp else 1.dp
+    val containerBg = when {
+        isListeningNow -> EmeraldGreen.copy(alpha = if (palette.isDark) 0.12f else 0.08f)
+        !hasResult -> palette.panelColor
+        evalState.isCorrect == true -> EmeraldGreen.copy(alpha = if (palette.isDark) 0.12f else 0.08f)
+        else -> CoralRed.copy(alpha = if (palette.isDark) 0.12f else 0.08f)
+    }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .testTag("live_makhraj_coach_card"),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = palette.panelColor),
-        border = BorderStroke(1.dp, palette.border)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = containerBg),
+        border = BorderStroke(borderWidth, borderColor)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            // Başlık & Doğruluk Yüzdesi / Dinleniyor Rozeti Satırı
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "🎯 CANLI MAHREÇ, KÖK HARF & HAREKE KOÇU",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = palette.accentHead
-                    )
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = "Aç / Kapat",
-                    tint = palette.accentHead
+                Text(
+                    text = "🎯 Mahreç & Telaffuz Koçu",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        isListeningNow -> palette.okGreen
+                        hasResult -> if (evalState.isCorrect == true) palette.okGreen else CoralRed
+                        else -> palette.accentHead
+                    },
+                    maxLines = 1
                 )
+
+                if (isListeningNow) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = EmeraldGreen
+                    ) {
+                        Text(
+                            text = "🎙️ Dinleniyor...",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                } else if (hasResult) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (evalState.isCorrect == true) EmeraldGreen else CoralRed
+                    ) {
+                        Text(
+                            text = if (evalState.isCorrect == true) {
+                                "✅ Doğruluk: %${evalState.accuracyPct}"
+                            } else {
+                                "⚠️ Doğruluk: %${evalState.accuracyPct}"
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (evalState.isCorrect == true) Color(0xFF0F172A) else Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
             }
 
-            AnimatedVisibility(visible = expanded) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    if (evalState.wordStatuses.isNotEmpty()) {
-                        Text(
-                            text = "Kelime Doğruluğu (Yeşil: Doğru / Kırmızı: Hatalı):",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = palette.textDim
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                evalState.wordStatuses.forEach { (wStr, isOk) ->
+            if (!hasResult) {
+                // Konuşmadan Önce veya Dinleme Sırasında: Aktif kelime/cümlenin kısa hareke ve mahreç ipucu
+                if (isListeningNow) {
+                    Text(
+                        text = "${evalState.verdictTitle} — ${evalState.statusDetail}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.okGreen
+                    )
+                }
+                val proactiveGuide = remember(targetAr) {
+                    ArabicNlpEngine.buildProactiveMakhrajGuide(targetAr)
+                }
+                if (proactiveGuide.isNotBlank()) {
+                    Text(
+                        text = proactiveGuide,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        color = palette.textMain
+                    )
+                } else {
+                    Text(
+                        text = "🎙️ Telaffuz ve mahreç analizi için '🎤 BAŞLA VE KONUŞ' butonuna dokunun.",
+                        fontSize = 11.sp,
+                        color = palette.textDim
+                    )
+                }
+            } else {
+                // Konuştuktan Sonra: Telaffuz Sonuç Kartı + Tıklanabilir Kelimeler + Mahreç Koçu Tavsiyesi
+                Text(
+                    text = evalState.verdictTitle,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (evalState.isCorrect == true) palette.okGreen else CoralRed
+                )
+
+                if (evalState.wordStatuses.isNotEmpty()) {
+                    Text(
+                        text = "Kelime Geri Bildirimi (Dinlemek için kelimeye dokunun 🔊):",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = palette.textDim
+                    )
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            evalState.wordStatuses.forEach { (wStr, isOk) ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isOk) EmeraldGreen.copy(alpha = 0.18f) else CoralRed.copy(alpha = 0.18f),
+                                    border = BorderStroke(1.dp, if (isOk) EmeraldGreen else CoralRed),
+                                    modifier = Modifier.clickable(enabled = onSpeakWord != null) {
+                                        onSpeakWord?.invoke(wStr)
+                                    }
+                                ) {
                                     Text(
                                         text = wStr,
                                         fontFamily = AmiriArabicFontFamily,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 20.sp,
+                                        fontSize = 18.sp,
                                         color = if (isOk) palette.okGreen else CoralRed,
-                                        style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
+                                        style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                     )
                                 }
                             }
                         }
                     }
+                }
 
-                    if (evalState.makhrajTips.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        evalState.makhrajTips.forEach { tip ->
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = palette.cardColor,
-                                border = BorderStroke(1.dp, CoralRed.copy(alpha = 0.6f)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 3.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(10.dp)) {
-                                    Text(
-                                        text = tip.title,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (palette.isDark) WarmGold else Color(0xFFB45309)
-                                    )
-                                    if (tip.wordExp.isNotBlank() && tip.wordHeard.isNotBlank()) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(vertical = 4.dp)
-                                        ) {
-                                            Text(
-                                                text = "Hedef: ",
-                                                fontSize = 11.sp,
-                                                color = palette.textDim
-                                            )
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(CoralRed, RoundedCornerShape(6.dp))
-                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = tip.wordExp,
-                                                    fontFamily = AmiriArabicFontFamily,
-                                                    fontSize = 16.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color.White,
-                                                    style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
-                                                )
-                                            }
-                                            Text(
-                                                text = "  ➔  Duyulan: ${tip.wordHeard}",
-                                                fontFamily = AmiriArabicFontFamily,
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = palette.textMain,
-                                                style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = tip.tip,
-                                        fontSize = 12.sp,
-                                        color = palette.textMain
-                                    )
-                                }
-                            }
-                        }
-                    } else if (evalState.isCorrect == true) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "✅ Mahreç, kök harf ve med (uzatma) uyumu gayet güzel!",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.okGreen
-                        )
-                    }
-
-                    if (evalState.harakaGuide.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                if (evalState.makhrajTips.isNotEmpty()) {
+                    evalState.makhrajTips.forEach { tip ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = palette.cardColor,
+                            border = BorderStroke(1.dp, CoralRed.copy(alpha = 0.6f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(8.dp)) {
+                            Column(
+                                modifier = Modifier.padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
                                 Text(
-                                    text = "🔤 HAREKE & VOKAL REHBERİ:",
+                                    text = tip.title,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = palette.accentHead
+                                    color = if (palette.isDark) WarmGold else Color(0xFFB45309)
                                 )
+                                if (tip.wordExp.isNotBlank() && tip.wordHeard.isNotBlank()) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = "Hedef: ${tip.wordExp}  ➔  Algılanan: ${tip.wordHeard}",
+                                            fontFamily = AmiriArabicFontFamily,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = palette.textMain,
+                                            style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
+                                        )
+                                    }
+                                }
                                 Text(
-                                    text = evalState.harakaGuide,
+                                    text = tip.tip,
                                     fontSize = 11.sp,
+                                    lineHeight = 15.sp,
                                     color = palette.textMain
                                 )
                             }
                         }
+                    }
+                } else {
+                    Text(
+                        text = if (evalState.isCorrect == true) {
+                            "✅ Mahreç, kök harf ve hareke uyumu gayet güzel! (${evalState.statusDetail})"
+                        } else {
+                            evalState.statusDetail
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (evalState.isCorrect == true) palette.okGreen else palette.textMain
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class ConfettiParticle(
+    val startXFraction: Float,
+    val startYFraction: Float,
+    val driftX: Float,
+    val fallSpeed: Float,
+    val wobbleFreq: Float,
+    val rotationSpeed: Float,
+    val widthDp: Float,
+    val heightDp: Float,
+    val color: Color,
+    val isCircle: Boolean
+)
+
+/**
+ * %75+ başarıda (evalState.showConfetti == true) kartın üzerinde oynatılan
+ * 2 saniyelik zarif Canvas konfeti parçacık animasyonu.
+ */
+@Composable
+fun ConfettiOverlay(
+    visible: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (!visible) return
+
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(visible) {
+        progress.snapTo(0f)
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 2000, easing = LinearEasing)
+        )
+    }
+
+    val particles = remember {
+        val colors = listOf(
+            EmeraldGreen,
+            WarmGold,
+            RoyalBlue,
+            CoralRed,
+            Color(0xFFA855F7),
+            Color(0xFF14B8A6)
+        )
+        val rng = Random(42)
+        List(44) { idx ->
+            ConfettiParticle(
+                startXFraction = 0.05f + rng.nextFloat() * 0.90f,
+                startYFraction = -0.05f - (rng.nextFloat() * 0.25f),
+                driftX = (rng.nextFloat() - 0.5f) * 0.32f,
+                fallSpeed = 0.85f + rng.nextFloat() * 0.55f,
+                wobbleFreq = 4f + rng.nextFloat() * 6f,
+                rotationSpeed = (rng.nextFloat() - 0.5f) * 540f,
+                widthDp = 6f + rng.nextFloat() * 5f,
+                heightDp = 4f + rng.nextFloat() * 4f,
+                color = colors[idx % colors.size],
+                isCircle = idx % 4 == 0
+            )
+        }
+    }
+
+    val t = progress.value
+    if (t >= 1f) return
+
+    val alpha = if (t > 0.72f) ((1f - t) / 0.28f).coerceIn(0f, 1f) else 1f
+
+    Canvas(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("confetti_canvas_overlay")
+    ) {
+        val w = size.width
+        val h = size.height
+        if (w <= 0f || h <= 0f) return@Canvas
+
+        particles.forEach { p ->
+            val wobble = sin(t * p.wobbleFreq) * 14.dp.toPx()
+            val x = (p.startXFraction + p.driftX * t) * w + wobble
+            val y = (p.startYFraction + p.fallSpeed * t) * h
+            if (y in -24f..(h + 24f)) {
+                val pColor = p.color.copy(alpha = alpha)
+                if (p.isCircle) {
+                    drawCircle(
+                        color = pColor,
+                        radius = (p.widthDp * 0.5f).dp.toPx(),
+                        center = Offset(x, y)
+                    )
+                } else {
+                    rotate(degrees = t * p.rotationSpeed, pivot = Offset(x, y)) {
+                        drawRoundRect(
+                            color = pColor,
+                            topLeft = Offset(x - (p.widthDp * 0.5f).dp.toPx(), y - (p.heightDp * 0.5f).dp.toPx()),
+                            size = Size(p.widthDp.dp.toPx(), p.heightDp.dp.toPx()),
+                            cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                        )
                     }
                 }
             }
         }
     }
 }
+

@@ -755,6 +755,50 @@ object ArabicNlpEngine {
         return parts.joinToString(" • ") + "\n💡 Kısa harekeleri uzatmadan (med yapmadan) net ve keskin seslendirin."
     }
 
+    fun buildProactiveMakhrajGuide(arabicText: String?): String {
+        if (arabicText.isNullOrBlank()) return ""
+        val primary = expandArabicVariants(arabicText).firstOrNull() ?: return ""
+        val skel = removeDiacritics(primary)
+        val hints = mutableListOf<String>()
+
+        val throat = listOf('ع', 'ح', 'خ', 'غ').filter { skel.contains(it) }
+        if (throat.isNotEmpty()) {
+            hints.add("Boğaz (${throat.joinToString("، ")}): Boğaz kaslarını hafif daraltarak derin çıkarın")
+        }
+        val interdental = listOf('ث', 'ذ', 'ظ').filter { skel.contains(it) }
+        if (interdental.isNotEmpty()) {
+            hints.add("Peltek (${interdental.joinToString("، ")}): Dil ucunu üst ön dişlerin ucuna değdirin")
+        }
+        val emphatic = listOf('ص', 'ض', 'ط', 'ق').filter { skel.contains(it) }
+        if (emphatic.isNotEmpty()) {
+            hints.add("Kalın (${emphatic.joinToString("، ")}): Dil kökünü üst damağa kaldırarak tok okuyun")
+        }
+        if (primary.contains('\u0651')) {
+            hints.add("Şedde (ـّ ): Harfi mahrecinde tutarak çift sesle vurgulayın")
+        }
+
+        val harakaSummary = buildList {
+            val fathaCnt = primary.count { it == '\u064e' || it == '\u064b' }
+            val kasraCnt = primary.count { it == '\u0650' || it == '\u064d' }
+            val dammaCnt = primary.count { it == '\u064f' || it == '\u064c' }
+            if (fathaCnt > 0) add("Fetha (ـَ ): $fathaCnt")
+            if (kasraCnt > 0) add("Kesra (ـِ ): $kasraCnt")
+            if (dammaCnt > 0) add("Damme (ـُ ): $dammaCnt")
+        }.joinToString(" • ")
+
+        return buildString {
+            if (hints.isNotEmpty()) {
+                append("🎙️ Mahreç İpucu: ")
+                append(hints.joinToString(" | "))
+            } else {
+                append("🎙️ Mahreç İpucu: Kök harfleri ve med (ا/و/ي) uzatmalarını net seslendirin.")
+            }
+            if (harakaSummary.isNotEmpty()) {
+                append("\n🔤 Harekeler: $harakaSummary (Kısa harekeleri uzatmadan okuyun)")
+            }
+        }
+    }
+
     private fun detectMorphologicalComplexity(normWord: String): Int {
         val w = stripAl(normWord)
         if (w.length <= 4) return 0

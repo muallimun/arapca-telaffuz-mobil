@@ -199,7 +199,7 @@ fun HybridWordVisualBox(
     wordId: String,
     paketId: String,
     gorsel: String?,
-    sizeDp: Dp = 80.dp,
+    sizeDp: Dp = 118.dp,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalMuallimunPalette.current
@@ -213,9 +213,9 @@ fun HybridWordVisualBox(
     }
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = palette.panelColor,
-        border = BorderStroke(1.dp, palette.border),
+        border = BorderStroke(1.5.dp, palette.border),
         modifier = modifier.size(sizeDp)
     ) {
         Box(
@@ -229,13 +229,13 @@ fun HybridWordVisualBox(
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(4.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(14.dp))
                 )
             } else {
                 Text(
                     text = fallbackEmoji,
-                    fontSize = (sizeDp.value * 0.5f).sp,
+                    fontSize = (sizeDp.value * 0.54f).sp,
                     textAlign = TextAlign.Center
                 )
             }

@@ -1,6 +1,8 @@
 package com.example.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.audio.ArabicSpeechAndAudioManager
@@ -20,6 +22,7 @@ import com.example.data.WordEntity
 import com.example.data.WordMorphologyInfo
 import com.example.nlp.ArabicNlpEngine
 import com.example.nlp.MakhrajTip
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +31,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.resume
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -109,6 +115,9 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     val sarfExplorerInitialQuery: StateFlow<String> = _sarfExplorerInitialQuery.asStateFlow()
 
     // --- SETTINGS & PREFERENCES ---
+    private val _appThemeMode = MutableStateFlow("gece") // "gece", "gunduz", "okul", "kurumsal"
+    val appThemeMode: StateFlow<String> = _appThemeMode.asStateFlow()
+
     private val _isDarkTheme = MutableStateFlow(true)
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
@@ -127,11 +136,8 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val _totalPoints = MutableStateFlow(0)
     val totalPoints: StateFlow<Int> = _totalPoints.asStateFlow()
 
-    private val _showTeacherBar = MutableStateFlow(true)
-    val showTeacherBar: StateFlow<Boolean> = _showTeacherBar.asStateFlow()
-
-    private val _showDemoSimulationButtons = MutableStateFlow(false)
-    val showDemoSimulationButtons: StateFlow<Boolean> = _showDemoSimulationButtons.asStateFlow()
+    private val _ttsSpeechRate = MutableStateFlow(1.0f)
+    val ttsSpeechRate: StateFlow<Float> = _ttsSpeechRate.asStateFlow()
 
     private val _slowTts = MutableStateFlow(false)
     val slowTts: StateFlow<Boolean> = _slowTts.asStateFlow()
@@ -151,9 +157,6 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val _testModeHideArabic = MutableStateFlow(false)
     val testModeHideArabic: StateFlow<Boolean> = _testModeHideArabic.asStateFlow()
 
-    private val _editModeEnabled = MutableStateFlow(false)
-    val editModeEnabled: StateFlow<Boolean> = _editModeEnabled.asStateFlow()
-
     private val _voicePreference = MutableStateFlow("Sırayla") // "Sırayla", "Kadın", "Erkek"
     val voicePreference: StateFlow<String> = _voicePreference.asStateFlow()
 
@@ -166,12 +169,22 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val _lastListeningExamSummary = MutableStateFlow("Henüz Dinle & Bul sınavı tamamlanmadı.")
     val lastListeningExamSummary: StateFlow<String> = _lastListeningExamSummary.asStateFlow()
 
+    private val _hapticFeedbackEnabled = MutableStateFlow(true)
+    val hapticFeedbackEnabled: StateFlow<Boolean> = _hapticFeedbackEnabled.asStateFlow()
+
+    private val _isRadioModeActive = MutableStateFlow(false)
+    val isRadioModeActive: StateFlow<Boolean> = _isRadioModeActive.asStateFlow()
+    private var radioLoopJob: Job? = null
+
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
     // --- WORD MODE STATE ---
     private val _selectedWordCategory = MutableStateFlow("hayvanlar")
     val selectedWordCategory: StateFlow<String> = _selectedWordCategory.asStateFlow()
+
+    private val _selectedWordStatusFilter = MutableStateFlow("Tümü") // "Tümü", "Günlük 15", "Favoriler", "Ezberlenmeyen", "Zayıflar"
+    val selectedWordStatusFilter: StateFlow<String> = _selectedWordStatusFilter.asStateFlow()
 
     private val _selectedWordLevel = MutableStateFlow("Tümü")
     val selectedWordLevel: StateFlow<String> = _selectedWordLevel.asStateFlow()
@@ -185,7 +198,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val _wordShowTashkeel = MutableStateFlow(true)
     val wordShowTashkeel: StateFlow<Boolean> = _wordShowTashkeel.asStateFlow()
 
-    private val _wordFontSizeSp = MutableStateFlow(38)
+    private val _wordFontSizeSp = MutableStateFlow(40)
     val wordFontSizeSp: StateFlow<Int> = _wordFontSizeSp.asStateFlow()
 
     private val _activeMorphArabic = MutableStateFlow<String?>(null)
@@ -197,8 +210,11 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val _wordAttemptCount = MutableStateFlow(0)
     val wordAttemptCount: StateFlow<Int> = _wordAttemptCount.asStateFlow()
 
+    private val _wordSearchQuery = MutableStateFlow("")
+    val wordSearchQuery: StateFlow<String> = _wordSearchQuery.asStateFlow()
+
     // --- SENTENCE MODE STATE ---
-    private val _selectedSentenceFilter = MutableStateFlow("Tümü") // "Tümü", "📅 Günün 15 Tekrarı", "Favoriler", "Öğrendiklerim", "Zorlandıklarım"
+    private val _selectedSentenceFilter = MutableStateFlow("Tümü") // "Tümü", "📅 Günün 15 Tekrarı", "🔥 Günlük 15", "Favoriler", "Öğrendiklerim", "Zorlandıklarım"
     val selectedSentenceFilter: StateFlow<String> = _selectedSentenceFilter.asStateFlow()
 
     private val _selectedSentenceLevel = MutableStateFlow("Tümü")
@@ -221,6 +237,9 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
 
     private val _sentAttemptCount = MutableStateFlow(0)
     val sentAttemptCount: StateFlow<Int> = _sentAttemptCount.asStateFlow()
+
+    private val _sentenceSearchQuery = MutableStateFlow("")
+    val sentenceSearchQuery: StateFlow<String> = _sentenceSearchQuery.asStateFlow()
 
     // --- DIALOGUE & ROLEPLAY MODE STATE ---
     private val _selectedDialogueId = MutableStateFlow("dlg_01")
@@ -284,36 +303,57 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val recentAttemptHistory = mutableListOf<Pair<String, Boolean>>()
     private var alternateVoiceToggle = "female"
 
-    // Filtered Word List based on selected category & CEFR level
+    // Filtered Word List based on selected package category, status filter, CEFR level & search query
     val filteredWords: StateFlow<List<WordEntity>> = combine(
         allWords,
         _selectedWordCategory,
+        _selectedWordStatusFilter,
         _selectedWordLevel,
-        _randomOrder
-    ) { words, catId, level, rnd ->
-        val baseList = when (catId) {
+        combine(_randomOrder, _wordSearchQuery) { rnd, query -> rnd to query }
+    ) { words, catId, statusFilter, level, (rnd, query) ->
+        val packageFiltered = when (catId) {
             "tumu" -> words
+            "sozluk_tumu" -> words.filter { it.paketId.startsWith("szl_") }
+            "gorselli_tumu" -> words.filter { !it.paketId.startsWith("szl_") }
             "gunluk_tekrar" -> repository.buildDailySmartReviewWords(words, 15)
             "tekrar" -> words.filter { it.isFav == 1 }
             "ezberlenmeyen" -> words.filter { it.isLearned == 0 }
             "zayif" -> words.filter { it.yanlis > 0 }.sortedByDescending { it.yanlis - it.dogru }
-            "sozluk_tumu" -> words.filter { it.paketId.startsWith("szl_") }
-            "gorselli_tumu" -> words.filter { !it.paketId.startsWith("szl_") }
             else -> words.filter { it.paketId == catId }
         }
-        val levelFiltered = if (level == "Tümü") baseList else baseList.filter { it.seviye == level }
-        if (rnd && catId != "zayif") levelFiltered.shuffled() else levelFiltered
+        val statusFiltered = when (statusFilter) {
+            "Tümü", "tumu" -> packageFiltered
+            "Günlük 15", "🔥 Günlük 15", "gunluk_tekrar" -> repository.buildDailySmartReviewWords(packageFiltered, 15)
+            "Favoriler", "⭐ Favori", "tekrar" -> packageFiltered.filter { it.isFav == 1 }
+            "Ezberlenmeyen", "📌 Ezberlenmeyen", "ezberlenmeyen" -> packageFiltered.filter { it.isLearned == 0 }
+            "Zayıflar", "⚠️ Zayıf", "zayif" -> packageFiltered.filter { it.yanlis > 0 }.sortedByDescending { it.yanlis - it.dogru }
+            else -> packageFiltered
+        }
+        val levelFiltered = if (level == "Tümü") statusFiltered else statusFiltered.filter { it.seviye == level }
+        val q = query.trim()
+        val searchFiltered = if (q.isEmpty()) {
+            levelFiltered
+        } else {
+            levelFiltered.filter {
+                it.turkce.contains(q, ignoreCase = true) ||
+                    it.arapca.contains(q, ignoreCase = true) ||
+                    ArabicNlpEngine.removeDiacritics(it.arapca).contains(q, ignoreCase = true)
+            }
+        }
+        val isWeakFilter = catId == "zayif" || statusFilter == "Zayıflar" || statusFilter == "⚠️ Zayıf" || statusFilter == "zayif"
+        if (rnd && !isWeakFilter && q.isEmpty()) searchFiltered.shuffled() else searchFiltered
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Filtered Sentence List based on filter & CEFR level
+    // Filtered Sentence List based on filter, CEFR level & search query
     val filteredSentences: StateFlow<List<SentenceEntity>> = combine(
         allSentences,
         _selectedSentenceFilter,
         _selectedSentenceLevel,
-        _randomOrder
-    ) { sents, filter, level, rnd ->
+        _randomOrder,
+        _sentenceSearchQuery
+    ) { sents, filter, level, rnd, query ->
         val baseList = when (filter) {
-            "📅 Günün 15 Tekrarı", "📅 Günlük 15" -> repository.buildDailySmartReviewSentences(sents, 15)
+            "📅 Günün 15 Tekrarı", "📅 Günlük 15", "🔥 Günlük 15" -> repository.buildDailySmartReviewSentences(sents, 15)
             "Favoriler", "⭐ Favori" -> sents.filter { it.isFav == 1 }
             "Ezberlenmeyen", "📌 Ezberlenmeyen" -> sents.filter { it.isLearned == 0 }
             "Öğrendiklerim" -> sents.filter { it.isLearned == 1 }
@@ -321,7 +361,17 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             else -> sents
         }
         val levelFiltered = if (level == "Tümü") baseList else baseList.filter { it.seviye == level }
-        if (rnd && filter != "Zorlandıklarım") levelFiltered.shuffled() else levelFiltered
+        val q = query.trim()
+        val searchFiltered = if (q.isEmpty()) {
+            levelFiltered
+        } else {
+            levelFiltered.filter {
+                it.turkce.contains(q, ignoreCase = true) ||
+                    it.arapca.contains(q, ignoreCase = true) ||
+                    ArabicNlpEngine.removeDiacritics(it.arapca).contains(q, ignoreCase = true)
+            }
+        }
+        if (rnd && filter != "Zorlandıklarım" && filter != "⚠️ Zayıf" && q.isEmpty()) searchFiltered.shuffled() else searchFiltered
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Filtered Dialogues based on CEFR level
@@ -352,16 +402,99 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 _dailyCount.value = map["daily_count"]?.toIntOrNull() ?: 0
                 _dailyGoal.value = map["daily_goal"]?.toIntOrNull() ?: 20
                 _totalPoints.value = map["total_points"]?.toIntOrNull() ?: 0
-                _isDarkTheme.value = (map["theme_mode"] ?: "dark") == "dark"
-                _showTeacherBar.value = (map["show_teacher_bar"] ?: "1") != "0"
-                _showDemoSimulationButtons.value = (map["show_demo_simulation"] ?: "0") == "1"
+
+                val rawTheme = map["theme_mode"] ?: "gece"
+                val normalizedTheme = when (rawTheme.lowercase()) {
+                    "light", "gunduz" -> "gunduz"
+                    "okul" -> "okul"
+                    "kurumsal" -> "kurumsal"
+                    else -> "gece"
+                }
+                _appThemeMode.value = normalizedTheme
+                _isDarkTheme.value = normalizedTheme !in setOf("gunduz", "okul")
+
+                val hapticCfg = (map["haptic_feedback"] ?: "1") != "0"
+                _hapticFeedbackEnabled.value = hapticCfg
+                audioManager.hapticEnabled = hapticCfg
+
+                val savedRate = map["tts_speech_rate"]?.toFloatOrNull()?.coerceIn(0.75f, 1.25f) ?: 1.0f
+                _ttsSpeechRate.value = savedRate
+                audioManager.ttsSpeechRate = savedRate
+                _slowTts.value = savedRate <= 0.80f
+
+                _autoPlayOnCardChange.value = (map["auto_play_card"] ?: "1") != "0"
+                _autoAdvanceOnCorrect.value = (map["auto_advance_correct"] ?: "0") == "1"
+                _handsFreeAutoStart.value = (map["hands_free_auto"] ?: "0") == "1"
+                _randomOrder.value = (map["random_order"] ?: "0") == "1"
+
+                val hideAr = (map["test_mode_hide_arabic"] ?: "0") == "1"
+                _testModeHideArabic.value = hideAr
+                _sentHideArabic.value = hideAr
+
+                val showTashkeel = (map["global_show_tashkeel"] ?: "1") != "0"
+                _wordShowTashkeel.value = showTashkeel
+                _sentShowTashkeel.value = showTashkeel
+                _chatShowTashkeel.value = showTashkeel
+
+                map["word_font_size_sp"]?.toIntOrNull()?.let { _wordFontSizeSp.value = it.coerceIn(24, 56) }
+                map["sent_font_size_sp"]?.toIntOrNull()?.let { _sentFontSizeSp.value = it.coerceIn(18, 46) }
+                map["chat_font_size_sp"]?.toIntOrNull()?.let { _chatFontSizeSp.value = it.coerceIn(16, 36) }
+
+                map["voice_preference"]?.takeIf { it in setOf("Sırayla", "Kadın", "Erkek") }?.let {
+                    _voicePreference.value = it
+                }
+                map["max_attempts_setting"]?.takeIf { it in setOf("1 Kez", "2 Kez", "3 Kez", "5 Kez", "Sınırsız") }?.let {
+                    _maxAttemptsSetting.value = it
+                }
+
                 _lastActiveModeName.value = map["last_active_mode"] ?: "words"
                 _lastListeningExamSummary.value = map["last_listening_exam"] ?: "Henüz Dinle & Bul sınavı tamamlanmadı."
+            }
+        }
+        // Başlangıçta ve paketler yüklendiğinde seçili kategori / filtre geçerliliğini denetle
+        viewModelScope.launch {
+            combine(allWords, wordPackages) { words, pkgs -> words to pkgs }.collect { (words, pkgs) ->
+                if (words.isNotEmpty()) {
+                    val validCats = setOf(
+                        "tumu", "gorselli_tumu", "sozluk_tumu",
+                        "gunluk_tekrar", "tekrar", "ezberlenmeyen", "zayif"
+                    ) + pkgs.map { it.id } + words.map { it.paketId }
+                    val curCat = _selectedWordCategory.value
+                    if (curCat !in validCats) {
+                        val fallback = if (words.any { it.paketId == "hayvanlar" }) "hayvanlar" else "gorselli_tumu"
+                        _selectedWordCategory.value = fallback
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            allSentences.collect { sents ->
+                if (sents.isNotEmpty()) {
+                    val validSentFilters = setOf(
+                        "Tümü", "📅 Günün 15 Tekrarı", "📅 Günlük 15", "🔥 Günlük 15",
+                        "Favoriler", "⭐ Favori", "Ezberlenmeyen", "📌 Ezberlenmeyen",
+                        "Öğrendiklerim", "Zorlandıklarım", "⚠️ Zayıf"
+                    )
+                    if (_selectedSentenceFilter.value !in validSentFilters) {
+                        _selectedSentenceFilter.value = "Tümü"
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            allDialogues.collect { dlgs ->
+                if (dlgs.isNotEmpty() && dlgs.none { it.id == _selectedDialogueId.value }) {
+                    _selectedDialogueId.value = dlgs.first().id
+                }
             }
         }
     }
 
     private suspend fun loadPersistedConfig() {
+        val savedCat = repository.getConfig("last_word_cat_id", "")
+        if (savedCat.isNotBlank()) {
+            _selectedWordCategory.value = savedCat
+        }
         val seenTour = repository.getConfig("onboarding_seen_v40", "0")
         if (seenTour != "1") {
             _activeModal.value = ActiveModal.ONBOARDING_TOUR
@@ -379,6 +512,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun openModal(modal: ActiveModal, sarfQuery: String = "") {
+        stopRadioMode()
         audioManager.stopAllAudio()
         if (modal == ActiveModal.SARF_EXPLORER) {
             _sarfExplorerInitialQuery.value = sarfQuery
@@ -418,39 +552,136 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun setAppThemeMode(mode: String) {
+        val normalized = when (mode.lowercase()) {
+            "light", "gunduz" -> "gunduz"
+            "okul" -> "okul"
+            "kurumsal" -> "kurumsal"
+            else -> "gece"
+        }
+        _appThemeMode.value = normalized
+        _isDarkTheme.value = normalized !in setOf("gunduz", "okul")
+        viewModelScope.launch {
+            repository.setConfig("theme_mode", normalized)
+        }
+    }
+
     fun toggleTheme() {
-        val nextDark = !_isDarkTheme.value
-        _isDarkTheme.value = nextDark
+        val nextMode = if (_isDarkTheme.value) "gunduz" else "gece"
+        setAppThemeMode(nextMode)
+    }
+
+    fun setDailyGoal(goal: Int) {
+        val validGoal = goal.coerceIn(5, 100)
+        _dailyGoal.value = validGoal
         viewModelScope.launch {
-            repository.setConfig("theme_mode", if (nextDark) "dark" else "light")
+            repository.setConfig("daily_goal", validGoal.toString())
         }
     }
 
-    fun setShowTeacherBar(show: Boolean) {
-        _showTeacherBar.value = show
+    fun setHapticFeedbackEnabled(enabled: Boolean) {
+        _hapticFeedbackEnabled.value = enabled
+        audioManager.hapticEnabled = enabled
         viewModelScope.launch {
-            repository.setConfig("show_teacher_bar", if (show) "1" else "0")
+            repository.setConfig("haptic_feedback", if (enabled) "1" else "0")
         }
     }
 
-    fun setShowDemoSimulationButtons(show: Boolean) {
-        _showDemoSimulationButtons.value = show
+    fun setTtsSpeechRate(rate: Float) {
+        val clamped = ((rate * 20f).roundToInt() / 20f).coerceIn(0.75f, 1.25f)
+        _ttsSpeechRate.value = clamped
+        audioManager.ttsSpeechRate = clamped
+        _slowTts.value = clamped <= 0.80f
         viewModelScope.launch {
-            repository.setConfig("show_demo_simulation", if (show) "1" else "0")
+            repository.setConfig("tts_speech_rate", clamped.toString())
         }
     }
 
-    fun setSlowTts(slow: Boolean) { _slowTts.value = slow }
-    fun setAutoPlayOnCardChange(auto: Boolean) { _autoPlayOnCardChange.value = auto }
-    fun setAutoAdvanceOnCorrect(auto: Boolean) { _autoAdvanceOnCorrect.value = auto }
-    fun setHandsFreeAutoStart(auto: Boolean) { _handsFreeAutoStart.value = auto }
-    fun setRandomOrder(rnd: Boolean) { _randomOrder.value = rnd }
-    fun setTestModeHideArabic(hide: Boolean) { _testModeHideArabic.value = hide }
-    fun setEditModeEnabled(enabled: Boolean) { _editModeEnabled.value = enabled }
-    fun setVoicePreference(pref: String) { _voicePreference.value = pref }
-    fun setMaxAttemptsSetting(maxA: String) { _maxAttemptsSetting.value = maxA }
+    fun setSlowTts(slow: Boolean) {
+        _slowTts.value = slow
+        val targetRate = if (slow) 0.75f else 1.0f
+        _ttsSpeechRate.value = targetRate
+        audioManager.ttsSpeechRate = targetRate
+        viewModelScope.launch {
+            repository.setConfig("tts_speech_rate", targetRate.toString())
+        }
+    }
+
+    fun setAutoPlayOnCardChange(auto: Boolean) {
+        _autoPlayOnCardChange.value = auto
+        viewModelScope.launch {
+            repository.setConfig("auto_play_card", if (auto) "1" else "0")
+        }
+    }
+
+    fun setAutoAdvanceOnCorrect(auto: Boolean) {
+        _autoAdvanceOnCorrect.value = auto
+        viewModelScope.launch {
+            repository.setConfig("auto_advance_correct", if (auto) "1" else "0")
+        }
+    }
+
+    fun setHandsFreeAutoStart(auto: Boolean) {
+        _handsFreeAutoStart.value = auto
+        viewModelScope.launch {
+            repository.setConfig("hands_free_auto", if (auto) "1" else "0")
+        }
+    }
+
+    fun setRandomOrder(rnd: Boolean) {
+        _randomOrder.value = rnd
+        viewModelScope.launch {
+            repository.setConfig("random_order", if (rnd) "1" else "0")
+        }
+    }
+
+    fun setTestModeHideArabic(hide: Boolean) {
+        _testModeHideArabic.value = hide
+        _sentHideArabic.value = hide
+        viewModelScope.launch {
+            repository.setConfig("test_mode_hide_arabic", if (hide) "1" else "0")
+        }
+    }
+
+    fun setGlobalShowTashkeel(show: Boolean) {
+        _wordShowTashkeel.value = show
+        _sentShowTashkeel.value = show
+        _chatShowTashkeel.value = show
+        viewModelScope.launch {
+            repository.setConfig("global_show_tashkeel", if (show) "1" else "0")
+        }
+    }
+
+    fun setGlobalFontSizePreset(wordSp: Int) {
+        val clampedWord = wordSp.coerceIn(24, 56)
+        val clampedSent = (clampedWord - 12).coerceIn(18, 46)
+        val clampedChat = (clampedWord - 18).coerceIn(16, 36)
+        _wordFontSizeSp.value = clampedWord
+        _sentFontSizeSp.value = clampedSent
+        _chatFontSizeSp.value = clampedChat
+        viewModelScope.launch {
+            repository.setConfig("word_font_size_sp", clampedWord.toString())
+            repository.setConfig("sent_font_size_sp", clampedSent.toString())
+            repository.setConfig("chat_font_size_sp", clampedChat.toString())
+        }
+    }
+
+    fun setVoicePreference(pref: String) {
+        _voicePreference.value = pref
+        viewModelScope.launch {
+            repository.setConfig("voice_preference", pref)
+        }
+    }
+
+    fun setMaxAttemptsSetting(maxA: String) {
+        _maxAttemptsSetting.value = maxA
+        viewModelScope.launch {
+            repository.setConfig("max_attempts_setting", maxA)
+        }
+    }
 
     fun switchMode(mode: AppMode) {
+        stopRadioMode()
         audioManager.stopAllAudio()
         audioManager.stopSpeechRecognition()
         if (_roleplayActive.value) stopRoleplaySession()
@@ -481,13 +712,47 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     // --- WORD NAVIGATION & SELECTION ---
     fun selectWordCategory(catId: String) {
         audioManager.stopAllAudio()
-        _selectedWordCategory.value = catId
+        when (catId) {
+            "gunluk_tekrar" -> {
+                _selectedWordStatusFilter.value = "Günlük 15"
+            }
+            "tekrar" -> {
+                _selectedWordStatusFilter.value = "Favoriler"
+            }
+            "ezberlenmeyen" -> {
+                _selectedWordStatusFilter.value = "Ezberlenmeyen"
+            }
+            "zayif" -> {
+                _selectedWordStatusFilter.value = "Zayıflar"
+            }
+            else -> {
+                _selectedWordCategory.value = catId
+                viewModelScope.launch {
+                    repository.setConfig("last_word_cat_id", catId)
+                }
+            }
+        }
         _wordIndex.value = 0
         _wordAttemptCount.value = 0
         _activeMorphArabic.value = null
         _activeMorphLabel.value = ""
         viewModelScope.launch {
-            repository.setConfig("last_word_cat_id", catId)
+            delay(100)
+            refreshCurrentCardCoachState()
+        }
+    }
+
+    fun selectWordStatusFilter(statusFilter: String) {
+        audioManager.stopAllAudio()
+        _selectedWordStatusFilter.value = statusFilter
+        if (_selectedWordCategory.value in setOf("gunluk_tekrar", "tekrar", "ezberlenmeyen", "zayif")) {
+            _selectedWordCategory.value = "tumu"
+        }
+        _wordIndex.value = 0
+        _wordAttemptCount.value = 0
+        _activeMorphArabic.value = null
+        _activeMorphLabel.value = ""
+        viewModelScope.launch {
             delay(100)
             refreshCurrentCardCoachState()
         }
@@ -512,6 +777,40 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         return list[idx]
     }
 
+    fun openWordFromSarf(sozlukItem: SozlukEntity) {
+        stopRadioMode()
+        audioManager.stopAllAudio()
+        _selectedWordCategory.value = "sozluk_tumu"
+        _selectedWordStatusFilter.value = "Tümü"
+        _selectedWordLevel.value = "Tümü"
+        _wordSearchQuery.value = ""
+        val primaryAr = if (sozlukItem.tur == "isim") sozlukItem.mufret else sozlukItem.mazi
+        val szlWords = allWords.value.filter { it.paketId.startsWith("szl_") }
+        val targetList = if (szlWords.isNotEmpty()) szlWords else allWords.value
+        val foundIdx = targetList.indexOfFirst {
+            it.id == sozlukItem.wordId || it.id == "szl_${sozlukItem.id}" || it.arapca == primaryAr
+        }
+        _wordIndex.value = if (foundIdx >= 0) foundIdx else 0
+        _wordAttemptCount.value = 0
+        _activeMorphArabic.value = null
+        _activeMorphLabel.value = ""
+        viewModelScope.launch {
+            repository.setConfig("last_word_cat_id", "sozluk_tumu")
+        }
+        switchMode(AppMode.WORDS)
+        viewModelScope.launch {
+            delay(80)
+            val currentList = filteredWords.value
+            val exactIdx = currentList.indexOfFirst {
+                it.id == sozlukItem.wordId || it.id == "szl_${sozlukItem.id}" || it.arapca == primaryAr
+            }
+            if (exactIdx >= 0) {
+                _wordIndex.value = exactIdx
+            }
+            refreshCurrentCardCoachState()
+        }
+    }
+
     fun currentWordMorphology(): WordMorphologyInfo? {
         val item = currentWordItem() ?: return null
         if (!item.gorsel.isNullOrBlank()) return null
@@ -531,9 +830,12 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
-    fun changeWordIndex(delta: Int) {
+    fun changeWordIndex(delta: Int, fromRadio: Boolean = false) {
         val list = filteredWords.value
         if (list.isEmpty()) return
+        if (!fromRadio && _isRadioModeActive.value) {
+            stopRadioMode()
+        }
         audioManager.stopAllAudio()
         val nextIdx = (_wordIndex.value + delta + list.size) % list.size
         _wordIndex.value = nextIdx
@@ -542,23 +844,41 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         _activeMorphLabel.value = ""
         refreshCurrentCardCoachState()
 
-        val nextWord = list[nextIdx]
-        if (_handsFreeAutoStart.value) {
-            viewModelScope.launch {
-                delay(350)
-                startPronunciationRecording()
+        if (!fromRadio) {
+            if (_handsFreeAutoStart.value) {
+                viewModelScope.launch {
+                    delay(350)
+                    startPronunciationRecording()
+                }
+            } else if (_autoPlayOnCardChange.value && !_testModeHideArabic.value) {
+                speakCurrentItem(null)
             }
-        } else if (_autoPlayOnCardChange.value && !_testModeHideArabic.value) {
-            speakCurrentItem(null)
         }
     }
 
     fun changeWordFontSize(delta: Int) {
-        _wordFontSizeSp.value = (_wordFontSizeSp.value + delta).coerceIn(24, 56)
+        val nextSp = (_wordFontSizeSp.value + delta).coerceIn(24, 56)
+        _wordFontSizeSp.value = nextSp
+        viewModelScope.launch {
+            repository.setConfig("word_font_size_sp", nextSp.toString())
+        }
     }
 
     fun setWordShowTr(show: Boolean) { _wordShowTr.value = show }
     fun setWordShowTashkeel(show: Boolean) { _wordShowTashkeel.value = show }
+
+    fun setWordSearchQuery(query: String) {
+        if (_wordSearchQuery.value == query) return
+        _wordSearchQuery.value = query
+        _wordIndex.value = 0
+        _wordAttemptCount.value = 0
+        _activeMorphArabic.value = null
+        _activeMorphLabel.value = ""
+        viewModelScope.launch {
+            delay(60)
+            refreshCurrentCardCoachState()
+        }
+    }
 
     // --- SENTENCE NAVIGATION & SELECTION ---
     fun selectSentenceFilter(filter: String) {
@@ -588,14 +908,28 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         return list[idx]
     }
 
-    fun changeSentenceIndex(delta: Int) {
+    fun changeSentenceIndex(delta: Int, fromRadio: Boolean = false) {
         val list = filteredSentences.value
         if (list.isEmpty()) return
+        if (!fromRadio && _isRadioModeActive.value) {
+            stopRadioMode()
+        }
         audioManager.stopAllAudio()
         val nextIdx = (_sentenceIndex.value + delta + list.size) % list.size
         _sentenceIndex.value = nextIdx
         _sentAttemptCount.value = 0
         refreshCurrentCardCoachState()
+
+        if (!fromRadio) {
+            if (_handsFreeAutoStart.value) {
+                viewModelScope.launch {
+                    delay(350)
+                    startPronunciationRecording()
+                }
+            } else if (_autoPlayOnCardChange.value && !_sentHideArabic.value && !_testModeHideArabic.value) {
+                speakCurrentItem(null)
+            }
+        }
     }
 
     fun jumpToSentenceIndex(oneBasedIndex: Int) {
@@ -608,24 +942,43 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun changeSentenceFontSize(delta: Int) {
-        _sentFontSizeSp.value = (_sentFontSizeSp.value + delta).coerceIn(18, 46)
+        val nextSp = (_sentFontSizeSp.value + delta).coerceIn(18, 46)
+        _sentFontSizeSp.value = nextSp
+        viewModelScope.launch {
+            repository.setConfig("sent_font_size_sp", nextSp.toString())
+        }
     }
 
     fun setSentShowTr(show: Boolean) { _sentShowTr.value = show }
     fun setSentShowTashkeel(show: Boolean) { _sentShowTashkeel.value = show }
     fun setSentHideArabic(hide: Boolean) { _sentHideArabic.value = hide }
 
+    fun setSentenceSearchQuery(query: String) {
+        if (_sentenceSearchQuery.value == query) return
+        _sentenceSearchQuery.value = query
+        _sentenceIndex.value = 0
+        _sentAttemptCount.value = 0
+        viewModelScope.launch {
+            delay(60)
+            refreshCurrentCardCoachState()
+        }
+    }
+
     // --- DIALOGUE & ROLEPLAY METHODS ---
     fun selectDialogue(dialogueId: String) {
         audioManager.stopAllAudio()
         if (_roleplayActive.value) stopRoleplaySession()
         _selectedDialogueId.value = dialogueId
+        _highlightedDialogueLineIndex.value = null
+        _roleplayRevealedWords.value = emptyMap()
+        _roleplayFinalResults.value = emptyMap()
         viewModelScope.launch {
             delay(80)
             val speakers = currentDialogueLines.value.map { it.konusmaci }.distinct()
             if (speakers.isNotEmpty() && _selectedRoleName.value !in speakers) {
                 _selectedRoleName.value = speakers.first()
             }
+            refreshCurrentCardCoachState()
         }
     }
 
@@ -644,10 +997,104 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         audioManager.stopAllAudio()
         if (_roleplayActive.value) stopRoleplaySession()
         _dialogueSubmode.value = submode
+        _highlightedDialogueLineIndex.value = null
+        _roleplayRevealedWords.value = emptyMap()
+        _roleplayFinalResults.value = emptyMap()
         if (submode == "roleplay") {
             _roleplayStatusText.value = "Rolünüzü seçip '🎬 Canlandırmayı Başlat' butonuna basın"
         } else {
             _roleplayStatusText.value = ""
+        }
+    }
+
+    fun practiceSingleDialogueLine(lineIndex: Int) {
+        stopRadioMode()
+        if (_isPlayingAllDialogue.value) {
+            _isPlayingAllDialogue.value = false
+        }
+        audioManager.stopAllAudio()
+        if (audioManager.isRecording.value) {
+            audioManager.stopSpeechRecognition()
+            return
+        }
+        val lines = currentDialogueLines.value
+        if (lineIndex !in lines.indices) return
+        val line = lines[lineIndex]
+
+        _highlightedDialogueLineIndex.value = lineIndex
+        _evalState.value = EvaluationSummaryState(
+            expectedArabic = line.arapca,
+            isCorrect = null,
+            verdictTitle = "🎙️ ŞİMDİ DİNLİYORUM (${line.sira}. Satır)...",
+            statusDetail = "Net bir sesle bu diyalog cümlesini okuyun",
+            harakaGuide = ArabicNlpEngine.buildProactiveMakhrajGuide(line.arapca)
+        )
+
+        audioManager.startSpeechRecognition("dlgline_${line.id}") { heardText, confidence, errorMsg ->
+            if (!errorMsg.isNullOrBlank() && heardText.isBlank()) {
+                _evalState.value = _evalState.value.copy(
+                    isCorrect = false,
+                    verdictTitle = "🤔 Sesiniz Net Algılanamadı",
+                    statusDetail = errorMsg
+                )
+            } else {
+                val cmp = ArabicNlpEngine.compareArabic(line.arapca, heardText)
+                val wordEval = ArabicNlpEngine.evaluateSentenceWords(line.arapca, heardText)
+                val makhrajTips = ArabicNlpEngine.analyzePhonemeAndMakhrajErrors(line.arapca, heardText)
+                val isCorrect = wordEval.ratio >= 0.75 || cmp.score >= 0.65
+                val pct = (cmp.score * 100.0).roundToInt().coerceIn(0, 100)
+                val vol = audioManager.volumeScore.value
+                val confScore = (confidence * 100f).roundToInt().coerceIn(50, 100)
+                val quality = ((pct * 0.5) + (vol * 0.2) + (confScore * 0.3)).roundToInt().coerceIn(0, 100)
+
+                _roleplayFinalResults.value = _roleplayFinalResults.value + (lineIndex to wordEval.wordResults)
+                viewModelScope.launch {
+                    repository.recordPracticeOutcome("dlgline_${line.id}", "dialogue", isCorrect)
+                }
+
+                val okCnt = wordEval.wordResults.count { it.second }
+                val coachShort = if (makhrajTips.isNotEmpty()) " • ${makhrajTips.first().title}" else ""
+                val verdictTitle = if (isCorrect) {
+                    "✅ HARİKA! (${line.sira}. Satır) — Kalite: %$quality (Doğruluk: %$pct)"
+                } else {
+                    "❌ ${wordEval.wordResults.size} kelimeden ${okCnt}'i doğru$coachShort"
+                }
+                val detail = if (isCorrect) {
+                    "Beklenen: ${line.arapca}  |  Duyulan: $heardText"
+                } else {
+                    makhrajTips.firstOrNull()?.tip ?: "Beklenen: ${line.arapca}  |  Duyulan: $heardText"
+                }
+                val showConfettiFlag = isCorrect && (quality >= 75 || pct >= 75)
+
+                _evalState.value = EvaluationSummaryState(
+                    expectedArabic = line.arapca,
+                    heardArabic = heardText,
+                    accuracyPct = pct,
+                    qualityPct = quality,
+                    isCorrect = isCorrect,
+                    verdictTitle = verdictTitle,
+                    statusDetail = detail,
+                    wordStatuses = wordEval.wordResults,
+                    makhrajTips = makhrajTips,
+                    harakaGuide = ArabicNlpEngine.buildHarakaGuide(line.arapca),
+                    showConfetti = showConfettiFlag
+                )
+
+                if (isCorrect) {
+                    audioManager.vibrateHaptic("success")
+                    if (showConfettiFlag) {
+                        audioManager.playPraiseTone()
+                        viewModelScope.launch {
+                            delay(2000L)
+                            if (_evalState.value.showConfetti) {
+                                _evalState.value = _evalState.value.copy(showConfetti = false)
+                            }
+                        }
+                    }
+                } else {
+                    audioManager.vibrateHaptic("warning")
+                }
+            }
         }
     }
 
@@ -658,7 +1105,11 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     fun setChatShowTr(show: Boolean) { _chatShowTr.value = show }
     fun setChatShowTashkeel(show: Boolean) { _chatShowTashkeel.value = show }
     fun changeChatFontSize(delta: Int) {
-        _chatFontSizeSp.value = (_chatFontSizeSp.value + delta).coerceIn(16, 36)
+        val nextSp = (_chatFontSizeSp.value + delta).coerceIn(16, 36)
+        _chatFontSizeSp.value = nextSp
+        viewModelScope.launch {
+            repository.setConfig("chat_font_size_sp", nextSp.toString())
+        }
     }
 
     fun revealRoleplayHintForLine(lineIdx: Int) {
@@ -755,7 +1206,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         if (line.konusmaci == chosenRole) {
             _roleplayWaitingUser.value = true
             _roleplayAttempt.value = 0
-            _roleplayStatusText.value = "🎙️ Sıra Sizde (${line.sira}. Cümle) — Mikrofona konuşun veya Örnek Simülasyon yapın"
+            _roleplayStatusText.value = "🎙️ Sıra Sizde (${line.sira}. Cümle) — '🎤 Konuş' butonuna dokunup Arapça cümleyi okuyun"
             _evalState.value = EvaluationSummaryState(
                 expectedArabic = line.arapca,
                 verdictTitle = "🎙️ Sıra Sizde (${line.konusmaci})",
@@ -793,7 +1244,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
 
         audioManager.startSpeechRecognition("rp_${line.id}") { heard, _, errMsg ->
             if (!errMsg.isNullOrBlank() && heard.isBlank()) {
-                _roleplayStatusText.value = "🤔 $errMsg (Emülatör için '🎯 Örnek Okuma' butonunu da kullanabilirsiniz)"
+                _roleplayStatusText.value = "🤔 $errMsg — Lütfen '🎤 Konuş' butonuna dokunarak tekrar deneyin"
             } else {
                 handleRoleplayTranscription(heard)
             }
@@ -834,6 +1285,12 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             makhrajTips = makhrajTips,
             harakaGuide = ArabicNlpEngine.buildHarakaGuide(line.arapca)
         )
+
+        if (allPassed) {
+            audioManager.vibrateHaptic("success")
+        } else {
+            audioManager.vibrateHaptic("warning")
+        }
 
         if (allPassed || _roleplayAttempt.value >= maxAttempts) {
             _roleplayWaitingUser.value = false
@@ -878,7 +1335,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             expectedArabic = expected,
             verdictTitle = "🎤 Telaffuz için 'BAŞLA VE KONUŞ' butonuna basın",
             statusDetail = "",
-            harakaGuide = ArabicNlpEngine.buildHarakaGuide(expected)
+            harakaGuide = ArabicNlpEngine.buildProactiveMakhrajGuide(expected)
         )
     }
 
@@ -949,6 +1406,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun startPronunciationRecording() {
+        stopRadioMode()
         if (audioManager.isRecording.value) {
             audioManager.stopSpeechRecognition()
             return
@@ -978,9 +1436,12 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             else -> "dlg"
         }
 
-        _evalState.value = _evalState.value.copy(
+        _evalState.value = EvaluationSummaryState(
+            expectedArabic = expected,
+            isCorrect = null,
             verdictTitle = "🎙️ ŞİMDİ DİNLİYORUM...",
-            statusDetail = "Yeşil çerçeve aktifken net bir sesle Arapça metni okuyun"
+            statusDetail = "Yeşil çerçeve aktifken net bir sesle Arapça metni okuyun",
+            harakaGuide = ArabicNlpEngine.buildProactiveMakhrajGuide(expected)
         )
 
         audioManager.startSpeechRecognition(itemId) { heardText, confidence, errorMsg ->
@@ -993,40 +1454,6 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             } else {
                 evaluatePronunciationResult(expected, heardText, confidence)
             }
-        }
-    }
-
-    /**
-     * Allows testing the full Makhraj Coach, Root Consonant Guard, Wazn/Med & SM-2 pipeline
-     * even on cloud emulators without physical microphone input.
-     */
-    fun simulatePronunciationAttempt(simulateErrorType: String = "correct") {
-        val expected = getExpectedArabicForCurrentCard()
-        if (expected.isBlank()) return
-        val primary = ArabicNlpEngine.expandArabicVariants(expected).firstOrNull() ?: expected
-
-        val simulatedHeard = when (simulateErrorType) {
-            "makhraj" -> {
-                // Create a realistic makhraj or root shift to showcase the live coach
-                when {
-                    primary.contains("ن") -> primary.replaceFirst("ن", "ر") // نَحْلَة -> رحلة
-                    primary.contains("ص") -> primary.replaceFirst("ص", "س")
-                    primary.contains("ط") -> primary.replaceFirst("ط", "ت")
-                    primary.contains("ق") -> primary.replaceFirst("ق", "ك")
-                    primary.contains("ع") -> primary.replaceFirst("ع", "ا")
-                    primary.contains("ح") -> primary.replaceFirst("ح", "ه")
-                    primary.contains("ذ") -> primary.replaceFirst("ذ", "ز")
-                    primary.contains("ك") -> primary.replaceFirst("ك", "ق")
-                    else -> "رحلة"
-                }
-            }
-            else -> primary
-        }
-
-        if (_currentMode.value == AppMode.DIALOGUE && _roleplayActive.value && _roleplayWaitingUser.value) {
-            handleRoleplayTranscription(simulatedHeard)
-        } else {
-            evaluatePronunciationResult(expected, simulatedHeard, 0.92f)
         }
     }
 
@@ -1078,6 +1505,8 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             makhrajTips.firstOrNull()?.tip ?: "Beklenen: $expectedRaw  |  Duyulan: $heardRaw"
         }
 
+        val showConfettiFlag = isCorrect && (quality >= 75 || pct >= 75)
+
         _evalState.value = EvaluationSummaryState(
             expectedArabic = expectedRaw,
             heardArabic = heardRaw,
@@ -1089,11 +1518,20 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             wordStatuses = wordEval.wordResults,
             makhrajTips = makhrajTips,
             harakaGuide = ArabicNlpEngine.buildHarakaGuide(expectedRaw),
-            showConfetti = isCorrect && quality >= 75
+            showConfetti = showConfettiFlag
         )
 
-        if (isCorrect && quality >= 75) {
+        if (showConfettiFlag) {
             audioManager.playPraiseTone()
+            audioManager.vibrateHaptic("success")
+            viewModelScope.launch {
+                delay(2000L)
+                if (_evalState.value.showConfetti) {
+                    _evalState.value = _evalState.value.copy(showConfetti = false)
+                }
+            }
+        } else if (!isCorrect || makhrajTips.isNotEmpty()) {
+            audioManager.vibrateHaptic("warning")
         }
 
         evaluateAdaptiveCoaching(itemId, isCorrect, makhrajTips)
@@ -1104,6 +1542,197 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 if (_currentMode.value == AppMode.WORDS) changeWordIndex(1)
                 else if (_currentMode.value == AppMode.SENTENCES) changeSentenceIndex(1)
             }
+        }
+    }
+
+    // --- 📻 KULAKLIKLA "OTO-DİNLEME (RADYO)" MODU ---
+    fun stopRadioMode() {
+        radioLoopJob?.cancel()
+        radioLoopJob = null
+        if (_isRadioModeActive.value) {
+            _isRadioModeActive.value = false
+            audioManager.stopAllAudio()
+        }
+    }
+
+    fun toggleRadioMode() {
+        if (_isRadioModeActive.value) {
+            stopRadioMode()
+            showToast("⏹️ Oto-Dinle (Radyo) modu durduruldu.")
+        } else {
+            startRadioMode()
+        }
+    }
+
+    private fun startRadioMode() {
+        audioManager.stopSpeechRecognition()
+        audioManager.stopAllAudio()
+        _isRadioModeActive.value = true
+        showToast("📻 Oto-Dinle (Radyo) modu aktif: Arapça ➔ Türkçe ➔ Sonraki Kart")
+        radioLoopJob?.cancel()
+        radioLoopJob = viewModelScope.launch {
+            while (_isRadioModeActive.value) {
+                when (_currentMode.value) {
+                    AppMode.WORDS -> {
+                        val item = currentWordItem()
+                        if (item == null) {
+                            stopRadioMode()
+                            break
+                        }
+                        val arabicText = _activeMorphArabic.value ?: item.arapca
+                        val trPrefix = if (_activeMorphLabel.value.isNotBlank()) "${_activeMorphLabel.value}: " else ""
+                        val turkishText = "$trPrefix${item.turkce}"
+                        val audioPath = if (_activeMorphArabic.value == null) item.ses else null
+                        val itemId = if (_activeMorphArabic.value == null) item.id else null
+
+                        speakArabicAwait(
+                            text = arabicText,
+                            audioPath = audioPath,
+                            itemId = itemId,
+                            paketId = item.paketId
+                        )
+                        if (!_isRadioModeActive.value) break
+                        delay(1200L)
+                        if (!_isRadioModeActive.value) break
+
+                        speakTurkishAwait(turkishText)
+                        if (!_isRadioModeActive.value) break
+                        delay(1000L)
+                        if (!_isRadioModeActive.value) break
+
+                        changeWordIndex(1, fromRadio = true)
+                    }
+                    AppMode.SENTENCES -> {
+                        val item = currentSentenceItem()
+                        if (item == null) {
+                            stopRadioMode()
+                            break
+                        }
+                        speakArabicAwait(
+                            text = item.arapca,
+                            audioPath = item.ses,
+                            itemId = item.id,
+                            paketId = item.paketId
+                        )
+                        if (!_isRadioModeActive.value) break
+                        delay(1200L)
+                        if (!_isRadioModeActive.value) break
+
+                        speakTurkishAwait(item.turkce)
+                        if (!_isRadioModeActive.value) break
+                        delay(1000L)
+                        if (!_isRadioModeActive.value) break
+
+                        changeSentenceIndex(1, fromRadio = true)
+                    }
+                    else -> {
+                        stopRadioMode()
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun speakArabicAwait(
+        text: String,
+        audioPath: String? = null,
+        itemId: String? = null,
+        paketId: String? = null
+    ) {
+        val vType = when (_voicePreference.value) {
+            "Kadın" -> "female"
+            "Erkek" -> "male"
+            else -> {
+                val chosen = alternateVoiceToggle
+                alternateVoiceToggle = if (alternateVoiceToggle == "female") "male" else "female"
+                chosen
+            }
+        }
+        withTimeoutOrNull(9000L) {
+            suspendCancellableCoroutine<Unit> { cont ->
+                audioManager.speakArabic(
+                    text = text,
+                    voiceType = vType,
+                    slow = _slowTts.value,
+                    audioPath = audioPath,
+                    itemId = itemId,
+                    paketId = paketId
+                ) {
+                    if (cont.isActive) cont.resume(Unit)
+                }
+            }
+        }
+    }
+
+    private suspend fun speakTurkishAwait(text: String) {
+        withTimeoutOrNull(8000L) {
+            suspendCancellableCoroutine<Unit> { cont ->
+                audioManager.speakTurkish(
+                    text = text,
+                    slow = false
+                ) {
+                    if (cont.isActive) cont.resume(Unit)
+                }
+            }
+        }
+    }
+
+    // --- 📲 KELİME VE CÜMLE KARTINI PAYLAŞMA (SHARESHEET) ---
+    fun buildShareTextForCurrentCard(): String {
+        return when (_currentMode.value) {
+            AppMode.WORDS -> {
+                val item = currentWordItem() ?: return ""
+                val morph = currentWordMorphology()
+                val activeAr = _activeMorphArabic.value ?: item.arapca
+                val activeLbl = if (_activeMorphLabel.value.isNotBlank()) " (${_activeMorphLabel.value})" else ""
+                buildString {
+                    appendLine("🕌 Arapça Kelime Kartı [${item.seviye}]")
+                    appendLine("🔹 Arapça: $activeAr$activeLbl")
+                    appendLine("🇹🇷 Anlamı: ${item.turkce}")
+                    if (morph != null) {
+                        appendLine("🌿 Sülâsî Kök: ${morph.entry.kok}")
+                        if (morph.forms.isNotEmpty()) {
+                            val formsSummary = morph.forms.joinToString(" • ") { "${it.label}: ${it.arabic}" }
+                            appendLine("🔄 Sarf Çekimleri: $formsSummary")
+                        }
+                    }
+                    appendLine()
+                    append("🌐 Muallimun.Net Arapça Asistanı")
+                }
+            }
+            AppMode.SENTENCES -> {
+                val item = currentSentenceItem() ?: return ""
+                buildString {
+                    appendLine("📜 Arapça Cümle Kartı [${item.seviye}]")
+                    appendLine("🔹 Arapça: ${item.arapca}")
+                    appendLine("🇹🇷 Anlamı: ${item.turkce}")
+                    appendLine()
+                    append("🌐 Muallimun.Net Arapça Asistanı")
+                }
+            }
+            else -> ""
+        }
+    }
+
+    fun shareCurrentCard(context: Context) {
+        val shareText = buildShareTextForCurrentCard()
+        if (shareText.isBlank()) {
+            showToast("Paylaşılacak kart bulunamadı.")
+            return
+        }
+        try {
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, "Muallimun.Net Arapça Asistanı")
+                putExtra(Intent.EXTRA_TEXT, shareText)
+            }
+            val chooser = Intent.createChooser(sendIntent, "Kartı Paylaş").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+        } catch (_: Exception) {
+            showToast("Paylaşım penceresi açılamadı.")
         }
     }
 
@@ -1226,6 +1855,54 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         _lastListeningExamSummary.value = summary
         viewModelScope.launch {
             repository.setConfig("last_listening_exam", summary)
+        }
+    }
+
+    /**
+     * Sunucudaki muallimun.net/version.json veya Google Play In-App Update API üzerinden
+     * yeni sürüm kontrolü yapar ve sonucu kullanıcıya bildirir.
+     */
+    fun checkForUpdates(
+        currentVersionName: String = "40.0",
+        onResult: ((hasUpdate: Boolean, latestVersion: String, message: String, storeUrl: String) -> Unit)? = null
+    ) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            var hasNew = false
+            var latestVer = currentVersionName
+            var releaseNote = "✅ Uygulamanız güncel! En son sürümü (Mobil Sürüm v$currentVersionName) kullanıyorsunuz."
+            var targetUrl = "https://arapca.muallimun.net/arapca-telaffuz-asistani/"
+            try {
+                val url = java.net.URL("https://arapca.muallimun.net/version.json")
+                val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                    connectTimeout = 3500
+                    readTimeout = 3500
+                    requestMethod = "GET"
+                }
+                if (conn.responseCode in 200..299) {
+                    val body = conn.inputStream.bufferedReader().use { it.readText() }
+                    val json = org.json.JSONObject(body)
+                    val remoteVer = json.optString("version", currentVersionName).trim()
+                    val remoteNote = json.optString("notes", "").trim()
+                    val remoteUrl = json.optString("url", targetUrl).trim()
+                    if (remoteVer.isNotEmpty() && remoteVer != currentVersionName) {
+                        hasNew = true
+                        latestVer = remoteVer
+                        targetUrl = remoteUrl.ifEmpty { targetUrl }
+                        releaseNote = if (remoteNote.isNotEmpty()) {
+                            "🚀 Yeni sürüm mevcut (v$remoteVer):\n$remoteNote"
+                        } else {
+                            "🚀 Yeni bir güncelleme (v$remoteVer) yayınlandı! Mağaza veya web sayfası üzerinden güncelleyebilirsiniz."
+                        }
+                    }
+                }
+                conn.disconnect()
+            } catch (_: Exception) {
+                // Çevrimdışı veya sunucuya ulaşılamadığında mevcut sürüm bilgisiyle güvenli geri dönüş
+            }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                showToast(releaseNote)
+                onResult?.invoke(hasNew, latestVer, releaseNote, targetUrl)
+            }
         }
     }
 

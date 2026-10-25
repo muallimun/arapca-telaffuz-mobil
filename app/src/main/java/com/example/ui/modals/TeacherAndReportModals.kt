@@ -440,6 +440,8 @@ fun WorksheetAndHandoutGeneratorModal(
     val allDialogues by viewModel.allDialogues.collectAsState()
     val allDialogueLines by viewModel.allDialogueLines.collectAsState()
     val allSentences by viewModel.allSentences.collectAsState()
+    val wordPackages by viewModel.wordPackages.collectAsState()
+    val sentencePackages by viewModel.sentencePackages.collectAsState()
 
     val sourceModes = listOf(
         "words" to "🏠 Kelimeler & Sarf Sözlüğü",
@@ -449,6 +451,7 @@ fun WorksheetAndHandoutGeneratorModal(
     )
 
     var selectedSourceMode by remember { mutableStateOf("words") }
+    var selectedPaketId by remember { mutableStateOf("all") }
     var selectedLevel by remember { mutableStateOf("Tümü") }
     var sheetTitle by remember { mutableStateOf("Arapça Dersi Kelime, Sarf ve Anlama Yazılı Sınavı") }
 
@@ -468,7 +471,20 @@ fun WorksheetAndHandoutGeneratorModal(
     var handoutTrLayout by remember { mutableStateOf("tr_layout_side") }
 
     var showSourceMenu by remember { mutableStateOf(false) }
+    var showPaketMenu by remember { mutableStateOf(false) }
     var showLevelMenu by remember { mutableStateOf(false) }
+
+    val availablePackages = remember(selectedSourceMode, wordPackages, sentencePackages, allDialogues) {
+        when (selectedSourceMode) {
+            "words" -> listOf("all" to "📦 Tüm Kelime Paketleri") +
+                wordPackages.map { it.id to "📦 ${it.ad}" }
+            "dialogue" -> listOf("all" to "💬 Tüm Diyaloglar") +
+                allDialogues.map { it.id to "💬 [${it.seviye}] ${it.baslikTr}" }
+            "sentences" -> listOf("all" to "📜 Tüm Cümle Paketleri") +
+                sentencePackages.map { it.id to "📜 ${it.ad}" }
+            else -> listOf("all" to "🌟 Tüm Paket ve Diyaloglar")
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
@@ -512,7 +528,7 @@ fun WorksheetAndHandoutGeneratorModal(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             val lbl = sourceModes.firstOrNull { it.first == selectedSourceMode }?.second ?: ""
-                            Text(lbl, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = palette.accentHead, maxLines = 1)
+                            Text(lbl, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = palette.accentHead, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
                         }
                         DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
@@ -522,6 +538,7 @@ fun WorksheetAndHandoutGeneratorModal(
                                     onClick = {
                                         showSourceMenu = false
                                         selectedSourceMode = k
+                                        selectedPaketId = "all"
                                         if (k !in listOf("dialogue", "sentences")) {
                                             useHandoutMode = false
                                         }
@@ -549,6 +566,41 @@ fun WorksheetAndHandoutGeneratorModal(
                                     }
                                 )
                             }
+                        }
+                    }
+                }
+
+                // Paket / Diyalog Seçici Dropdown
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { showPaketMenu = true },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("worksheet_paket_selector")
+                    ) {
+                        val pkgLabel = availablePackages.firstOrNull { it.first == selectedPaketId }?.second
+                            ?: "📦 Tümü"
+                        Text(
+                            text = "Paket / Diyalog: $pkgLabel",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.textMain,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
+                    }
+                    DropdownMenu(expanded = showPaketMenu, onDismissRequest = { showPaketMenu = false }) {
+                        availablePackages.forEach { (pkgKey, pkgLbl) ->
+                            DropdownMenuItem(
+                                text = { Text(pkgLbl, fontWeight = FontWeight.SemiBold) },
+                                onClick = {
+                                    showPaketMenu = false
+                                    selectedPaketId = pkgKey
+                                }
+                            )
                         }
                     }
                 }
@@ -668,6 +720,7 @@ fun WorksheetAndHandoutGeneratorModal(
                     onClick = {
                         val cfg = ExamGeneratorConfig(
                             sourceMode = selectedSourceMode,
+                            paketId = selectedPaketId,
                             seviye = selectedLevel,
                             sheetTitle = sheetTitle,
                             arToTrCount = arToTrCount,
@@ -759,8 +812,39 @@ private fun QuestionCountStepper(
 }
 
 // =============================================================================
-// 3. 🛠️ ÖĞRETMEN YÖNETİM & EXCEL PANODAN YAPIŞTIRMA PANELİ (ADMIN PANEL)
+// 3. 🛠️ İÇERİK YÖNETİM PANELİ (ContentManagerModal / UnifiedAdminPanelModal)
 // =============================================================================
+private fun slugifyCategoryTitleToId(title: String, fallback: String = "ozel_kategori"): String {
+    val trMap = mapOf(
+        'ç' to 'c', 'Ç' to 'c',
+        'ğ' to 'g', 'Ğ' to 'g',
+        'ı' to 'i', 'I' to 'i', 'İ' to 'i',
+        'ö' to 'o', 'Ö' to 'o',
+        'ş' to 's', 'Ş' to 's',
+        'ü' to 'u', 'Ü' to 'u',
+        'â' to 'a', 'Â' to 'a',
+        'î' to 'i', 'Î' to 'i',
+        'û' to 'u', 'Û' to 'u'
+    )
+    val converted = buildString {
+        for (ch in title.trim()) {
+            append(trMap[ch] ?: ch.lowercaseChar())
+        }
+    }
+    return converted
+        .replace(Regex("[^a-z0-9]+"), "_")
+        .trim('_')
+        .ifBlank { fallback }
+}
+
+@Composable
+fun ContentManagerModal(
+    viewModel: MainAppViewModel,
+    onDismiss: () -> Unit
+) {
+    UnifiedAdminPanelModal(viewModel = viewModel, onDismiss = onDismiss)
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun UnifiedAdminPanelModal(
@@ -768,6 +852,7 @@ fun UnifiedAdminPanelModal(
     onDismiss: () -> Unit
 ) {
     val palette = LocalMuallimunPalette.current
+    val isDark by viewModel.isDarkTheme.collectAsState()
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
 
@@ -778,14 +863,17 @@ fun UnifiedAdminPanelModal(
     val allSentences by viewModel.allSentences.collectAsState()
     val allDialogueLines by viewModel.allDialogueLines.collectAsState()
 
+    // 3 Ana Sekme: 0 -> ➕ Yeni Ekle, 1 -> 📦 Paket Yükle, 2 -> 🛠️ Bakım & Kalite
+    var selectedSectionTab by remember { mutableIntStateOf(0) }
     var activeTab by remember { mutableStateOf("words") } // "words", "dialogue", "sentences"
     var searchQuery by remember { mutableStateOf("") }
-    var showExcelPasteSection by remember { mutableStateOf(false) }
+    var showExcelPasteSection by remember { mutableStateOf(true) }
     var showAuditReport by remember { mutableStateOf(false) }
 
     var pasteText by remember { mutableStateOf("") }
-    var targetPkgId by remember { mutableStateOf("egitim_ilim") }
     var targetPkgTitle by remember { mutableStateOf("Eğitim & İlim") }
+    var editingOriginalPkgId by remember { mutableStateOf<String?>(null) }
+    var showExistingPkgPicker by remember { mutableStateOf(false) }
 
     var editingItemId by remember { mutableStateOf<String?>(null) }
     var editingDialogueLineId by remember { mutableStateOf<Int?>(null) }
@@ -800,6 +888,16 @@ fun UnifiedAdminPanelModal(
     var statusBanner by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     var clearBeforeDbImport by remember { mutableStateOf(false) }
+
+    // Kategori Başlığından otomatik üretilen teknik ID
+    val autoGeneratedPkgId = remember(targetPkgTitle, activeTab, editingOriginalPkgId) {
+        val defaultFallback = when (activeTab) {
+            "words" -> "egitim_ilim"
+            "sentences" -> "gunluk_kaliplar"
+            else -> "dlg_01"
+        }
+        slugifyCategoryTitleToId(targetPkgTitle, defaultFallback)
+    }
 
     val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
@@ -866,6 +964,9 @@ fun UnifiedAdminPanelModal(
         }
     }
 
+    val unselectedBtnBg = if (isDark) palette.btnSec else Color(0xFFE2E8F0)
+    val unselectedBtnText = if (isDark) Color.White else Color(0xFF1E293B)
+
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
         containerColor = palette.bgColor,
@@ -875,440 +976,444 @@ fun UnifiedAdminPanelModal(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-                // Header
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+            // Üst Başlık
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "🛠️ İÇERİK YÖNETİM PANELİ",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = palette.accentHead,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
+                }
+            }
+
+            // 3 Açıklamalı Sekme: ➕ Yeni Ekle | 📦 Paket Yükle | 🛠️ Bakım & Kalite
+            TabRow(
+                selectedTabIndex = selectedSectionTab,
+                containerColor = palette.panelColor,
+                contentColor = palette.accentHead
+            ) {
+                Tab(
+                    selected = selectedSectionTab == 0,
+                    onClick = { selectedSectionTab = 0 },
+                    modifier = Modifier.testTag("tab_content_add_new"),
+                    text = {
+                        Text(
+                            text = "➕ Yeni Ekle",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedSectionTab == 0) palette.accentHead else unselectedBtnText,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedSectionTab == 1,
+                    onClick = { selectedSectionTab = 1 },
+                    modifier = Modifier.testTag("tab_content_import_pkg"),
+                    text = {
+                        Text(
+                            text = "📦 Paket Yükle",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedSectionTab == 1) palette.accentHead else unselectedBtnText,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedSectionTab == 2,
+                    onClick = { selectedSectionTab = 2 },
+                    modifier = Modifier.testTag("tab_content_maintenance"),
+                    text = {
+                        Text(
+                            text = "🛠️ Bakım & Kalite",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedSectionTab == 2) palette.accentHead else unselectedBtnText,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                )
+            }
+
+            // Durum Bildirim Kutusu
+            statusBanner?.let { msg ->
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = palette.panelColor,
+                    border = BorderStroke(1.dp, EmeraldGreen),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "🛠️ YÖNETİM, YENİ KATEGORİ/MEDYA & .DB/.ZIP PANELİ",
-                        fontSize = 14.sp,
+                        text = msg,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = palette.accentHead,
-                        modifier = Modifier.weight(1f)
+                        color = palette.okGreen,
+                        modifier = Modifier.padding(8.dp)
                     )
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
-                    }
                 }
+            }
 
-                // Hızlı Bakım, Masaüstü .DB/.ZIP Yükleme ve Kalite Araçları
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+            when (selectedSectionTab) {
+                // =========================================================================
+                // SEKME 1: ➕ YENİ EKLE (Tekil kelime, diyalog veya cümle ekleme & düzenleme)
+                // =========================================================================
+                0 -> {
+                    // Rehber Bilgi Kutusu
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = EmeraldGreen,
-                        modifier = Modifier
-                            .clickable {
-                                clearBeforeDbImport = false
-                                dbFilePickerLauncher.launch(arrayOf("*/*"))
-                            }
-                            .testTag("btn_import_desktop_db")
-                    ) {
-                        Text(
-                            text = "📥 Masaüstü .DB / Medyalı .ZIP / .JSON Yükle",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = TealAccent,
-                        modifier = Modifier
-                            .clickable { showExcelPasteSection = !showExcelPasteSection }
-                            .testTag("btn_toggle_excel_paste")
-                    ) {
-                        Text(
-                            text = if (showExcelPasteSection) "📋 Excel Panelini Kapat" else "📋 Excel / Panodan Yapıştır",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = RoyalPurple,
-                        modifier = Modifier.clickable {
-                            scope.launch {
-                                val fixed = viewModel.repository.repairAllDatabases()
-                                statusBanner = "🪄 Metin Doktoru tamamlandı: $fixed kayıt onarıldı!"
-                            }
-                        }
-                    ) {
-                        Text(
-                            text = "🪄 Metin Doktoru",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = RoyalBlue,
-                        modifier = Modifier.clickable {
-                            scope.launch {
-                                val cnt = viewModel.repository.autoAssignCefrLevels(activeTab)
-                                statusBanner = "🎯 Sarf ve cümle yapısına göre $cnt kayda otomatik CEFR (A1-C1) seviyesi atandı!"
-                            }
-                        }
-                    ) {
-                        Text(
-                            text = "🎯 Otomatik Seviye Ata",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = WarmGold,
-                        modifier = Modifier.clickable { showAuditReport = !showAuditReport }
-                    ) {
-                        Text(
-                            text = "🔍 Kalite Denetimi",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-                }
-
-                statusBanner?.let { msg ->
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = palette.panelColor,
-                        border = BorderStroke(1.dp, EmeraldGreen),
+                        color = RoyalBlue.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, RoyalBlue.copy(alpha = 0.45f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = msg,
+                            text = "💡 Çalışma setlerinize buradan yeni bir kelime, diyalog veya cümle ekleyebilirsiniz.",
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.okGreen,
-                            modifier = Modifier.padding(8.dp)
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.textMain,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         )
                     }
-                }
 
-                // 📋 Excel / Panodan Kopyala-Yapıştır Bölümü
-                if (showExcelPasteSection) {
+                    // 🏠 Kelimeler | 💬 Diyaloglar | 📜 Cümleler Seçici Butonları (Açık/Koyu Tema Yüksek Kontrastlı)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        listOf(
+                            "words" to "🏠 Kelimeler (${allWords.size})",
+                            "dialogue" to "💬 Diyaloglar (${allDialogueLines.size})",
+                            "sentences" to "📜 Cümleler (${allSentences.size})"
+                        ).forEach { (key, title) ->
+                            val isSelected = activeTab == key
+                            Button(
+                                onClick = {
+                                    activeTab = key
+                                    editingItemId = null
+                                    editingDialogueLineId = null
+                                    editingOriginalPkgId = null
+                                    when (key) {
+                                        "words" -> {
+                                            val firstPkg = allPackages.firstOrNull()
+                                            targetPkgTitle = firstPkg?.ad ?: "Eğitim & İlim"
+                                        }
+                                        "sentences" -> {
+                                            val firstSPkg = allSentencePackages.firstOrNull()
+                                            targetPkgTitle = firstSPkg?.ad ?: "Günlük Kalıplar"
+                                        }
+                                        "dialogue" -> {
+                                            val firstDlg = allDialogues.firstOrNull()
+                                            targetPkgTitle = firstDlg?.baslikTr ?: "Yeni Diyalog"
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isSelected) RoyalBlue else unselectedBtnBg,
+                                    contentColor = if (isSelected) Color.White else unselectedBtnText
+                                ),
+                                border = BorderStroke(1.dp, if (isSelected) RoyalBlue else palette.border),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                            ) {
+                                Text(
+                                    text = title,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) Color.White else unselectedBtnText,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    // Ekleme & Düzenleme Formu (Sadece Kategori Başlığı - ID arka planda otomatik üretilir)
                     Card(
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = palette.panelColor),
-                        border = BorderStroke(1.dp, TealAccent),
+                        border = BorderStroke(1.dp, palette.border),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier.padding(10.dp),
+                            modifier = Modifier.padding(8.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "📋 Excel veya Tablodan Doğrudan Yapıştır (Arapça [Tab veya ;] Türkçe)",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.accentHead
-                            )
-                            OutlinedTextField(
-                                value = pasteText,
-                                onValueChange = { pasteText = it },
-                                placeholder = { Text("Örn:\nمُحَاضَرَةٌ ; Konferans ; B1\nمُسْتَشْفًى ; Hastane ; A2") },
-                                minLines = 2,
-                                maxLines = 4,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("excel_paste_textfield")
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(
-                                    onClick = {
-                                        val clip = clipboardManager.getText()?.text ?: ""
-                                        if (clip.isNotBlank()) {
-                                            pasteText = if (pasteText.isBlank()) clip else "$pasteText\n$clip"
-                                        } else {
-                                            statusBanner = "Panoda metin bulunamadı."
-                                        }
+                            // Kategori / Diyalog Başlığı + Mevcuttan Seç + Seviye Seçimi
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = targetPkgTitle,
+                                    onValueChange = {
+                                        targetPkgTitle = it
+                                        editingOriginalPkgId = null
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text("📋 Panodan Çek", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                }
-
-                                Button(
-                                    onClick = {
-                                        scope.launch {
-                                            val rep = viewModel.repository.importFromClipboardOrCsv(
-                                                mode = activeTab,
-                                                rawText = pasteText,
-                                                paketId = targetPkgId.ifBlank { "ozel_paket" },
-                                                paketAdi = targetPkgTitle.ifBlank { "Özel Paket" },
-                                                defaultSeviye = newCefrLevel
-                                            )
-                                            statusBanner = "✅ ${rep.addedCount} kayıt eklendi, ${rep.skippedCount} satır atlandı."
-                                            if (rep.addedCount > 0) {
-                                                pasteText = ""
-                                                showExcelPasteSection = false
-                                            }
-                                        }
+                                    label = {
+                                        Text(
+                                            text = if (activeTab == "dialogue") "Diyalog Başlığı" else "Kategori Başlığı",
+                                            fontSize = 10.sp
+                                        )
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
-                                    shape = RoundedCornerShape(8.dp),
+                                    singleLine = true,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .testTag("btn_confirm_excel_import")
+                                        .testTag("admin_category_title_input")
+                                )
+
+                                Box {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = RoyalBlue.copy(alpha = 0.16f),
+                                        border = BorderStroke(1.dp, RoyalBlue),
+                                        modifier = Modifier
+                                            .clickable { showExistingPkgPicker = true }
+                                            .testTag("btn_admin_pick_existing_pkg")
+                                    ) {
+                                        Text(
+                                            text = "📂 Mevcut ▾",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = palette.accentHead,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp)
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showExistingPkgPicker,
+                                        onDismissRequest = { showExistingPkgPicker = false }
+                                    ) {
+                                        when (activeTab) {
+                                            "words" -> {
+                                                allPackages.filter { !it.id.startsWith("szl_") }.forEach { pkg ->
+                                                    DropdownMenuItem(
+                                                        text = { Text("[${pkg.seviye}] ${pkg.ad}", fontWeight = FontWeight.SemiBold) },
+                                                        onClick = {
+                                                            showExistingPkgPicker = false
+                                                            targetPkgTitle = pkg.ad
+                                                            editingOriginalPkgId = pkg.id
+                                                            newCefrLevel = pkg.seviye
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                            "sentences" -> {
+                                                allSentencePackages.forEach { pkg ->
+                                                    DropdownMenuItem(
+                                                        text = { Text("[${pkg.seviye}] ${pkg.ad}", fontWeight = FontWeight.SemiBold) },
+                                                        onClick = {
+                                                            showExistingPkgPicker = false
+                                                            targetPkgTitle = pkg.ad
+                                                            editingOriginalPkgId = pkg.id
+                                                            newCefrLevel = pkg.seviye
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                            else -> {
+                                                allDialogues.forEach { dlg ->
+                                                    DropdownMenuItem(
+                                                        text = { Text("[${dlg.seviye}] ${dlg.baslikTr}", fontWeight = FontWeight.SemiBold) },
+                                                        onClick = {
+                                                            showExistingPkgPicker = false
+                                                            targetPkgTitle = dlg.baslikTr
+                                                            editingOriginalPkgId = dlg.id
+                                                            newCefrLevel = dlg.seviye
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    listOf("A1", "A2", "B1", "B2", "C1").forEach { lvl ->
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = if (newCefrLevel == lvl) WarmGold else unselectedBtnBg,
+                                            modifier = Modifier.clickable { newCefrLevel = lvl }
+                                        ) {
+                                            Text(
+                                                text = lvl,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (newCefrLevel == lvl) Color(0xFF0F172A) else unselectedBtnText,
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Arapça ve Türkçe Alanları
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedTextField(
+                                    value = newArabicText,
+                                    onValueChange = { newArabicText = it },
+                                    placeholder = { Text("Arapça (RTL)", fontSize = 11.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("admin_new_arabic_input")
+                                )
+                                OutlinedTextField(
+                                    value = newTurkishText,
+                                    onValueChange = { newTurkishText = it },
+                                    placeholder = { Text("Türkçe Anlamı", fontSize = 11.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("admin_new_turkish_input")
+                                )
+                            }
+
+                            // Diyalog modunda Konuşmacı adı + Cinsiyet Seçimi (E/K) veya Kelime modunda Emoji alanı
+                            if (activeTab == "dialogue") {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("📥 Veritabanına Aktar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
-                }
+                                    OutlinedTextField(
+                                        value = newSpeakerName,
+                                        onValueChange = { newSpeakerName = it },
+                                        label = { Text("Konuşmacı (Örn: Ömer, Ayşe)", fontSize = 10.sp) },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
 
-                // 🔍 Kalite Denetimi Raporu Özeti
-                if (showAuditReport) {
-                    val issues = remember(allWords, allSentences, activeTab) {
-                        when (activeTab) {
-                            "words" -> allWords.mapNotNull { w ->
-                                val probs = ArabicNlpEngine.checkItemQuality(w.arapca, w.turkce)
-                                if (probs.isEmpty()) null else "${w.id} (${w.turkce}): ${probs.joinToString(", ")}"
-                            }
-                            "sentences" -> allSentences.mapNotNull { s ->
-                                val probs = ArabicNlpEngine.checkItemQuality(s.arapca, s.turkce)
-                                if (probs.isEmpty()) null else "${s.id}: ${probs.joinToString(", ")}"
-                            }
-                            else -> allDialogueLines.mapNotNull { l ->
-                                val probs = ArabicNlpEngine.checkItemQuality(l.arapca, l.turkce)
-                                if (probs.isEmpty()) null else "Satır #${l.id}: ${probs.joinToString(", ")}"
-                            }
-                        }
-                    }
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = palette.panelColor),
-                        border = BorderStroke(1.dp, WarmGold),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            Text(
-                                text = if (issues.isEmpty()) "✅ Kalite Denetimi: Tüm kayıtlar harekeli ve eksiksiz!" else "⚠️ Tespit Edilen Kalite Kusurları (${issues.size}):",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (issues.isEmpty()) palette.okGreen else WarmGold
-                            )
-                            issues.take(4).forEach { iss ->
-                                Text("• $iss", fontSize = 10.sp, color = palette.textMain)
-                            }
-                        }
-                    }
-                }
-
-                // Sekmeler: 🏠 Kelimeler | 💬 Diyaloglar | 📜 Cümleler
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    listOf(
-                        "words" to "🏠 Kelimeler (${allWords.size})",
-                        "dialogue" to "💬 Diyaloglar (${allDialogueLines.size})",
-                        "sentences" to "📜 Cümleler (${allSentences.size})"
-                    ).forEach { (key, title) ->
-                        Button(
-                            onClick = {
-                                activeTab = key
-                                editingItemId = null
-                                editingDialogueLineId = null
-                                when (key) {
-                                    "words" -> {
-                                        val firstPkg = allPackages.firstOrNull()
-                                        targetPkgId = firstPkg?.id ?: "egitim_ilim"
-                                        targetPkgTitle = firstPkg?.ad ?: "Eğitim & İlim"
-                                    }
-                                    "sentences" -> {
-                                        val firstSPkg = allSentencePackages.firstOrNull()
-                                        targetPkgId = firstSPkg?.id ?: "gunluk_kaliplar"
-                                        targetPkgTitle = firstSPkg?.ad ?: "Günlük Kalıplar"
-                                    }
-                                    "dialogue" -> {
-                                        val firstDlg = allDialogues.firstOrNull()
-                                        targetPkgId = firstDlg?.id ?: "dlg_01"
-                                        targetPkgTitle = firstDlg?.baslikTr ?: "Yeni Diyalog"
+                                    listOf("E" to "👨 Erkek", "K" to "👩 Kadın").forEach { (gCode, gLabel) ->
+                                        val isGenSelected = newSpeakerGender.equals(gCode, ignoreCase = true)
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (isGenSelected) EmeraldGreen else unselectedBtnBg,
+                                            border = BorderStroke(1.dp, if (isGenSelected) EmeraldGreen else palette.border),
+                                            modifier = Modifier
+                                                .clickable { newSpeakerGender = gCode }
+                                                .testTag("btn_speaker_gender_$gCode")
+                                        ) {
+                                            Text(
+                                                text = gLabel,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isGenSelected) Color(0xFF0F172A) else unselectedBtnText,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp)
+                                            )
+                                        }
                                     }
                                 }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (activeTab == key) RoyalBlue else palette.btnSec,
-                                contentColor = if (activeTab == key) Color.White else palette.textMain
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
-                    }
-                }
-
-                // Yayın Sonrası Yeni Kategori/Paket/Diyalog + Kelime/Cümle + Görsel/Ses Ekleme & Düzenleme Formu
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = palette.panelColor),
-                    border = BorderStroke(1.dp, palette.border),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        // Kategori / Paket / Diyalog ID ve Başlığı
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            OutlinedTextField(
-                                value = targetPkgId,
-                                onValueChange = { targetPkgId = it },
-                                label = { Text(if (activeTab == "dialogue") "Diyalog ID" else "Kategori/Paket ID", fontSize = 10.sp) },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = targetPkgTitle,
-                                onValueChange = { targetPkgTitle = it },
-                                label = { Text(if (activeTab == "dialogue") "Diyalog Başlığı" else "Kategori Başlığı", fontSize = 10.sp) },
-                                singleLine = true,
-                                modifier = Modifier.weight(1.2f)
-                            )
-                        }
-
-                        // Arapça ve Türkçe Alanları
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            OutlinedTextField(
-                                value = newArabicText,
-                                onValueChange = { newArabicText = it },
-                                placeholder = { Text("Arapça (RTL)", fontSize = 11.sp) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("admin_new_arabic_input")
-                            )
-                            OutlinedTextField(
-                                value = newTurkishText,
-                                onValueChange = { newTurkishText = it },
-                                placeholder = { Text("Türkçe Anlamı", fontSize = 11.sp) },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("admin_new_turkish_input")
-                            )
-                        }
-
-                        // Medya Seçiciler: 🖼️ Telefondan Görsel Seç (.png/.jpg) & 🎵 Telefondan Ses Seç (.mp3/.wav)
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            if (activeTab == "words") {
+                            } else if (activeTab == "words") {
                                 OutlinedTextField(
                                     value = newVisualOrEmoji,
                                     onValueChange = { newVisualOrEmoji = it },
-                                    label = { Text("Emoji / Görsel Yolu", fontSize = 10.sp) },
+                                    label = { Text("Simge Emoji veya Görsel Dosya Yolu", fontSize = 10.sp) },
                                     singleLine = true,
-                                    modifier = Modifier.weight(0.9f)
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-                                Surface(
+                            }
+
+                            // Yan yana eşit genişlikte (Modifier.weight(1f).height(42.dp)) medya seçici butonlar
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Button(
+                                    onClick = { imagePickerLauncher.launch("image/*") },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = RoyalPurple,
+                                        contentColor = Color.White
+                                    ),
                                     shape = RoundedCornerShape(8.dp),
-                                    color = RoyalPurple,
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                     modifier = Modifier
-                                        .clickable { imagePickerLauncher.launch("image/*") }
+                                        .weight(1f)
+                                        .height(42.dp)
                                         .testTag("btn_pick_custom_image")
                                 ) {
                                     Text(
-                                        text = "🖼️ Telefondan Görsel Seç (.png/.jpg)",
-                                        fontSize = 10.sp,
+                                        text = "🖼️ Görsel Seç",
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                            } else if (activeTab == "dialogue") {
-                                OutlinedTextField(
-                                    value = newSpeakerName,
-                                    onValueChange = { newSpeakerName = it },
-                                    label = { Text("Konuşmacı", fontSize = 10.sp) },
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
 
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = TealAccent,
-                                modifier = Modifier
-                                    .clickable { audioPickerLauncher.launch("audio/*") }
-                                    .testTag("btn_pick_custom_audio")
-                            ) {
-                                Text(
-                                    text = if (newAudioRelPath.isBlank()) "🎵 Telefondan Ses Seç (.mp3/.wav)" else "🎵 Ses Hazır ✓",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
-                                )
-                            }
-                        }
-
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                listOf("A1", "A2", "B1", "B2", "C1").forEach { lvl ->
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = if (newCefrLevel == lvl) WarmGold else palette.btnSec,
-                                        modifier = Modifier.clickable { newCefrLevel = lvl }
-                                    ) {
-                                        Text(
-                                            text = lvl,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (newCefrLevel == lvl) Color(0xFF0F172A) else palette.textMain,
-                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
-                                        )
-                                    }
+                                Button(
+                                    onClick = { audioPickerLauncher.launch("audio/*") },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = TealAccent,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(42.dp)
+                                        .testTag("btn_pick_custom_audio")
+                                ) {
+                                    Text(
+                                        text = if (newAudioRelPath.isBlank()) "🎵 Ses Seç" else "🎵 Ses Seç ✓",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // Tam Genişlikte 💾 KAYDET VE EKLE Butonu
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 if (editingItemId != null || editingDialogueLineId != null) {
                                     OutlinedButton(
                                         onClick = {
                                             editingItemId = null
                                             editingDialogueLineId = null
+                                            editingOriginalPkgId = null
                                             newArabicText = ""
                                             newTurkishText = ""
                                             newAudioRelPath = ""
                                         },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.height(44.dp)
                                     ) {
-                                        Text("İptal", fontSize = 11.sp)
+                                        Text("İptal", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                                     }
                                 }
 
@@ -1320,10 +1425,8 @@ fun UnifiedAdminPanelModal(
                                             statusBanner = "Lütfen Arapça ve Türkçe alanlarını doldurun."
                                             return@Button
                                         }
-                                        val cleanPkgId = targetPkgId.trim().lowercase()
-                                            .replace(" ", "_")
-                                            .ifBlank { "ozel_kategori" }
-                                        val cleanPkgTitle = targetPkgTitle.trim().ifBlank { cleanPkgId }
+                                        val cleanPkgTitle = targetPkgTitle.trim().ifBlank { "Özel Kategori" }
+                                        val cleanPkgId = editingOriginalPkgId ?: slugifyCategoryTitleToId(cleanPkgTitle, "ozel_kategori")
 
                                         scope.launch {
                                             val itemId = editingItemId ?: "${activeTab.first()}_${System.currentTimeMillis()}"
@@ -1409,21 +1512,149 @@ fun UnifiedAdminPanelModal(
                                             val wasEdit = editingItemId != null || editingDialogueLineId != null
                                             editingItemId = null
                                             editingDialogueLineId = null
+                                            editingOriginalPkgId = null
                                             newArabicText = ""
                                             newTurkishText = ""
                                             newAudioRelPath = ""
                                             statusBanner = if (wasEdit) "✅ Kayıt güncellendi!" else "➕ Yeni kayıt ve kategori ($cleanPkgTitle) kaydedildi!"
                                         }
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                    modifier = Modifier.testTag("btn_admin_add_record")
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = EmeraldGreen,
+                                        contentColor = Color(0xFF0F172A)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .testTag("btn_admin_add_record")
                                 ) {
                                     Text(
-                                        text = if (editingItemId != null || editingDialogueLineId != null) "💾 Güncelle" else "➕ Kaydet / Ekle",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
+                                        text = if (editingItemId != null || editingDialogueLineId != null) "💾 GÜNCELLE VE KAYDET" else "💾 KAYDET VE EKLE",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF0F172A),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Arama Kutusu ve Kayıt Listesi
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("🔍 Kayıtlarda hızlı ara (Düzenlemek için ✏️ butonuna dokunun)...", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        val q = searchQuery.trim().lowercase()
+                        when (activeTab) {
+                            "words" -> {
+                                val list = allWords.filter {
+                                    q.isEmpty() || it.turkce.lowercase().contains(q) || it.arapca.contains(q) || it.paketId.lowercase().contains(q)
+                                }
+                                items(list, key = { it.id }) { w ->
+                                    AdminRecordRow(
+                                        badge = "[${w.seviye}] ${w.paketId} ${if (!w.ses.isNullOrBlank()) "🎵" else ""}",
+                                        turkce = w.turkce,
+                                        arapca = w.arapca,
+                                        onSpeak = {
+                                            viewModel.audioManager.speakArabic(
+                                                text = w.arapca,
+                                                voiceType = "male",
+                                                slow = false,
+                                                audioPath = w.ses,
+                                                itemId = w.id,
+                                                paketId = w.paketId
+                                            )
+                                        },
+                                        onEdit = {
+                                            editingItemId = w.id
+                                            editingOriginalPkgId = w.paketId
+                                            targetPkgTitle = allPackages.firstOrNull { it.id == w.paketId }?.ad ?: w.paketId
+                                            newArabicText = w.arapca
+                                            newTurkishText = w.turkce
+                                            newCefrLevel = w.seviye
+                                            newVisualOrEmoji = w.gorsel ?: "📚"
+                                            newAudioRelPath = w.ses ?: ""
+                                        },
+                                        onDelete = { scope.launch { viewModel.repository.deleteWord(w.id) } }
+                                    )
+                                }
+                            }
+                            "sentences" -> {
+                                val list = allSentences.filter {
+                                    q.isEmpty() || it.turkce.lowercase().contains(q) || it.arapca.contains(q)
+                                }
+                                items(list, key = { it.id }) { s ->
+                                    AdminRecordRow(
+                                        badge = "[${s.seviye}] ${s.paketId} ${if (!s.ses.isNullOrBlank()) "🎵" else ""}",
+                                        turkce = s.turkce,
+                                        arapca = s.arapca,
+                                        onSpeak = {
+                                            viewModel.audioManager.speakArabic(
+                                                text = s.arapca,
+                                                voiceType = "male",
+                                                slow = false,
+                                                audioPath = s.ses,
+                                                itemId = s.id,
+                                                paketId = s.paketId
+                                            )
+                                        },
+                                        onEdit = {
+                                            editingItemId = s.id
+                                            editingOriginalPkgId = s.paketId
+                                            targetPkgTitle = allSentencePackages.firstOrNull { it.id == s.paketId }?.ad ?: s.paketId
+                                            newArabicText = s.arapca
+                                            newTurkishText = s.turkce
+                                            newCefrLevel = s.seviye
+                                            newAudioRelPath = s.ses ?: ""
+                                        },
+                                        onDelete = { scope.launch { viewModel.repository.deleteSentence(s.id) } }
+                                    )
+                                }
+                            }
+                            else -> {
+                                val list = allDialogueLines.filter {
+                                    q.isEmpty() || it.turkce.lowercase().contains(q) || it.arapca.contains(q) || it.konusmaci.lowercase().contains(q)
+                                }
+                                items(list, key = { it.id }) { l ->
+                                    AdminRecordRow(
+                                        badge = "[${l.diyalogId}] ${l.konusmaci} ${if (!l.ses.isNullOrBlank()) "🎵" else ""}",
+                                        turkce = l.turkce,
+                                        arapca = l.arapca,
+                                        onSpeak = {
+                                            viewModel.audioManager.speakArabic(
+                                                text = l.arapca,
+                                                voiceType = "male",
+                                                slow = false,
+                                                audioPath = l.ses,
+                                                itemId = "dlg_${l.id}",
+                                                paketId = l.diyalogId
+                                            )
+                                        },
+                                        onEdit = {
+                                            editingDialogueLineId = l.id
+                                            editingOriginalPkgId = l.diyalogId
+                                            targetPkgTitle = allDialogues.firstOrNull { it.id == l.diyalogId }?.baslikTr ?: l.diyalogId
+                                            newSpeakerName = l.konusmaci
+                                            newSpeakerGender = l.cinsiyet
+                                            newArabicText = l.arapca
+                                            newTurkishText = l.turkce
+                                            newAudioRelPath = l.ses ?: ""
+                                        },
+                                        onDelete = { scope.launch { viewModel.repository.deleteDialogueLine(l.id) } }
                                     )
                                 }
                             }
@@ -1431,123 +1662,388 @@ fun UnifiedAdminPanelModal(
                     }
                 }
 
-                // Arama Kutusu ve Kayıt Listesi
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("🔍 Kayıtlarda hızlı ara (Düzenlemek için ✏️ butonuna dokunun)...", fontSize = 11.sp) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // =========================================================================
+                // SEKME 2: 📦 PAKET YÜKLE (.DB, .ZIP, Excel veya Panodan toplu aktarım)
+                // =========================================================================
+                1 -> {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // Araç 1: 📥 Masaüstü .DB / .ZIP / .JSON Yükle
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = palette.panelColor),
+                            border = BorderStroke(1.dp, EmeraldGreen),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        clearBeforeDbImport = false
+                                        dbFilePickerLauncher.launch(arrayOf("*/*"))
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = EmeraldGreen,
+                                        contentColor = Color(0xFF0F172A)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(44.dp)
+                                        .testTag("btn_import_desktop_db")
+                                ) {
+                                    Text(
+                                        text = "📥 Paket Dosyası (.DB / .ZIP / .JSON) Yükle",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF0F172A),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = "Telefonunuzdaki veritabanı (.db), JSON veya medyalarıyla sıkıştırılmış .zip paketini uygulamaya aktarır.",
+                                    fontSize = 12.sp,
+                                    color = palette.textMain,
+                                    lineHeight = 17.sp
+                                )
+                            }
+                        }
 
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    val q = searchQuery.trim().lowercase()
-                    when (activeTab) {
-                        "words" -> {
-                            val list = allWords.filter {
-                                q.isEmpty() || it.turkce.lowercase().contains(q) || it.arapca.contains(q) || it.paketId.lowercase().contains(q)
-                            }
-                            items(list, key = { it.id }) { w ->
-                                AdminRecordRow(
-                                    badge = "[${w.seviye}] ${w.paketId} ${if (!w.ses.isNullOrBlank()) "🎵" else ""}",
-                                    turkce = w.turkce,
-                                    arapca = w.arapca,
-                                    onSpeak = {
-                                        viewModel.audioManager.speakArabic(
-                                            text = w.arapca,
-                                            voiceType = "male",
-                                            slow = false,
-                                            audioPath = w.ses,
-                                            itemId = w.id,
-                                            paketId = w.paketId
-                                        )
-                                    },
-                                    onEdit = {
-                                        editingItemId = w.id
-                                        targetPkgId = w.paketId
-                                        targetPkgTitle = allPackages.firstOrNull { it.id == w.paketId }?.ad ?: w.paketId
-                                        newArabicText = w.arapca
-                                        newTurkishText = w.turkce
-                                        newCefrLevel = w.seviye
-                                        newVisualOrEmoji = w.gorsel ?: "📚"
-                                        newAudioRelPath = w.ses ?: ""
-                                    },
-                                    onDelete = { scope.launch { viewModel.repository.deleteWord(w.id) } }
+                        // Araç 2: 📋 Excel / Panodan Yapıştır
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = palette.panelColor),
+                            border = BorderStroke(1.dp, TealAccent),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { showExcelPasteSection = !showExcelPasteSection },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = TealAccent,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(44.dp)
+                                        .testTag("btn_toggle_excel_paste")
+                                ) {
+                                    Text(
+                                        text = "📋 Excel / Panodan Yapıştır",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = "Excel veya metin belgesinden kopyaladığınız 'Arapça - Türkçe' listesini tek seferde ekler.",
+                                    fontSize = 12.sp,
+                                    color = palette.textMain,
+                                    lineHeight = 17.sp
                                 )
-                            }
-                        }
-                        "sentences" -> {
-                            val list = allSentences.filter {
-                                q.isEmpty() || it.turkce.lowercase().contains(q) || it.arapca.contains(q)
-                            }
-                            items(list, key = { it.id }) { s ->
-                                AdminRecordRow(
-                                    badge = "[${s.seviye}] ${s.paketId} ${if (!s.ses.isNullOrBlank()) "🎵" else ""}",
-                                    turkce = s.turkce,
-                                    arapca = s.arapca,
-                                    onSpeak = {
-                                        viewModel.audioManager.speakArabic(
-                                            text = s.arapca,
-                                            voiceType = "male",
-                                            slow = false,
-                                            audioPath = s.ses,
-                                            itemId = s.id,
-                                            paketId = s.paketId
-                                        )
-                                    },
-                                    onEdit = {
-                                        editingItemId = s.id
-                                        targetPkgId = s.paketId
-                                        targetPkgTitle = allSentencePackages.firstOrNull { it.id == s.paketId }?.ad ?: s.paketId
-                                        newArabicText = s.arapca
-                                        newTurkishText = s.turkce
-                                        newCefrLevel = s.seviye
-                                        newAudioRelPath = s.ses ?: ""
-                                    },
-                                    onDelete = { scope.launch { viewModel.repository.deleteSentence(s.id) } }
-                                )
-                            }
-                        }
-                        else -> {
-                            val list = allDialogueLines.filter {
-                                q.isEmpty() || it.turkce.lowercase().contains(q) || it.arapca.contains(q) || it.konusmaci.lowercase().contains(q)
-                            }
-                            items(list, key = { it.id }) { l ->
-                                AdminRecordRow(
-                                    badge = "[${l.diyalogId}] ${l.konusmaci} ${if (!l.ses.isNullOrBlank()) "🎵" else ""}",
-                                    turkce = l.turkce,
-                                    arapca = l.arapca,
-                                    onSpeak = {
-                                        viewModel.audioManager.speakArabic(
-                                            text = l.arapca,
-                                            voiceType = "male",
-                                            slow = false,
-                                            audioPath = l.ses,
-                                            itemId = "dlg_${l.id}",
-                                            paketId = l.diyalogId
-                                        )
-                                    },
-                                    onEdit = {
-                                        editingDialogueLineId = l.id
-                                        targetPkgId = l.diyalogId
-                                        targetPkgTitle = allDialogues.firstOrNull { it.id == l.diyalogId }?.baslikTr ?: l.diyalogId
-                                        newSpeakerName = l.konusmaci
-                                        newSpeakerGender = l.cinsiyet
-                                        newArabicText = l.arapca
-                                        newTurkishText = l.turkce
-                                        newAudioRelPath = l.ses ?: ""
-                                    },
-                                    onDelete = { scope.launch { viewModel.repository.deleteDialogueLine(l.id) } }
-                                )
+
+                                if (showExcelPasteSection) {
+                                    // Hedef Tür Seçimi (Kelime / Diyalog / Cümle)
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        listOf(
+                                            "words" to "🏠 Kelimeler",
+                                            "dialogue" to "💬 Diyaloglar",
+                                            "sentences" to "📜 Cümleler"
+                                        ).forEach { (key, title) ->
+                                            val isSelected = activeTab == key
+                                            Button(
+                                                onClick = { activeTab = key },
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = if (isSelected) RoyalBlue else unselectedBtnBg,
+                                                    contentColor = if (isSelected) Color.White else unselectedBtnText
+                                                ),
+                                                shape = RoundedCornerShape(8.dp),
+                                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(34.dp)
+                                            ) {
+                                                Text(
+                                                    text = title,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelected) Color.White else unselectedBtnText,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    OutlinedTextField(
+                                        value = targetPkgTitle,
+                                        onValueChange = { targetPkgTitle = it },
+                                        label = { Text("Eklenecek Kategori Başlığı", fontSize = 10.sp) },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = pasteText,
+                                        onValueChange = { pasteText = it },
+                                        placeholder = { Text("Örn:\nمُحَاضَرَةٌ ; Konferans ; B1\nمُسْتَشْفًى ; Hastane ; A2") },
+                                        minLines = 3,
+                                        maxLines = 5,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("excel_paste_textfield")
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Button(
+                                            onClick = {
+                                                val clip = clipboardManager.getText()?.text ?: ""
+                                                if (clip.isNotBlank()) {
+                                                    pasteText = if (pasteText.isBlank()) clip else "$pasteText\n$clip"
+                                                } else {
+                                                    statusBanner = "Panoda metin bulunamadı."
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.height(42.dp)
+                                        ) {
+                                            Text("📋 Panodan Çek", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                scope.launch {
+                                                    val cleanTitle = targetPkgTitle.trim().ifBlank { "Özel Paket" }
+                                                    val cleanId = slugifyCategoryTitleToId(cleanTitle, "ozel_paket")
+                                                    val rep = viewModel.repository.importFromClipboardOrCsv(
+                                                        mode = activeTab,
+                                                        rawText = pasteText,
+                                                        paketId = cleanId,
+                                                        paketAdi = cleanTitle,
+                                                        defaultSeviye = newCefrLevel
+                                                    )
+                                                    statusBanner = "✅ ${rep.addedCount} kayıt eklendi, ${rep.skippedCount} satır atlandı."
+                                                    if (rep.addedCount > 0) {
+                                                        pasteText = ""
+                                                    }
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(42.dp)
+                                                .testTag("btn_confirm_excel_import")
+                                        ) {
+                                            Text("📥 Veritabanına Aktar", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
+
+                // =========================================================================
+                // SEKME 3: 🛠️ BAKIM & KALİTE (Metin Doktoru, Seviye Atama, Kalite Denetimi)
+                // =========================================================================
+                2 -> {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // Araç 1: 🪄 Metin Doktoru
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = palette.panelColor),
+                            border = BorderStroke(1.dp, RoyalPurple),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            val fixed = viewModel.repository.repairAllDatabases()
+                                            statusBanner = "🪄 Metin Doktoru tamamlandı: $fixed kayıt onarıldı!"
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = RoyalPurple,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(44.dp)
+                                        .testTag("btn_text_doctor")
+                                ) {
+                                    Text(
+                                        text = "🪄 Metin Doktoru",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        maxLines = 1
+                                    )
+                                }
+                                Text(
+                                    text = "Arapça metinlerdeki bozuk harekeleri ve fazla boşlukları otomatik düzeltir.",
+                                    fontSize = 12.sp,
+                                    color = palette.textMain,
+                                    lineHeight = 17.sp
+                                )
+                            }
+                        }
+
+                        // Araç 2: 🎯 Otomatik Seviye Ata
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = palette.panelColor),
+                            border = BorderStroke(1.dp, RoyalBlue),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            val cntWords = viewModel.repository.autoAssignCefrLevels("words")
+                                            val cntSents = viewModel.repository.autoAssignCefrLevels("sentences")
+                                            val cntDlgs = viewModel.repository.autoAssignCefrLevels("dialogue")
+                                            val totalCnt = cntWords + cntSents + cntDlgs
+                                            statusBanner = "🎯 Uzunluk ve yapıya göre toplam $totalCnt kayda otomatik CEFR (A1-C1) seviyesi atandı!"
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = RoyalBlue,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(44.dp)
+                                        .testTag("btn_auto_cefr")
+                                ) {
+                                    Text(
+                                        text = "🎯 Otomatik Seviye Ata",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        maxLines = 1
+                                    )
+                                }
+                                Text(
+                                    text = "Seviyesi belirtilmemiş içerikleri uzunluk ve yapısına göre A1-C1 arasında sınıflandırır.",
+                                    fontSize = 12.sp,
+                                    color = palette.textMain,
+                                    lineHeight = 17.sp
+                                )
+                            }
+                        }
+
+                        // Araç 3: 🔍 Kalite Denetimi
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = palette.panelColor),
+                            border = BorderStroke(1.dp, WarmGold),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Button(
+                                    onClick = { showAuditReport = !showAuditReport },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = WarmGold,
+                                        contentColor = Color(0xFF0F172A)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(44.dp)
+                                        .testTag("btn_quality_audit")
+                                ) {
+                                    Text(
+                                        text = "🔍 Kalite Denetimi",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF0F172A),
+                                        maxLines = 1
+                                    )
+                                }
+                                Text(
+                                    text = "Anlamı eksik veya mükerrer (tekrar eden) kayıtları tarayıp raporlar.",
+                                    fontSize = 12.sp,
+                                    color = palette.textMain,
+                                    lineHeight = 17.sp
+                                )
+
+                                if (showAuditReport) {
+                                    val issues = remember(allWords, allSentences, allDialogueLines) {
+                                        val wIssues = allWords.mapNotNull { w ->
+                                            val probs = ArabicNlpEngine.checkItemQuality(w.arapca, w.turkce)
+                                            if (probs.isEmpty()) null else "Kelime [${w.id}] (${w.turkce}): ${probs.joinToString(", ")}"
+                                        }
+                                        val sIssues = allSentences.mapNotNull { s ->
+                                            val probs = ArabicNlpEngine.checkItemQuality(s.arapca, s.turkce)
+                                            if (probs.isEmpty()) null else "Cümle [${s.id}]: ${probs.joinToString(", ")}"
+                                        }
+                                        val dIssues = allDialogueLines.mapNotNull { l ->
+                                            val probs = ArabicNlpEngine.checkItemQuality(l.arapca, l.turkce)
+                                            if (probs.isEmpty()) null else "Diyalog #${l.id}: ${probs.joinToString(", ")}"
+                                        }
+                                        wIssues + sIssues + dIssues
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = palette.cardColor,
+                                        border = BorderStroke(1.dp, if (issues.isEmpty()) EmeraldGreen else WarmGold),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp)) {
+                                            Text(
+                                                text = if (issues.isEmpty()) "✅ Kalite Denetimi: Tüm kayıtlar harekeli ve eksiksiz!" else "⚠️ Tespit Edilen Kalite Kusurları (${issues.size}):",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (issues.isEmpty()) palette.okGreen else WarmGold
+                                            )
+                                            issues.take(8).forEach { iss ->
+                                                Text("• $iss", fontSize = 11.sp, color = palette.textMain)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

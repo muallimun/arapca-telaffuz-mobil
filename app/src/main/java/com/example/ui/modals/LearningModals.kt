@@ -111,7 +111,7 @@ fun SarfExplorerModal(
 
     var searchQuery by remember { mutableStateOf(initialQuery) }
     var selectedTur by remember { mutableStateOf("Tümü") } // "Tümü", "isim", "fiil"
-    var sortCol by remember { mutableStateOf("kok") } // "kok", "tur", "ar", "tr"
+    var sortCol by remember { mutableStateOf("kok") } // "kok", "ar", "tr"
     var sortDesc by remember { mutableStateOf(false) }
 
     val filteredEntries = remember(allSozluk, searchQuery, selectedTur, sortCol, sortDesc) {
@@ -122,14 +122,13 @@ fun SarfExplorerModal(
             if (!turOk) return@filter false
             if (q.isEmpty()) return@filter true
 
-            val hayTr = "${item.id} ${item.anlamTr} ${item.kategori}".lowercase()
+            val hayTr = "${item.id} ${item.anlamTr}".lowercase()
             val hayAr = "${item.kok} ${item.mufret} ${item.cemi} ${item.mazi} ${item.muzari} ${item.masdar}"
             val hayNorm = ArabicNlpEngine.normalizeArabic(hayAr)
             hayTr.contains(q) || hayAr.contains(q) || (qNormAr.isNotEmpty() && hayNorm.contains(qNormAr))
         }
 
         val sorted = when (sortCol) {
-            "tur" -> base.sortedBy { it.tur }
             "ar" -> base.sortedBy { ArabicNlpEngine.removeDiacritics(if (it.tur == "isim") it.mufret else it.mazi) }
             "tr" -> base.sortedBy { it.anlamTr.lowercase() }
             else -> base.sortedBy { it.kok }
@@ -137,9 +136,7 @@ fun SarfExplorerModal(
         if (sortDesc) sorted.reversed() else sorted
     }
 
-    var selectedEntry by remember(filteredEntries) {
-        mutableStateOf(filteredEntries.firstOrNull() ?: allSozluk.firstOrNull())
-    }
+    var selectedEntryId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
@@ -150,332 +147,385 @@ fun SarfExplorerModal(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-                // Header
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+            // Kompakt Başlık ve Tek Satır Bilgi
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "📖 Sarf Sözlüğü & Kök Atölyesi",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.accentHead,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Bulunan: ${filteredEntries.size} madde • Kök veya anlamla arayın",
+                        fontSize = 11.sp,
+                        color = palette.okGreen,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Arama Kutusu
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = {
                         Text(
-                            text = "📖 SARF SÖZLÜĞÜ & SÜLÂSÎ KÖK ATÖLYESİ",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.accentHead
+                            text = "🔍 Kök (ك ت ب), Arapça veya Türkçe anlam ara...",
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                    },
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("sarf_search_input")
+                )
+                if (searchQuery.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = palette.btnSec,
+                        modifier = Modifier.clickable { searchQuery = "" }
+                    ) {
                         Text(
-                            text = "Bulunan: ${filteredEntries.size} sözlük maddesi • Sütun başlığıyla A➔Z sıralayın",
-                            fontSize = 11.sp,
-                            color = palette.okGreen
+                            text = "🧹",
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(10.dp)
                         )
-                    }
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
                     }
                 }
+            }
 
-                // Arama ve Tür Filtresi
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("🔍 Kök (ك ت ب), Arapça veya Türkçe anlam ara...", fontSize = 12.sp) },
-                        singleLine = true,
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 1. Satır (Tür Filtresi): Tümü, 🏷️ İsim, ⚡ Fiil eşit genişlikte
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                listOf("Tümü" to "Tümü", "isim" to "🏷️ İsim", "fiil" to "⚡ Fiil").forEach { (key, label) ->
+                    val isSelected = selectedTur == key
+                    Button(
+                        onClick = { selectedTur = key },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) EmeraldGreen else palette.btnSec,
+                            contentColor = if (isSelected) Color(0xFF0F172A) else palette.textMain
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("sarf_search_input")
-                    )
-                    if (searchQuery.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = palette.btnSec,
-                            modifier = Modifier.clickable { searchQuery = "" }
-                        ) {
-                            Text(
-                                text = "🧹",
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(10.dp)
-                            )
-                        }
+                            .height(34.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
+            }
 
-                // Tür ve Sıralama Çipleri
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("Tümü" to "Tümü", "isim" to "🏷️ İsim", "fiil" to "⚡ Fiil").forEach { (key, label) ->
-                            FilterChip(
-                                selected = selectedTur == key,
-                                onClick = { selectedTur = key },
-                                label = { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                            )
-                        }
-                    }
+            Spacer(modifier = Modifier.height(6.dp))
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        listOf("kok" to "Kök", "ar" to "Arapça", "tr" to "Türkçe").forEach { (colKey, colLbl) ->
-                            val isActive = sortCol == colKey
-                            val arrow = if (isActive) (if (sortDesc) " ▼" else " ▲") else " ⇅"
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (isActive) RoyalBlue else palette.btnSec,
-                                modifier = Modifier.clickable {
-                                    if (sortCol == colKey) sortDesc = !sortDesc
-                                    else {
-                                        sortCol = colKey
-                                        sortDesc = false
-                                    }
-                                }
-                            ) {
-                                Text(
-                                    text = "$colLbl$arrow",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isActive) Color.White else palette.textMain,
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp)
-                                )
+            // 2. Satır (Sıralama): Kök ⇅, Arapça ⇅, Türkçe ⇅ eşit genişlikte ve tek satır
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                listOf("kok" to "Kök", "ar" to "Arapça", "tr" to "Türkçe").forEach { (colKey, colLbl) ->
+                    val isActive = sortCol == colKey
+                    val arrow = if (isActive) (if (sortDesc) " ▼" else " ▲") else " ⇅"
+                    Button(
+                        onClick = {
+                            if (sortCol == colKey) sortDesc = !sortDesc
+                            else {
+                                sortCol = colKey
+                                sortDesc = false
                             }
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isActive) RoyalBlue else palette.btnSec,
+                            contentColor = if (isActive) Color.White else palette.textMain
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp)
+                    ) {
+                        Text(
+                            text = "$colLbl$arrow",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
+            }
 
-                // Seçili Kelimenin Altıgen Kök & Türev Ağacı Detay Kartı
-                selectedEntry?.let { sel ->
-                    val morphInfo = remember(sel, allSozluk) {
-                        viewModel.repository.resolveWordMorphology(sel.id, allSozluk)
-                    }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Sözlük Maddeleri Listesi
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                items(filteredEntries, key = { it.id }) { item ->
+                    val isSelected = selectedEntryId == item.id
+                    val primaryAr = if (item.tur == "isim") item.mufret else item.mazi
+                    val turBadgeText = if (item.tur == "isim") "🏷️ İsim" else "⚡ Fiil"
+                    val turBadgeColor = if (item.tur == "isim") TealAccent else WarmGold
+
                     Card(
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = palette.panelColor),
-                        border = BorderStroke(1.dp, palette.border),
-                        modifier = Modifier.fillMaxWidth()
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) palette.panelColor else palette.cardColor
+                        ),
+                        border = BorderStroke(
+                            if (isSelected) 1.5.dp else 1.dp,
+                            if (isSelected) WarmGold else palette.border
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                selectedEntryId = if (isSelected) null else item.id
+                            }
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 10.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
+                                // Sol Kök Kutusu: Sade çerçeveli kutu içinde kök harfleri ve 🔍 Kök Ailesi rozeti
                                 HexagonRootBadge(
-                                    rootText = sel.kok,
-                                    emoji = sel.emoji,
-                                    onClick = { searchQuery = sel.kok }
+                                    rootText = item.kok,
+                                    onClick = {
+                                        searchQuery = if (searchQuery == item.kok) "" else item.kok
+                                    }
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    val primaryAr = if (sel.tur == "isim") sel.mufret else sel.mazi
+
+                                // Orta İçerik: Harekeli Arapça kelime (22.sp), Türkçe anlamı ve sadece doğru tür/seviye rozeti
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
                                     Text(
                                         text = primaryAr,
                                         fontFamily = AmiriArabicFontFamily,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 28.sp,
-                                        color = palette.textArabic
+                                        fontSize = 22.sp,
+                                        color = palette.textArabic,
+                                        style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                                     )
-                                    Text(
-                                        text = sel.anlamTr,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = palette.textMain
-                                    )
-                                    Text(
-                                        text = "${sel.kategori} • Seviye: ${sel.seviye}",
-                                        fontSize = 11.sp,
-                                        color = palette.textDim
-                                    )
-                                }
-                            }
-
-                            // Çekim / Türev Butonları (Dokununca Seslendirir)
-                            morphInfo?.forms?.let { forms ->
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    forms.forEach { f ->
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = palette.cardColor,
-                                            border = BorderStroke(1.dp, Color(f.colorHex)),
-                                            modifier = Modifier.clickable {
-                                                viewModel.audioManager.speakArabic(f.arabic, "male", viewModel.slowTts.value)
-                                            }
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                                            ) {
-                                                Text(
-                                                    text = "${f.label}: ",
-                                                    fontSize = 11.sp,
-                                                    color = palette.textDim,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                                Text(
-                                                    text = "🔊 ${f.arabic}",
-                                                    fontFamily = AmiriArabicFontFamily,
-                                                    fontSize = 17.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = palette.textArabic
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Aynı Kökten Türeyen Akraba Kelimeler
-                            morphInfo?.family?.takeIf { it.isNotEmpty() }?.let { famList ->
-                                Text(
-                                    text = "🌿 Aynı Sülâsî Kökten (${sel.kok}) Türeyen Akraba Kelimeler:",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = palette.accentHead
-                                )
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    famList.forEach { fam ->
-                                        val headAr = if (fam.tur == "isim") fam.mufret else fam.mazi
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = palette.bgColor,
-                                            border = BorderStroke(1.dp, palette.border),
-                                            modifier = Modifier.clickable { selectedEntry = fam }
-                                        ) {
-                                            Text(
-                                                text = "$headAr (${fam.anlamTr.substringBefore(",")})",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = palette.textMain,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Button(
-                                onClick = {
-                                    onDismiss()
-                                    viewModel.selectWordCategory("sozluk_tumu")
-                                    viewModel.switchMode(AppMode.WORDS)
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = EmeraldGreen,
-                                    contentColor = Color(0xFF0F172A)
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("btn_practice_in_card")
-                            ) {
-                                Text("🎤 Bu Kelimeyi Kartta Telaffuz Çalış", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            }
-                        }
-                    }
-                }
-
-                // Sözlük Maddeleri Listesi
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                ) {
-                    items(filteredEntries, key = { it.id }) { item ->
-                        val isSelected = selectedEntry?.id == item.id
-                        val headAr = if (item.tur == "isim") item.mufret else item.mazi
-                        val subAr = if (item.tur == "isim") {
-                            "Çoğul: ${item.cemi}"
-                        } else {
-                            "${item.muzari} | ${item.masdar}"
-                        }
-
-                        Card(
-                            shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) palette.panelColor else palette.cardColor
-                            ),
-                            border = BorderStroke(
-                                if (isSelected) 2.dp else 1.dp,
-                                if (isSelected) WarmGold else palette.border
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { selectedEntry = item }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = palette.btnSec
-                                        ) {
-                                            Text(
-                                                text = "Kök: ${item.kok}",
-                                                fontFamily = AmiriArabicFontFamily,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = palette.accentHead,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = item.tur.uppercase(),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = palette.okGreen
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = item.anlamTr,
-                                        fontSize = 13.sp,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = palette.textMain
                                     )
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = turBadgeColor.copy(alpha = 0.16f),
+                                            border = BorderStroke(1.dp, turBadgeColor.copy(alpha = 0.5f))
+                                        ) {
+                                            Text(
+                                                text = turBadgeText,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (palette.isDark) turBadgeColor else palette.textMain,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                        if (item.seviye.isNotBlank()) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = palette.btnSec
+                                            ) {
+                                                Text(
+                                                    text = item.seviye,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = palette.accentHead,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
 
-                                Column(horizontalAlignment = Alignment.End) {
+                                // Sağ Etkileşim Butonu: Doğrudan seslendirme yapan belirgin 🔊 (Dinle) butonu
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = RoyalBlue,
+                                    modifier = Modifier
+                                        .clickable {
+                                            viewModel.audioManager.speakArabic(primaryAr, "male", viewModel.slowTts.value)
+                                        }
+                                        .testTag("sarf_speak_${item.id}")
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                                    ) {
+                                        Text(
+                                            text = "🔊",
+                                            fontSize = 18.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Karta tıklandığında açılan Çekim / Türev ve Telaffuz Pratiği alanı
+                            if (isSelected) {
+                                val morphInfo = remember(item, allSozluk) {
+                                    viewModel.repository.resolveWordMorphology(item.id, allSozluk)
+                                }
+
+                                morphInfo?.forms?.takeIf { it.isNotEmpty() }?.let { forms ->
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        forms.forEach { f ->
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = palette.bgColor,
+                                                border = BorderStroke(1.dp, Color(f.colorHex)),
+                                                modifier = Modifier.clickable {
+                                                    viewModel.audioManager.speakArabic(f.arabic, "male", viewModel.slowTts.value)
+                                                }
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${f.label}: ",
+                                                        fontSize = 11.sp,
+                                                        color = palette.textDim,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                    Text(
+                                                        text = "🔊 ${f.arabic}",
+                                                        fontFamily = AmiriArabicFontFamily,
+                                                        fontSize = 17.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = palette.textArabic,
+                                                        style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                morphInfo?.family?.takeIf { it.isNotEmpty() }?.let { famList ->
                                     Text(
-                                        text = headAr,
-                                        fontFamily = AmiriArabicFontFamily,
+                                        text = "🌿 Aynı Sülâsî Kökten (${item.kok}) Türeyen Akraba Kelimeler:",
+                                        fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 22.sp,
-                                        color = palette.textArabic
+                                        color = palette.accentHead
                                     )
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        famList.forEach { fam ->
+                                            val headAr = if (fam.tur == "isim") fam.mufret else fam.mazi
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = palette.bgColor,
+                                                border = BorderStroke(1.dp, palette.border),
+                                                modifier = Modifier.clickable {
+                                                    viewModel.audioManager.speakArabic(headAr, "male", viewModel.slowTts.value)
+                                                }
+                                            ) {
+                                                Text(
+                                                    text = "🔊 $headAr (${fam.anlamTr.substringBefore(",")})",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = palette.textMain,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        onDismiss()
+                                        viewModel.openWordFromSarf(item)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = EmeraldGreen,
+                                        contentColor = Color(0xFF0F172A)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(38.dp)
+                                        .testTag("btn_practice_in_card")
+                                ) {
                                     Text(
-                                        text = subAr,
-                                        fontFamily = AmiriArabicFontFamily,
-                                        fontSize = 14.sp,
-                                        color = palette.textDim
+                                        text = "🎯 Bu Kelimeyi Kartta Telaffuz Çalış",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
                         }
                     }
                 }
+            }
         }
     }
 }
@@ -495,6 +545,8 @@ fun ListeningExamModal(
     val allSentences by viewModel.allSentences.collectAsState()
     val allDialogues by viewModel.allDialogues.collectAsState()
     val allDialogueLines by viewModel.allDialogueLines.collectAsState()
+    val wordPackages by viewModel.wordPackages.collectAsState()
+    val sentencePackages by viewModel.sentencePackages.collectAsState()
 
     val sourceOptions = listOf(
         "words" to "🏠 Görselli Kelimeler",
@@ -503,13 +555,28 @@ fun ListeningExamModal(
         "dialogue" to "💬 Diyalog Cümleleri"
     )
     var selectedSourceKey by remember { mutableStateOf("words") }
+    var selectedPaketId by remember { mutableStateOf("all") }
     var selectedLevel by remember { mutableStateOf("Tümü") }
     var selectedTargetCount by remember { mutableStateOf("10 Soru") } // "10 Soru", "20 Soru", "50 Soru", "♾️ Sınırsız"
     var showArabicHint by remember { mutableStateOf(false) }
 
     var showSourceMenu by remember { mutableStateOf(false) }
+    var showPaketMenu by remember { mutableStateOf(false) }
     var showLevelMenu by remember { mutableStateOf(false) }
     var showCountMenu by remember { mutableStateOf(false) }
+
+    val availablePackages = remember(selectedSourceKey, wordPackages, sentencePackages, allDialogues) {
+        when (selectedSourceKey) {
+            "words" -> listOf("all" to "📦 Tüm Görselli Paketler") +
+                wordPackages.filter { !it.id.startsWith("szl_") }.map { it.id to "📦 ${it.ad}" }
+            "dictionary" -> listOf("all" to "📖 Tüm Sarf Sözlüğü") +
+                wordPackages.filter { it.id.startsWith("szl_") }.map { it.id to "📖 ${it.ad}" }
+            "dialogue" -> listOf("all" to "💬 Tüm Diyaloglar") +
+                allDialogues.map { it.id to "💬 [${it.seviye}] ${it.baslikTr}" }
+            else -> listOf("all" to "📜 Tüm Cümle Paketleri") +
+                sentencePackages.map { it.id to "📜 ${it.ad}" }
+        }
+    }
 
     var questions by remember { mutableStateOf<List<ListeningQuestion>>(emptyList()) }
     var currentIndex by remember { mutableIntStateOf(0) }
@@ -525,7 +592,7 @@ fun ListeningExamModal(
         }
         val qs = viewModel.repository.generateListeningExamQuestions(
             sourceMode = selectedSourceKey,
-            paketId = "all",
+            paketId = selectedPaketId,
             seviye = selectedLevel,
             count = countNum,
             allWords = allWords,
@@ -596,7 +663,7 @@ fun ListeningExamModal(
                     }
                 }
 
-                // Kaynak, Seviye ve Soru Sayısı Seçici + Sınav Başlatma ve Ses/İpucu Butonları
+                // Kaynak, Paket/Diyalog, Seviye ve Soru Sayısı Seçici + Sınav Başlatma ve Ses/İpucu Butonları
                 Card(
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = palette.panelColor),
@@ -607,36 +674,79 @@ fun ListeningExamModal(
                         modifier = Modifier.padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // 1. Satır: Kaynak Seçimi (Tam Genişlik)
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            OutlinedButton(
-                                onClick = { showSourceMenu = true },
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                val lbl = sourceOptions.firstOrNull { it.first == selectedSourceKey }?.second ?: ""
-                                Text(
-                                    text = "Kaynak: $lbl",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = palette.accentHead,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
-                            }
-                            DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
-                                sourceOptions.forEach { (k, label) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label, fontWeight = FontWeight.SemiBold) },
-                                        onClick = {
-                                            showSourceMenu = false
-                                            selectedSourceKey = k
-                                            examStarted = false
-                                        }
+                        // 1. Satır: Kaynak ve Paket / Diyalog Seçimi
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                OutlinedButton(
+                                    onClick = { showSourceMenu = true },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    val lbl = sourceOptions.firstOrNull { it.first == selectedSourceKey }?.second ?: ""
+                                    Text(
+                                        text = lbl,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = palette.accentHead,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
                                     )
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
+                                }
+                                DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
+                                    sourceOptions.forEach { (k, label) ->
+                                        DropdownMenuItem(
+                                            text = { Text(label, fontWeight = FontWeight.SemiBold) },
+                                            onClick = {
+                                                showSourceMenu = false
+                                                selectedSourceKey = k
+                                                selectedPaketId = "all"
+                                                examStarted = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Box(modifier = Modifier.weight(1f)) {
+                                OutlinedButton(
+                                    onClick = { showPaketMenu = true },
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("listening_paket_selector")
+                                ) {
+                                    val pkgLbl = availablePackages.firstOrNull { it.first == selectedPaketId }?.second
+                                        ?: "📦 Tümü"
+                                    Text(
+                                        text = pkgLbl,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = palette.textMain,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
+                                }
+                                DropdownMenu(expanded = showPaketMenu, onDismissRequest = { showPaketMenu = false }) {
+                                    availablePackages.forEach { (pkgKey, pkgLabel) ->
+                                        DropdownMenuItem(
+                                            text = { Text(pkgLabel, fontWeight = FontWeight.SemiBold) },
+                                            onClick = {
+                                                showPaketMenu = false
+                                                selectedPaketId = pkgKey
+                                                examStarted = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -946,6 +1056,7 @@ fun ShadowingTrainerModal(
     val palette = LocalMuallimunPalette.current
     val context = LocalContext.current
     val target by viewModel.shadowingTarget.collectAsState()
+    val liveWaveBars by viewModel.audioManager.waveBars.collectAsState()
 
     var isRunning by remember { mutableStateOf(false) }
     var statusText by remember { mutableStateOf("Hazır olduğunuzda '🎬 Gölgelemeyi Başlat' butonuna basın.") }
@@ -965,9 +1076,57 @@ fun ShadowingTrainerModal(
     }
     var userBars by remember { mutableStateOf(List(48) { 0.08f }) }
 
+    LaunchedEffect(liveWaveBars, isRunning) {
+        if (isRunning && liveWaveBars.isNotEmpty()) {
+            userBars = List(48) { i -> liveWaveBars[i % liveWaveBars.size] }
+        }
+    }
+
     LaunchedEffect(target.arabic) {
         val wordCount = target.arabic.split(Regex("\\s+")).size
         refDurationSec = max(1.6f, wordCount * 0.75f)
+        coloredWords = emptyList()
+        pronScorePct = 0
+        rhythmScorePct = 0
+        totalFluencyPct = 0
+    }
+
+    fun evaluateShadowingResult(heardText: String, durSec: Float) {
+        val cmp = ArabicNlpEngine.compareArabic(target.arabic, heardText)
+        val eval = ArabicNlpEngine.evaluateSentenceWords(target.arabic, heardText)
+        coloredWords = eval.wordResults
+
+        val computedPronPct = (((cmp.score * 0.55) + (eval.ratio * 0.45)) * 100.0)
+            .roundToInt()
+            .coerceIn(0, 100)
+
+        val rawDur = if (durSec > 0.1f) durSec else viewModel.audioManager.getLastSpeechDurationSec()
+        val roundedDur = ((rawDur * 10f).roundToInt() / 10f).coerceAtLeast(0.4f)
+        userDurationSec = roundedDur
+        userBars = viewModel.audioManager.getLastSpeechEnvelope48()
+
+        val durDiff = abs(refDurationSec - roundedDur)
+        val tempoScore = if (computedPronPct == 0) {
+            0
+        } else {
+            (100f * max(0f, 1f - (durDiff / max(1.5f, refDurationSec))))
+                .roundToInt()
+                .coerceIn(20, 100)
+        }
+
+        pronScorePct = computedPronPct
+        rhythmScorePct = tempoScore
+        totalFluencyPct = ((pronScorePct * 0.65) + (rhythmScorePct * 0.35)).roundToInt().coerceIn(0, 100)
+
+        statusText = when {
+            pronScorePct >= 80 && totalFluencyPct >= 75 ->
+                "✅ Harika Akıcılık ve Telaffuz! (Algılanan: \"$heardText\") — Genel Puan: %$totalFluencyPct"
+            pronScorePct >= 50 ->
+                "🟡 İyi Deneme! Kırmızı kelimelere dikkat edin (Algılanan: \"$heardText\") — Genel Puan: %$totalFluencyPct"
+            else ->
+                "⚠️ Telaffuz Eşleşmedi (Algılanan: \"$heardText\") — Genel Puan: %$totalFluencyPct"
+        }
+        isRunning = false
     }
 
     fun startShadowingCycle() {
@@ -977,26 +1136,20 @@ fun ShadowingTrainerModal(
 
         viewModel.audioManager.speakArabic(target.arabic, "male", viewModel.slowTts.value) {
             statusText = "🎙️ 2. Adım: ŞİMDİ AYNI HIZ VE TONLAMAYLA TEKRAR EDİN!"
-            viewModel.audioManager.recordWavForShadowingOrAdmin(
-                itemIdPrefix = "shadow_${target.itemId}",
-                maxDurationSec = refDurationSec * 1.6f + 1.0f,
-                onProgressBars = { prog ->
-                    val expanded = List(48) { i -> prog[i % prog.size] }
-                    userBars = expanded
-                },
-                onFinished = { _, env48, durSec ->
-                    userBars = env48
-                    userDurationSec = durSec
-                    val durDiff = abs(refDurationSec - durSec)
-                    val tempoScore = (100f * max(0f, 1f - (durDiff / max(1.5f, refDurationSec)))).roundToInt().coerceIn(35, 100)
-                    rhythmScorePct = tempoScore
-                    pronScorePct = 88
-                    totalFluencyPct = ((pronScorePct * 0.65) + (rhythmScorePct * 0.35)).roundToInt()
-                    coloredWords = target.arabic.split(Regex("\\s+")).filter { it.isNotEmpty() }.map { it to true }
-                    statusText = "✅ Mükemmel Akıcılık! — Genel Akıcılık Puanı: %$totalFluencyPct"
+            viewModel.audioManager.startSpeechRecognition(
+                itemIdPrefix = "shadow_${target.itemId}"
+            ) { heardText, durSec, errMsg ->
+                if (!errMsg.isNullOrBlank() && heardText.isBlank()) {
+                    coloredWords = ArabicNlpEngine.evaluateSentenceWords(target.arabic, "").wordResults
+                    pronScorePct = 0
+                    rhythmScorePct = 0
+                    totalFluencyPct = 0
+                    statusText = "⚠️ $errMsg — Tekrar deneyin."
                     isRunning = false
+                } else {
+                    evaluateShadowingResult(heardText, durSec)
                 }
-            )
+            }
         }
     }
 

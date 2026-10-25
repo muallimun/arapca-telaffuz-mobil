@@ -23,6 +23,18 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
+      - name: Ozel Uygulama Simgesini ve Kurumsal Logoyu Dogrula ve Koru
+        run: |
+          if [ ! -s "app/src/main/res/drawable/app_icon.png" ]; then
+            echo "HATA: app/src/main/res/drawable/app_icon.png bulunamadi veya bos!"
+            exit 1
+          fi
+          if [ ! -s "app/src/main/res/drawable/muallimun_logo.png" ]; then
+            echo "HATA: app/src/main/res/drawable/muallimun_logo.png bulunamadi veya bos!"
+            exit 1
+          fi
+          echo "Ozel uygulama simgesi (app_icon.png) ve kurumsal logo (muallimun_logo.png) korundu ve dogrulandi."
+
       - name: Debug Keystore Olustur
         run: |
           keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"

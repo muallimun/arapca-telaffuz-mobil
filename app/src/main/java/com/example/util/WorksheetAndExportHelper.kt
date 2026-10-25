@@ -486,13 +486,21 @@ object WorksheetAndExportHelper {
         """.trimIndent()
     }
 
+    @android.annotation.SuppressLint("StaticFieldLeak")
+    private var activePrintWebView: WebView? = null
+
     fun printHtmlAsPdf(context: Context, htmlContent: String, jobName: String = "Muallimun_Arapca_Sinav_Ve_Ders_Notu") {
         val webView = WebView(context)
+        activePrintWebView = webView
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager ?: return
                 val adapter = webView.createPrintDocumentAdapter(jobName)
-                printManager.print(jobName, adapter, PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build())
+                printManager.print(
+                    jobName,
+                    adapter,
+                    PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build()
+                )
             }
         }
         webView.loadDataWithBaseURL("file:///android_res/", htmlContent, "text/html", "UTF-8", null)
