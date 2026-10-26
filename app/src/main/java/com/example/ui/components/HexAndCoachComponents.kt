@@ -363,17 +363,17 @@ fun LiveMakhrajAndHarakaCoachCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Başlık & Doğruluk Yüzdesi / Dinleniyor Rozeti Satırı
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "🎯 Mahreç & Telaffuz Koçu",
+                    text = "🎯 Mahreç & Telaffuz",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = when {
@@ -382,6 +382,7 @@ fun LiveMakhrajAndHarakaCoachCard(
                         else -> palette.accentHead
                     },
                     maxLines = 1,
+                    softWrap = false,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
@@ -393,12 +394,12 @@ fun LiveMakhrajAndHarakaCoachCard(
                     ) {
                         Text(
                             text = "🎙️ Dinleniyor...",
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
                             maxLines = 1,
                             softWrap = false,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                         )
                     }
                 } else if (hasResult) {
@@ -412,12 +413,12 @@ fun LiveMakhrajAndHarakaCoachCard(
                             } else {
                                 "⚠️ %${evalState.accuracyPct}"
                             },
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (evalState.isCorrect == true) Color(0xFF0F172A) else Color.White,
                             maxLines = 1,
                             softWrap = false,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                         )
                     }
                 }
@@ -468,8 +469,12 @@ fun LiveMakhrajAndHarakaCoachCard(
                     Text(
                         text = "${evalState.verdictTitle} — ${evalState.statusDetail}",
                         fontSize = 11.sp,
+                        lineHeight = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = palette.okGreen
+                        color = palette.okGreen,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(vertical = 2.dp)
                     )
                 }
                 val proactiveGuide = remember(targetAr) {
@@ -479,13 +484,14 @@ fun LiveMakhrajAndHarakaCoachCard(
                     Text(
                         text = proactiveGuide,
                         fontSize = 11.sp,
-                        lineHeight = 15.sp,
+                        lineHeight = 14.sp,
                         color = palette.textMain
                     )
                 } else {
                     Text(
                         text = "🎙️ Telaffuz ve mahreç analizi için '🎤 BAŞLA VE KONUŞ' butonuna dokunun.",
                         fontSize = 11.sp,
+                        lineHeight = 14.sp,
                         color = palette.textDim
                     )
                 }

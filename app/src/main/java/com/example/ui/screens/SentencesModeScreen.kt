@@ -35,6 +35,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.ui.draw.alpha
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -842,10 +844,10 @@ fun SentencesModeScreen(
                         // 3. ALT BÖLÜM (Sabit): Ses & Oto-Dinle Satırı + Mikrofon Butonu
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Üst Ses Satırı: Yan Yana Eşit Genişlik, Kesilmesiz 🔊 Dinle | 🗣️ Gölgele | 🎧 Sesim | 📻 Radyo
+                            // Üst Ses Satırı: Yan Yana Eşit Genişlik, Kesilmesiz 🔊 Dinle | Gölge | 🎧 Sesim | 📻 Radyo
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -853,12 +855,19 @@ fun SentencesModeScreen(
                             ) {
                                 Button(
                                     onClick = { viewModel.speakCurrentItem(null) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
+                                    enabled = !isRecording,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = AccentCoral,
+                                        contentColor = Color.White,
+                                        disabledContainerColor = AccentCoral,
+                                        disabledContentColor = Color.White
+                                    ),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(38.dp)
+                                        .height(36.dp)
+                                        .alpha(if (isRecording) 0.5f else 1f)
                                         .testTag("btn_sentence_tts")
                                 ) {
                                     Text(
@@ -867,29 +876,46 @@ fun SentencesModeScreen(
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
                                         softWrap = false
                                     )
                                 }
 
                                 Button(
                                     onClick = { checkMicAndRun("shadowing") },
-                                    colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
+                                    enabled = !isRecording,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = RoyalPurple,
+                                        contentColor = Color.White,
+                                        disabledContainerColor = RoyalPurple,
+                                        disabledContentColor = Color.White
+                                    ),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(38.dp)
+                                        .height(36.dp)
+                                        .alpha(if (isRecording) 0.5f else 1f)
                                 ) {
-                                    Text(
-                                        text = "🗣️ Gölgele",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        softWrap = false
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.RecordVoiceOver,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text(
+                                            text = "Gölge",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
                                 }
 
                                 Button(
@@ -897,43 +923,53 @@ fun SentencesModeScreen(
                                         val ok = viewModel.audioManager.playSavedWavFile()
                                         if (!ok) viewModel.showToast("Dinlenecek ses kaydı bulunamadı.")
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
+                                    enabled = !isRecording,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = palette.btnSec,
+                                        contentColor = palette.textMain,
+                                        disabledContainerColor = palette.btnSec,
+                                        disabledContentColor = palette.textMain
+                                    ),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(38.dp)
+                                        .height(36.dp)
+                                        .alpha(if (isRecording) 0.5f else 1f)
                                 ) {
                                     Text(
                                         text = "🎧 Sesim",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
                                         softWrap = false
                                     )
                                 }
 
+                                val radioBg = if (isRadioModeActive) CoralRed else TealAccent
                                 Button(
                                     onClick = { viewModel.toggleRadioMode() },
+                                    enabled = !isRecording,
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (isRadioModeActive) CoralRed else TealAccent,
-                                        contentColor = Color.White
+                                        containerColor = radioBg,
+                                        contentColor = Color.White,
+                                        disabledContainerColor = radioBg,
+                                        disabledContentColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(38.dp)
+                                        .height(36.dp)
+                                        .alpha(if (isRecording) 0.5f else 1f)
                                         .testTag("btn_radio_mode_sentence")
                                 ) {
                                     Text(
-                                        text = if (isRadioModeActive) "⏹️ Durdur" else "📻 Radyo",
+                                        text = if (isRadioModeActive) "⏹️ Dur" else "📻 Radyo",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
                                         softWrap = false
                                     )
                                 }
