@@ -167,19 +167,43 @@ fun AnalyticsAndReportsModal(
                 ) {
                     Tab(
                         selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("🏅 Rozetler", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-                    )
+                        onClick = { selectedTab = 0 }
+                    ) {
+                        Text(
+                            text = "🏅 Rozetler",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                        )
+                    }
                     Tab(
                         selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("📈 Paket İlerleme", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-                    )
+                        onClick = { selectedTab = 1 }
+                    ) {
+                        Text(
+                            text = "📈 Paket İlerleme",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                        )
+                    }
                     Tab(
                         selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        text = { Text("⚠️ Zayıflar & Ses", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
-                    )
+                        onClick = { selectedTab = 2 }
+                    ) {
+                        Text(
+                            text = "⚠️ Zayıflar & Ses",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                        )
+                    }
                 }
 
                 Box(modifier = Modifier.weight(1f)) {
@@ -1019,7 +1043,7 @@ fun UnifiedAdminPanelModal(
                 }
             }
 
-            // 3 Açıklamalı Sekme: ➕ Yeni Ekle | 📦 Paket Yükle | 🛠️ Bakım & Kalite
+            // 3 Açıklamalı Sekme: ➕ Yeni Ekle | 📥 Paket Yükle | 🛠️ Bakım
             TabRow(
                 selectedTabIndex = selectedSectionTab,
                 containerColor = palette.panelColor,
@@ -1028,51 +1052,48 @@ fun UnifiedAdminPanelModal(
                 Tab(
                     selected = selectedSectionTab == 0,
                     onClick = { selectedSectionTab = 0 },
-                    modifier = Modifier.testTag("tab_content_add_new"),
-                    text = {
-                        Text(
-                            text = "➕ Yeni Ekle",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (selectedSectionTab == 0) palette.accentHead else unselectedBtnText,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                )
+                    modifier = Modifier.testTag("tab_content_add_new")
+                ) {
+                    Text(
+                        text = "➕ Yeni Ekle",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedSectionTab == 0) palette.accentHead else unselectedBtnText,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                    )
+                }
                 Tab(
                     selected = selectedSectionTab == 1,
                     onClick = { selectedSectionTab = 1 },
-                    modifier = Modifier.testTag("tab_content_import_pkg"),
-                    text = {
-                        Text(
-                            text = "📦 Paket Yükle",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (selectedSectionTab == 1) palette.accentHead else unselectedBtnText,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                )
+                    modifier = Modifier.testTag("tab_content_import_pkg")
+                ) {
+                    Text(
+                        text = "📥 Paket Yükle",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedSectionTab == 1) palette.accentHead else unselectedBtnText,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                    )
+                }
                 Tab(
                     selected = selectedSectionTab == 2,
                     onClick = { selectedSectionTab = 2 },
-                    modifier = Modifier.testTag("tab_content_maintenance"),
-                    text = {
-                        Text(
-                            text = "🛠️ Bakım & Kalite",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (selectedSectionTab == 2) palette.accentHead else unselectedBtnText,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                )
+                    modifier = Modifier.testTag("tab_content_maintenance")
+                ) {
+                    Text(
+                        text = "🛠️ Bakım",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedSectionTab == 2) palette.accentHead else unselectedBtnText,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp)
+                    )
+                }
             }
 
             // Durum Bildirim Kutusu
