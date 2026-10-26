@@ -1,7 +1,9 @@
 package com.example
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -130,6 +132,10 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
     val activeModal by viewModel.activeModal.collectAsState()
     val sarfInitQuery by viewModel.sarfExplorerInitialQuery.collectAsState()
     val toastMsg by viewModel.toastMessage.collectAsState()
+    val isSeedingDatabase by viewModel.isSeedingDatabase.collectAsState()
+    val updateAvailableVersion by viewModel.updateAvailableVersion.collectAsState()
+    val updateDownloadUrl by viewModel.updateDownloadUrl.collectAsState()
+    val updateNotes by viewModel.updateNotes.collectAsState()
     val isDark by viewModel.isDarkTheme.collectAsState()
     val isPlayingAllDialogue by viewModel.isPlayingAllDialogue.collectAsState()
     val roleplayActive by viewModel.roleplayActive.collectAsState()
@@ -213,16 +219,128 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
             contentWindowInsets = WindowInsets.safeDrawing,
             containerColor = palette.bgColor,
             topBar = {
-                MuallimunTopAppBar(
-                    isDark = isDark,
-                    currentMode = currentMode,
-                    onOpenSarf = { viewModel.openModal(ActiveModal.SARF_EXPLORER) },
-                    onOpenListeningExam = { viewModel.openModal(ActiveModal.LISTENING_EXAM) },
-                    onOpenReports = { viewModel.openModal(ActiveModal.ANALYTICS_REPORTS) },
-                    onOpenGuideAndAbout = { viewModel.openModal(ActiveModal.ABOUT_INFO) },
-                    onOpenSettings = { viewModel.openModal(ActiveModal.SETTINGS) },
-                    onToggleTheme = { viewModel.toggleTheme() }
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    MuallimunTopAppBar(
+                        isDark = isDark,
+                        currentMode = currentMode,
+                        onOpenSarf = { viewModel.openModal(ActiveModal.SARF_EXPLORER) },
+                        onOpenListeningExam = { viewModel.openModal(ActiveModal.LISTENING_EXAM) },
+                        onOpenReports = { viewModel.openModal(ActiveModal.ANALYTICS_REPORTS) },
+                        onOpenGuideAndAbout = { viewModel.openModal(ActiveModal.ABOUT_INFO) },
+                        onOpenSettings = { viewModel.openModal(ActiveModal.SETTINGS) },
+                        onToggleTheme = { viewModel.toggleTheme() }
+                    )
+
+                    AnimatedVisibility(visible = isSeedingDatabase) {
+                        Surface(
+                            color = RoyalBlue.copy(alpha = 0.16f),
+                            border = BorderStroke(1.dp, RoyalBlue.copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .testTag("banner_seeding_database")
+                        ) {
+                            Text(
+                                text = "⏳ İlk kurulum veritabanı hazırlanıyor...",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = palette.accentHead,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = !updateAvailableVersion.isNullOrBlank()) {
+                        Surface(
+                            color = WarmGold,
+                            border = BorderStroke(1.dp, Color(0xFF0F172A).copy(alpha = 0.25f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .testTag("banner_update_available")
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "🚀 Yeni sürüm (v${updateAvailableVersion ?: ""}) yayınlandı!",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF0F172A),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    if (updateNotes.isNotBlank()) {
+                                        Text(
+                                            text = updateNotes,
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF1E293B),
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateDownloadUrl)).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = RoyalBlue,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier
+                                        .height(32.dp)
+                                        .testTag("btn_update_download")
+                                ) {
+                                    Text(
+                                        text = "📥 İndir",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+
+                                Button(
+                                    onClick = { viewModel.dismissUpdateNotification() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF0F172A).copy(alpha = 0.14f),
+                                        contentColor = Color(0xFF0F172A)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier
+                                        .height(32.dp)
+                                        .testTag("btn_update_dismiss")
+                                ) {
+                                    Text(
+                                        text = "✕ Kapat",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             },
             bottomBar = {
                 MuallimunCompactBottomBar(

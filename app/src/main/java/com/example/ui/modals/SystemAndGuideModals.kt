@@ -123,53 +123,53 @@ fun OnboardingTourModal(
     val steps = remember {
         listOf(
             OnboardingStep(
-                badge = "ADIM 1 / 7 — 🎯 HOŞ GELDİNİZ",
-                icon = "🎯  🕌  📱",
-                title = "🎯 Hoş Geldiniz: Mobil Arapça Telaffuz Asistanı",
-                description = "Arapçayı sadece okuyarak değil, sesli konuşarak ve doğru mahreçle öğrenmeniz için tasarlanan mobil telaffuz asistanınıza hoş geldiniz!\n\nEkranın en altındaki gezinme çubuğundan 4 ana çalışma moduna (🏠 Ana Sayfa, 🔤 Kelime, 💬 Diyalog, 📝 Cümle) tek dokunuşla anında geçiş yapabilirsiniz.",
-                tip = "💡 Üst bardaki ☀️/🌙 ikonuyla temayı değiştirebilir, ℹ️ butonuyla kılavuz ve tanıtım turuna her zaman ulaşabilirsiniz."
+                badge = "ADIM 1 / 7 — 🎯 HOŞ GELDİNİZ & GEZİNME",
+                icon = "🏠  📖  🛠️",
+                title = "🎯 Hoş Geldiniz: Ekran Geçişleri & Üst Araçlar",
+                description = "Ekranın altındaki gezinme çubuğundan 4 ana sekmeye ('🏠 Ana Sayfa', '📖 Kelime', '💬 Diyalog', '📝 Cümle') tek dokunuşla geçiş yapabilirsiniz.\n\nÜst barda tema ('☀️/🌙'), rehber/hakkında ('ℹ️') ve ayarlar ('⚙️') butonları yer alır. Çalışma modlarındayken üst bardaki '🛠️' (Araçlar) ikonuna dokunarak '📘 Kök', '🎧 Sınav' ve '📊 Karne' kısayol şeridini anında açabilirsiniz.",
+                tip = "💡 Üst bardaki 'ℹ️' butonuyla bu tanıtım turuna ve kullanım kılavuzuna istediğiniz an yeniden ulaşabilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 2 / 7 — 🎤 SESLİ TELAFFUZ & MAHREÇ KOÇU",
-                icon = "🎤  🎯  🔬",
-                title = "🎤 Sesli Telaffuz & Canlı Mahreç Koçu",
-                description = "Çalışma kartlarındaki '🎤 Mikrofon' butonuna basıp Arapça kelimeyi veya cümleyi sesli okuyun.\n\nCanlı ses tanıma motoru okumanızı anında analiz eder; boğaz (ع-ح-خ), peltek (ث-ذ-ظ), kalın/ince (ص-س, ط-ت, ض-د, ق-ك) harf farklarını ve med-vezin (uzatma) hatalarını tespit ederek ağız ve boğazdaki doğru çıkış noktasını size tarif eder.",
-                tip = "💡 Cümle içinde hatalı okuduğunuz kırmızı kelimenin üzerine dokunarak yavaşlatılmış doğru telaffuzunu anında dinleyebilirsiniz."
+                badge = "ADIM 2 / 7 — 🎙️ SESLİ OKUMA & MAHREÇ KOÇU",
+                icon = "🎙️  🎯  🔬",
+                title = "🎙️ Sesli Telaffuz & Proaktif Mahreç Koçu",
+                description = "Kelime ve Cümle kartlarının altındaki '🎙️ BAŞLA VE KONUŞ' butonuna (Diyalog öğrenme modunda satır üzerindeki '🎙️', Rol Yap modunda '🎙️ Konuş' butonuna) basarak sesli okuma yapın.\n\nKonuşma öncesinde kart üzerindeki proaktif mahreç ve hareke ipuçlarını inceleyebilir; okuma sonrasında ise hatalı (kırmızı) veya doğru (yeşil) kelimelerin üzerine dokunarak o kelimenin doğru telaffuzunu dinleyebilirsiniz.",
+                tip = "💡 Canlı koç; boğaz (ع-ح-خ), peltek (ث-ذ-ظ), kalın/ince harf ve med (uzatma) farklarını anında analiz eder."
             ),
             OnboardingStep(
-                badge = "ADIM 3 / 7 — 🗣️ GÖLGELEME & KENDİ SESİNİ DİNLEME",
-                icon = "🗣️  🔊  🎧",
-                title = "🗣️ Gölgeleme (Shadowing) & Kendi Sesini Dinleme",
-                description = "• 🔊 Kadın / Erkek butonlarıyla kelimenin veya cümlenin örnek telaffuzunu dinleyin.\n• 🗣️ 'Gölgele' butonuyla önce örnek sesi duyup hemen ardından beklemeden tekrar ederek ritim ve vurgu çalışması yapın.\n• 🎧 'Sesim' butonuyla kendi son ses kaydınızı dinleyip örnek okunuşla karşılaştırın.",
-                tip = "💡 Üst üste zorlandığınız kelimelerde Koç otomatik olarak '🐢 Yavaş Seslendirme (%25)' desteğini devreye sokar."
+                badge = "ADIM 3 / 7 — 🔊 4'LÜ SES KONTROL ŞERİDİ",
+                icon = "🔊  🗣️  📻",
+                title = "🔊 Dinle, 🗣️ Gölgele, ▶️ Sesim ve 📻 Radyo",
+                description = "Kartların altındaki 4'lü ses kontrol şeridiyle çok yönlü pratik yapın:\n• '🔊 Dinle': Referans seslendirme (Kadın/Erkek/Sırayla ses tercihi ve konuşma hızı '⚙️ Ayarlar > 🔊 Ses' sekmesinden seçilir).\n• '🗣️ Gölgele': Referans sesle kendi ses dalga boyunuzu ve ritminizi karşılaştırma stüdyosu.\n• '▶️ Sesim': Kendi son '.wav' kaydınızı dinleme.\n• '📻 Radyo': Kartları sırasıyla Arapça ve Türkçe seslendirerek eller serbest otomatik ilerleyen Oto-Dinle modu.",
+                tip = "💡 Yolda veya kulaklıkla çalışırken '📻 Radyo' modunu açarak tüm paketi eller serbest dinleyebilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 4 / 7 — 🌿 SARF KÖK SÖZLÜĞÜ & KÖK ATÖLYESİ",
-                icon = "📖  🌿  🐝",
-                title = "🌿 Sarf Kök Sözlüğü & 6'lı Petek Görünümü",
-                description = "Üst menüdeki '📖 Sözlük' butonuna dokunarak Arapça kelimelerin 3 harfli sülâsî köklerini, vezinlerini ve aynı kökten türeyen kelime ailesini keşfedin.\n\nİsimlerin Tekil/Çoğul (Müfret/Cemî), fiillerin Mâzî/Muzâri/Masdar çekimlerini ve 6'lı petek (altıgen kök) görünümünü sesli olarak inceleyin.",
-                tip = "💡 Kelime kartlarındaki 3 harfli kök rozetine dokunarak o kelimenin tüm türev ailesini anında açabilirsiniz."
+                badge = "ADIM 4 / 7 — 📘 SARF SÖZLÜĞÜ & KÖK AİLESİ",
+                icon = "📘  🌿  🎯",
+                title = "📘 Sarf Sözlüğü & 🌿 Kök Ailesi Atölyesi",
+                description = "Ana Sayfadaki 2x2 ızgarada yer alan '📘 Sarf Sözlüğü' kartına (veya çalışma ekranlarında üstteki '🛠️' menüsünden '📘 Kök' butonuna) dokunarak 1.500+ kelimenin 3 harfli sülâsî köklerini keşfedin.\n\nİsim (Müfret/Cemî) ve Fiil (Mâzî/Muzârî/Masdar) çekimlerini sesli dinleyin, '🌿 Kök Ailesi' rozetiyle aynı kökten türeyen kelimeleri inceleyin ve '🎯 Bu Kelimeyi Kartta Telaffuz Çalış' butonuyla doğrudan karta geçin.",
+                tip = "💡 Kelime kartlarının üzerindeki çekim çubuğundan da kelimenin diğer sarf formlarını tek dokunuşla seçebilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 5 / 7 — 🎭 DİYALOG CANLANDIRMA (ROLEPLAY)",
-                icon = "🎭  💬  🎙️",
-                title = "🎭 Diyalog Canlandırma — Roleplay",
-                description = "Alt menüden '💬 Diyalog' moduna geçip '🎭 Canlandırma (Roleplay)' sekmesini seçin.\n\nDiyalogdaki karakterlerden birini seçtiğinizde karşı rolü uygulama sesli olarak okur; sıra sizin karakterinize geldiğinde mikrofon açılır ve gerçek bir konuşma partneriyle pratik yapıyormuş gibi sesli Arapça diyalog kurarsınız.",
-                tip = "💡 Canlandırma sırasında takıldığınız yerde '💡 İpucu' butonuyla cümlenin anlamını görebilirsiniz."
+                badge = "ADIM 5 / 7 — 💬 DİYALOG ÖĞRENME & 🎭 ROL YAP",
+                icon = "💬  📖  🎭",
+                title = "💬 Diyalog: 📖 Öğrenme & 🎭 Rol Yap Modu",
+                description = "'💬 Diyalog' sekmesinde '📖 Öğrenme' modunda tüm diyaloğu ('▶️ Tümünü Çal') veya satırları tek tek dinleyip her satırdaki '🎙️' ve '🗣️' butonlarıyla pratik yapabilirsiniz.\n\n'🎭 Rol Yap' sekmesinde ise bir karakter seçip '🎭 Canlandırmayı Başlat' diyerek uygulama ile karşılıklı konuşabilir, ihtiyaç halinde '👁️ İpucu Göster' butonuyla Türkçe anlamı açabilirsiniz.",
+                tip = "💡 Canlandırma sonunda açılan Konuşma Karnesi'nde tüm repliklerinizin başarı yüzdesini görebilirsiniz."
             ),
             OnboardingStep(
-                badge = "ADIM 6 / 7 — 🎧 DİNLE & BUL VE GÜNÜN 15 TEKRARI",
-                icon = "🎧  📅  ⭐",
-                title = "🎧 Dinle & Bul ve Günün 15 Tekrarı",
-                description = "• Üst menüdeki '🎧 Sınav' butonuyla Arapça sesi dinleyip doğru anlamı bulduğunuz çoktan seçmeli sesli testler çözün.\n• Kelime ve Cümle ekranlarındaki filtre panelinden '📅 Günlük 15', '📌 Ezberlenmeyen' veya '⚠️ Zayıf' çiplerini seçerek her gün akıllı aralıklı tekrar (SM-2) yapın.",
-                tip = "💡 Filtre panelinden '🙈 Gizle', '✨ Hareke' ve '🇹🇷 Anlam' butonlarıyla kart görünümünü tek dokunuşla özelleştirebilirsiniz."
+                badge = "ADIM 6 / 7 — 🎧 DİNLE & BUL VE 🎛️ FİLTRE PANELİ",
+                icon = "🎧  🎛️  🧠",
+                title = "🎧 Dinle & Bul Sınavı ve 🎛️ Filtre Paneli",
+                description = "Ana Sayfanın altındaki '🎧 Dinle & Bul' kartından (veya üst '🛠️' menüsünden '🎧 Sınav' butonuyla) 4 şıklı sesli anlama sınavı çözebilirsiniz.\n\nKelime ve Cümle ekranlarındaki '🎛️ Filtre ▼' panelinden arama yapabilir; '🧠 Günlük 15', '⭐ Favori', '📌 Ezberlenmeyen', '⚠️ Zayıf' filtrelerini ve '🕵️ Gizle', '✨ Hareke', '🇹🇷 Anlam', 'A-/A+' görünüm ayarlarını yönetebilirsiniz.",
+                tip = "💡 '🧠 Günlük 15' akıllı tekrar filtresi SM-2 algoritmasıyla unutma sınırındaki kartları önceliklendirir."
             ),
             OnboardingStep(
-                badge = "ADIM 7 / 7 — 📊 GELİŞİM KARNESİ & KOLAY İÇERİK EKLEME",
-                icon = "📊  🏅  📥",
-                title = "📊 Gelişim Karnesi & Kolay İçerik Ekleme",
-                description = "• Üst menüdeki '📊 Karne' ekranından kazandığınız başarı rozetlerini, doğruluk oranınızı ve en çok zorlandığınız kelimeleri takip edin.\n• İçerik Yönetimi ekranından panoya kopyaladığınız listeleri veya hazır paket dosyalarını (.db / .json / .csv) tek dokunuşla aktararak yeni kelime, cümle ve diyaloglar ekleyin.",
-                tip = "💡 Şimdi '🚀 Hemen Başla!' butonuna dokunarak ilk sesli Arapça pratiğinize başlayabilirsiniz!"
+                badge = "ADIM 7 / 7 — 📊 KARNE, 📝 SINAV VE 🗂️ YÖNETİM",
+                icon = "📊  📝  🗂️",
+                title = "📊 Karne & PDF, 📝 Sınav ve 🗂️ İçerik Yönetimi",
+                description = "Ana Sayfadaki '📊 Karne & PDF', '📝 Sınav' ve '🗂️ Yönetim' butonlarıyla başarı rozetlerinizi takip edebilir, öğretmeninize '.ZIP' ödev ve ses paketi paylaşabilir, 6 bölümlü A4 yazılı sınav veya ders notu (Handout) PDF üretebilirsiniz.\n\n'🗂️ İçerik Yönetimi' panelinden (Yeni Ekle, Paket Yükle, Bakım & Kalite sekmeleri) '.db / .zip / .json' veya Excel panodan kolayca içerik ekleyebilirsiniz.",
+                tip = "💡 Şimdi '✅ Bitir' butonuna dokunarak ilk sesli Arapça pratiğinize hemen başlayabilirsiniz!"
             )
         )
     }
@@ -1046,7 +1046,7 @@ fun UserGuideModal(
                 }
             }
 
-            // Kompakt Sekmeler: Modlar | Ses & Mahreç | Paketler
+            // Kompakt Sekmeler: 🧭 Modlar | 🎙️ Ses & Mahreç | 📦 Paketler
             TabRow(
                 selectedTabIndex = selectedGuideTab,
                 containerColor = palette.panelColor,
@@ -1055,17 +1055,17 @@ fun UserGuideModal(
                 Tab(
                     selected = selectedGuideTab == 0,
                     onClick = { selectedGuideTab = 0 },
-                    text = { Text("📱 Modlar", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                    text = { Text("🧭 Modlar", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                 )
                 Tab(
                     selected = selectedGuideTab == 1,
                     onClick = { selectedGuideTab = 1 },
-                    text = { Text("🎤 Ses & Mahreç", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                    text = { Text("🎙️ Ses & Mahreç", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                 )
                 Tab(
                     selected = selectedGuideTab == 2,
                     onClick = { selectedGuideTab = 2 },
-                    text = { Text("📥 Paketler", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                    text = { Text("📦 Paketler", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                 )
             }
 
@@ -1078,42 +1078,51 @@ fun UserGuideModal(
                 when (selectedGuideTab) {
                     0 -> {
                         GuideSectionCard(
-                            title = "🧭 1. Ekran Geçişleri ve Araç Çubukları",
-                            body = "• Alt Menü: Ekranın altındaki 4 sekme (🏠 Ana Sayfa, 📖 Kelime, 💬 Diyalog, 📝 Cümle) arasında tek dokunuşla geçiş yapın.\n" +
-                                "• Üst Araçlar (🔧): Çalışma ekranlarında sağ üstteki '🔧' butonuna dokunarak Kök Sözlüğü, Dinle & Bul ve Karne ekranlarını istediğiniz an açın.\n" +
-                                "• Görünüm & Filtre (⚙️ Filtre ▼): Kelime ve Cümle ekranlarındaki '⚙️ Filtre ▼' butonundan Arapça gizleme, hareke, anlam, yazı boyutu (A-/A+) ve durum filtrelerini yönetin."
+                            title = "🧭 1. Ana Sayfa, Ekran Geçişleri ve Araç Çubukları",
+                            body = "• Alt Menü: Ekranın altındaki 4 sekme ('🏠 Ana Sayfa', '📖 Kelime', '💬 Diyalog', '📝 Cümle') arasında tek dokunuşla geçiş yapın.\n" +
+                                "• Ana Sayfa Modülleri: Üst karttaki '📝 Sınav' ve '🗂️ Yönetim' butonlarına, 2x2 modül ızgarasına ('🖼️ Kelimeler', '💬 Diyaloglar', '📝 Cümleler', '📘 Sarf Sözlüğü') ve alt hızlı araçlara ('🎧 Dinle & Bul', '📊 Karne & PDF') doğrudan erişin.\n" +
+                                "• Üst Araçlar ('🛠️'): Çalışma ekranlarında sağ üstteki '🛠️' butonuna dokunarak '📘 Kök', '🎧 Sınav' ve '📊 Karne' kısayollarını istediğiniz an açın.\n" +
+                                "• Kart Üst Barı & Filtre ('🎛️ Filtre ▼'): Kartın sol üstündeki '⭐' (Favori), '✅' (Öğrendim) ve '📤' (Kartı Paylaş) butonlarını kullanın; '🎛️ Filtre ▼' panelinden arama, durum filtreleri ve '🕵️ Gizle', '✨ Hareke', '🇹🇷 Anlam', 'A-/A+' ayarlarını yönetin."
                         )
                         GuideSectionCard(
-                            title = "🌿 2. Sarf Kök Sözlüğü ve 6'lı Petek Görünümü",
-                            body = "• Kelime kartlarındaki 3 harfli kök rozetine veya '📖 Sarf Kök Sözlüğü' kartına dokunun.\n• Kelimenin sülâsî kökünü, veznini, Tekil/Çoğul veya Mâzî/Muzâri/Masdar çekimlerini ve aynı kökten türeyen kelime ailesini 6'lı petek görünümünde sesli inceleyin."
+                            title = "📘 2. Sarf Sözlüğü ve '🌿 Kök Ailesi' Rozeti",
+                            body = "• Ana Sayfadaki '📘 Sarf Sözlüğü' kartına veya üst '🛠️' menüsündeki '📘 Kök' butonuna dokunun.\n" +
+                                "• Kelimenin 3 harfli sülâsî kökünü, İsim (Müfret/Cemî) ve Fiil (Mâzî/Muzârî/Masdar) çekimlerini ve '🌿 Kök Ailesi' rozetiyle aynı kökten türeyen türevleri sesli inceleyip '🎯 Bu Kelimeyi Kartta Telaffuz Çalış' ile doğrudan karta geçin."
                         )
                         GuideSectionCard(
-                            title = "🎭 3. Diyalog Öğrenme ve Canlandırma (Roleplay)",
-                            body = "• '📖 Öğrenme Modu'nda diyaloğu satır satır veya tümüyle dinleyin.\n• '🎭 Canlandırma (Roleplay)' modunda bir konuşmacı rolü seçin; karşı rolü uygulama seslendirsin, sıra size geldiğinde mikrofona konuşarak diyaloğu tamamlayın."
+                            title = "💬 3. Diyalog: '📖 Öğrenme' ve '🎭 Rol Yap' Modları",
+                            body = "• '📖 Öğrenme' modunda diyaloğun tamamını ('▶️ Tümünü Çal') veya satırları tek tek dinleyin; her satırdaki '🎙️' ve '🗣️' butonlarıyla pratik yapın.\n" +
+                                "• '🎭 Rol Yap' modunda bir konuşmacı rolü seçip '🎭 Canlandırmayı Başlat' butonuna basın; karşı rolü uygulama seslendirsin, sıra size geldiğinde '🎙️ Konuş' ile diyaloğu tamamlayın ve gerekirse '👁️ İpucu Göster' ile anlamı açın."
                         )
                     }
                     1 -> {
                         GuideSectionCard(
-                            title = "🎤 1. Mikrofona Konuşma ve 📻 Oto-Dinle Modu",
-                            body = "• Kartın altındaki '🎤 Mikrofon' butonuna bir kez dokunun; kart çerçevesi yeşil parladığında kelimenizi veya cümlenizi net bir sesle okuyun.\n• '📻 Oto-Dinle' moduyla yolda veya kulaklıkla çalışırken kartların Arapçasını ve Türkçe anlamını sırayla otomatik dinleyebilirsiniz.\n• '🗣️ Gölgele' ile örnek sesi dinledikten hemen sonra peş peşe tekrar yapabilir, '🎧 Sesim' ile kendi kaydınızı dinleyebilirsiniz."
+                            title = "🎙️ 1. '🎙️ BAŞLA VE KONUŞ' ve 4'lü Ses Kontrol Şeridi",
+                            body = "• Kartın altındaki '🎙️ BAŞLA VE KONUŞ' butonuna dokunup Arapça kelimeyi veya cümleyi net bir sesle okuyun.\n" +
+                                "• '🔊 Dinle' ile referans telaffuzu dinleyin (Kadın/Erkek/Sırayla ses tercihi ve hız '⚙️ Ayarlar > 🔊 Ses' sekmesinden seçilir).\n" +
+                                "• '🗣️ Gölgele' ile referans ses ve kendi ses dalga boyunuzu karşılaştırın, '▶️ Sesim' ile kendi son '.wav' kaydınızı dinleyin ve '📻 Radyo' ile kartların Arapça/Türkçe okunuşlarını eller serbest sırayla dinleyin."
                         )
                         GuideSectionCard(
-                            title = "🐢 2. Hatalı Kelimeye Dokunarak Yavaş Telaffuz Dinleme",
-                            body = "• Okuma sonrasında doğru kelimeler yeşil, hatalı veya eksik kelimeler kırmızı renkle işaretlenir.\n• Cümle veya diyalog içinde kırmızı (hatalı) görünen herhangi bir Arapça kelimenin üzerine doğrudan dokunarak o kelimenin yavaşlatılmış doğru telaffuzunu anında dinleyebilirsiniz."
+                            title = "🔊 2. Kelime Çipleri ve Renkli Kelimeye Dokunarak Dinleme",
+                            body = "• Cümle modunda kayıt öncesinde de cümlenin altındaki kelime çiplerine dokunarak her kelimeyi tek tek sesli dinleyebilirsiniz.\n" +
+                                "• Okuma sonrasında doğru kelimeler yeşil, hatalı kelimeler kırmızı renkle işaretlenir; renkli kelimelerin üzerine dokunarak doğru telaffuzunu anında dinleyebilirsiniz."
                         )
                         GuideSectionCard(
-                            title = "🔬 3. Canlı Mahreç ve Vezin Uyarıları",
-                            body = "• Boğaz harfleri (ع-ح-خ), peltek harfler (ث-ذ-ظ), kalın-ince harf ayrımları (ص-س, ط-ت, ض-د, ق-ك) ve med (uzatma) hataları kartın altında detaylı açıklamayla gösterilir."
+                            title = "🔬 3. Canlı Mahreç ve Hareke Rehberi",
+                            body = "• Boğaz harfleri (ع-ح-خ), peltek harfler (ث-ذ-ظ), kalın-ince harf ayrımları (ص-س, ط-ت, ض-د, ق-ك) ve med (uzatma) ipuçları konuşma öncesinde ve sonrasında kart üzerinde detaylı olarak gösterilir."
                         )
                     }
                     2 -> {
                         GuideSectionCard(
-                            title = "📥 1. Kolay Paket ve Veritabanı (.db / .zip / .json / .csv) Yükleme",
-                            body = "• Ana Sayfadaki '🛠️ Yönetim' butonuna dokunarak İçerik ve Paket Yönetimi ekranını açın.\n• Telefonunuzdaki '.db', '.zip', '.json' veya '.csv' uzantılı kelime, cümle ve diyalog paketlerini tek dokunuşla seçerek uygulamaya aktarın."
+                            title = "🗂️ 1. İçerik Yönetimi (➕ Yeni Ekle | 📥 Paket Yükle | 🛠️ Bakım & Kalite)",
+                            body = "• Ana Sayfadaki '🗂️ Yönetim' butonundan açılan İçerik Yönetimi ekranında 3 ana sekme yer alır:\n" +
+                                "  1) '➕ Yeni Ekle': Kelime, cümle veya diyalogları form üzerinden tek tek ekleyin/düzenleyin ve görsel veya ses dosyası eşleştirin.\n" +
+                                "  2) '📥 Paket Yükle': Telefonunuzdaki '.db', '.zip', '.json' paket dosyalarını veya Excel/Panodan kopyaladığınız listeleri tek dokunuşla aktarın.\n" +
+                                "  3) '🛠️ Bakım & Kalite': '🪄 Metin Doktoru', '🎯 Otomatik Seviye Ata' ve mükerrer kayıtları da yakalayan '🔍 Kalite Denetimi' araçlarını kullanın."
                         )
                         GuideSectionCard(
-                            title = "📋 2. Panodan Hızlı Kelime / Cümle Ekleme ve Medya Eşleştirme",
-                            body = "• Yeni bir kategori adı belirleyip kelime, cümle veya diyaloglarınızı doğrudan form üzerinden ya da panodan toplu yapıştırarak ekleyebilirsiniz.\n• Dilerseniz eklediğiniz kelime ve cümlelere telefonunuzdan görsel (.png/.jpg) ve ses (.mp3/.wav) dosyası bağlayabilirsiniz."
+                            title = "📝 2. A4 Yazılı Sınav & Ders Notu (Handout) PDF Üretici",
+                            body = "• Ana Sayfadaki '📝 Sınav' butonuna (veya Karne ekranındaki ilgili butona) dokunarak 6 bölümlü A4 yazılı sınav kağıdı, cevap anahtarı veya iki sütunlu/alt alta ders çalışma föyü (Handout) PDF'i oluşturup yazdırabilir ve paylaşabilirsiniz."
                         )
                     }
                 }
@@ -1202,17 +1211,25 @@ fun AboutInfoModal(
         }
     }
 
+    val appVersion = remember(context) {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.0"
+        } catch (_: Exception) {
+            "1.0.0"
+        }
+    }
+
     fun checkForUpdates() {
         isCheckingUpdate = true
         if (viewModel != null) {
-            viewModel.checkForUpdates(currentVersionName = "1.0.0") { hasUpdate, _, message, storeUrl ->
+            viewModel.checkForUpdates(currentVersionName = appVersion) { hasUpdate, _, message, storeUrl ->
                 isCheckingUpdate = false
                 updateResultMessage = message
                 updateStoreUrl = if (hasUpdate) storeUrl else null
             }
         } else {
             isCheckingUpdate = false
-            updateResultMessage = "✅ Uygulamanız güncel! En son sürümü (Mobil Sürüm v1.0.0) kullanıyorsunuz."
+            updateResultMessage = "✅ Uygulamanız güncel! En son sürümü (Mobil Sürüm v$appVersion) kullanıyorsunuz."
             updateStoreUrl = null
         }
     }
@@ -1231,10 +1248,12 @@ fun AboutInfoModal(
             },
             text = {
                 Text(
-                    text = "Ses verileriniz yalnızca anlık telaffuz analizi için cihaz içinde işlenir, hiçbir sunucuya kaydedilmez veya üçüncü taraflarla paylaşılmaz.",
-                    fontSize = 13.sp,
+                    text = "• Ses Tanıma (STT): Sesli telaffuz analizleri Android işletim sisteminin yerleşik 'SpeechRecognizer' servisi üzerinden gerçekleştirilir.\n\n" +
+                        "• Yerel Depolama: Kaydedilen '.wav' telaffuz dosyalarınız ve çalışma istatistikleriniz yalnızca cihazınızın yerel hafızasında ('filesDir/recordings' klasörü ve yerel Room SQLite veritabanı) saklanır.\n\n" +
+                        "• Veri Paylaşımı: Siz kendi isteğinizle '📤 Ödev & Karne Paylaş' butonunu kullanarak dışa aktarım yapmadığınız sürece hiçbir ses kaydınız veya kişisel veriniz dış sunuculara aktarılmaz ve üçüncü taraflarla paylaşılmaz.",
+                    fontSize = 12.sp,
                     color = palette.textMain,
-                    lineHeight = 20.sp
+                    lineHeight = 18.sp
                 )
             },
             confirmButton = {
@@ -1305,7 +1324,7 @@ fun AboutInfoModal(
             border = BorderStroke(1.dp, palette.border),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
                 .testTag("modal_about_info")
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -1315,7 +1334,7 @@ fun AboutInfoModal(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 18.dp)
+                        .padding(horizontal = 14.dp, vertical = 16.dp)
                 ) {
                     // 1. Üst Başlık (Hero Header) Alanı
                     Image(
@@ -1339,18 +1358,19 @@ fun AboutInfoModal(
                     )
 
                     Surface(
-                        shape = RoundedCornerShape(50),
+                        shape = RoundedCornerShape(16.dp),
                         color = RoyalBlue.copy(alpha = 0.12f),
                         border = BorderStroke(1.dp, RoyalBlue.copy(alpha = 0.35f))
                     ) {
                         Text(
-                            text = "✨ Mobil Sürüm v1.0.0 • Yapay Zekâ Destekli",
+                            text = "✨ Mobil Sürüm v$appVersion • Yapay Zekâ Destekli",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = RoyalBlue,
-                            maxLines = 1,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                         )
                     }
 
@@ -1404,7 +1424,7 @@ fun AboutInfoModal(
                         onClick = { openUrl("https://arapca.muallimun.net/arapca-telaffuz-asistani/") },
                         colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
                         shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(42.dp)
@@ -1436,7 +1456,7 @@ fun AboutInfoModal(
                             ),
                             border = BorderStroke(1.dp, TealAccent),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp)
@@ -1463,7 +1483,7 @@ fun AboutInfoModal(
                             ),
                             border = BorderStroke(1.dp, RoyalPurple),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(40.dp)
@@ -1494,7 +1514,7 @@ fun AboutInfoModal(
                             ),
                             border = BorderStroke(1.dp, palette.border),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(38.dp)
@@ -1519,7 +1539,7 @@ fun AboutInfoModal(
                             ),
                             border = BorderStroke(1.dp, palette.border),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(38.dp)
@@ -1635,7 +1655,7 @@ private fun AboutCapabilityBadge(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 6.dp)
+                .padding(horizontal = 4.dp, vertical = 6.dp)
         ) {
             Text(
                 text = label,
@@ -1643,8 +1663,8 @@ private fun AboutCapabilityBadge(
                 fontWeight = FontWeight.SemiBold,
                 color = palette.textMain,
                 textAlign = TextAlign.Center,
-                maxLines = 1,
-                softWrap = false,
+                lineHeight = 14.sp,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -1690,13 +1710,17 @@ fun RoleplayReportCardModal(
                         text = "📊 KONUŞMA KARNESİ — Rol: $roleName",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = palette.accentHead
+                        color = palette.accentHead,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = "Başarı: %$scorePct",
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = palette.okGreen
+                        color = palette.okGreen,
+                        maxLines = 1
                     )
                 }
 
@@ -1768,7 +1792,9 @@ fun RoleplayReportCardModal(
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
                 ) {
                     val otherRoles = lines.map { it.konusmaci }.distinct().filter { it != roleName }
                     if (otherRoles.isNotEmpty()) {
@@ -1781,9 +1807,16 @@ fun RoleplayReportCardModal(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
                             shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("🔄 '$nextRole' Rolüyle Canlandır", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "🔄 '$nextRole' Rolüyle Canlandır",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
 
@@ -1791,9 +1824,16 @@ fun RoleplayReportCardModal(
                         onClick = onDismiss,
                         colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
                         shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("✅ Kapat", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "✅ Kapat",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
         }

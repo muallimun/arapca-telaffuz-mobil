@@ -587,8 +587,13 @@ fun SentencesModeScreen(
                                     )
                                 }
 
+                                val shortMaxAttempts = if (maxAttemptsSetting.contains("Sınırsız")) {
+                                    "∞"
+                                } else {
+                                    maxAttemptsSetting.substringBefore(" ")
+                                }
                                 Text(
-                                    text = "${safeSentenceIndex + 1}/${sentences.size} • ✅${currentItem.dogru} ❌${currentItem.yanlis} • $attemptCount/$maxAttemptsSetting",
+                                    text = "${safeSentenceIndex + 1}/${sentences.size} • ✅${currentItem.dogru} ❌${currentItem.yanlis} • 🎯$attemptCount/$shortMaxAttempts",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = palette.textDim,
@@ -840,7 +845,7 @@ fun SentencesModeScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Üst Ses Satırı: Yan Yana Kesilmesiz 🔊 Dinle | 🗣️ Gölgele | 🎧 Sesim | 📻 Radyo
+                            // Üst Ses Satırı: Yan Yana Eşit Genişlik, Kesilmesiz 🔊 Dinle | 🗣️ Gölgele | 🎧 Sesim | 📻 Radyo
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -850,9 +855,9 @@ fun SentencesModeScreen(
                                     onClick = { viewModel.speakCurrentItem(null) },
                                     colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                     modifier = Modifier
-                                        .weight(0.95f)
+                                        .weight(1f)
                                         .height(38.dp)
                                         .testTag("btn_sentence_tts")
                                 ) {
@@ -871,9 +876,9 @@ fun SentencesModeScreen(
                                     onClick = { checkMicAndRun("shadowing") },
                                     colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                     modifier = Modifier
-                                        .weight(1.12f)
+                                        .weight(1f)
                                         .height(38.dp)
                                 ) {
                                     Text(
@@ -894,9 +899,9 @@ fun SentencesModeScreen(
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                     modifier = Modifier
-                                        .weight(0.95f)
+                                        .weight(1f)
                                         .height(38.dp)
                                 ) {
                                     Text(
@@ -916,9 +921,9 @@ fun SentencesModeScreen(
                                         contentColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                     modifier = Modifier
-                                        .weight(0.98f)
+                                        .weight(1f)
                                         .height(38.dp)
                                         .testTag("btn_radio_mode_sentence")
                                 ) {

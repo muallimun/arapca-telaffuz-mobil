@@ -598,7 +598,7 @@ fun WordsModeScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 val isFav = currentItem.isFav == 1
@@ -664,8 +664,13 @@ fun WordsModeScreen(
                                 }
                             }
 
+                            val shortMaxAttempts = if (maxAttemptsSetting.contains("Sınırsız")) {
+                                "∞"
+                            } else {
+                                maxAttemptsSetting.substringBefore(" ")
+                            }
                             Text(
-                                text = "${safeWordIndex + 1}/${filteredWords.size} • ✅${currentItem.dogru} ❌${currentItem.yanlis} • $attemptCount/$maxAttemptsSetting",
+                                text = "${safeWordIndex + 1}/${filteredWords.size} • ✅${currentItem.dogru} ❌${currentItem.yanlis} • 🎯$attemptCount/$shortMaxAttempts",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textDim,
@@ -686,7 +691,7 @@ fun WordsModeScreen(
                             ) {
                                 Box(
                                     contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(horizontal = 10.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp)
                                 ) {
                                     Text(
                                         text = currentItem.seviye,
@@ -885,7 +890,7 @@ fun WordsModeScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Referans Ses, Gölgeleme, Sesim ve Radyo Butonları (Kompakt Tek Satır, Kesilmesiz 4 Buton)
+                            // Referans Ses, Gölgeleme, Sesim ve Radyo Butonları (Kompakt Tek Satır, Eşit Genişlik, Kesilmesiz 4 Buton)
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -895,9 +900,9 @@ fun WordsModeScreen(
                                     onClick = { viewModel.speakCurrentItem(null) },
                                     colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                     modifier = Modifier
-                                        .weight(0.95f)
+                                        .weight(1f)
                                         .height(38.dp)
                                         .testTag("btn_speak_female")
                                 ) {
@@ -916,9 +921,9 @@ fun WordsModeScreen(
                                     onClick = { checkMicAndRun("shadowing") },
                                     colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                     modifier = Modifier
-                                        .weight(1.12f)
+                                        .weight(1f)
                                         .height(38.dp)
                                         .testTag("btn_open_shadowing")
                                 ) {
@@ -940,9 +945,9 @@ fun WordsModeScreen(
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                     modifier = Modifier
-                                        .weight(0.95f)
+                                        .weight(1f)
                                         .height(38.dp)
                                 ) {
                                     Text(
@@ -962,9 +967,9 @@ fun WordsModeScreen(
                                         contentColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                                     modifier = Modifier
-                                        .weight(0.98f)
+                                        .weight(1f)
                                         .height(38.dp)
                                         .testTag("btn_radio_mode_word")
                                 ) {

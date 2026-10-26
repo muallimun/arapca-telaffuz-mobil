@@ -863,11 +863,18 @@ fun ListeningExamModal(
                                 enabled = examStarted && currentQuestion != null,
                                 colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
                                 shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp)
+                                    .height(42.dp)
                             ) {
-                                Text("🔊 Tekrar Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text(
+                                    text = "🔊 Tekrar Dinle",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
 
                             Button(
@@ -877,15 +884,17 @@ fun ListeningExamModal(
                                     contentColor = if (showArabicHint) Color(0xFF0F172A) else palette.textMain
                                 ),
                                 shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp)
+                                    .height(42.dp)
                             ) {
                                 Text(
                                     text = if (showArabicHint) "👁️ İpucu Açık" else "👁️ İpucu",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -1029,15 +1038,17 @@ fun ListeningExamModal(
                                 Button(
                                     onClick = { startNewExam() },
                                     colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text("🔄 Yeni Sınav Başlat", fontWeight = FontWeight.Bold)
+                                    Text("🔄 Yeni Sınav Başlat", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 Button(
                                     onClick = onDismiss,
-                                    colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain)
+                                    colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                                 ) {
-                                    Text("Kapat", fontWeight = FontWeight.Bold)
+                                    Text("Kapat", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                                 }
                             }
                         }
@@ -1162,7 +1173,7 @@ fun ShadowingTrainerModal(
                                 pronScorePct = 0
                                 rhythmScorePct = 0
                                 totalFluencyPct = 0
-                                statusText = "⚠️ $errMsg — Ses kaydınız alındı ('🎧 Sesimi Dinle' ile dinleyebilirsiniz)."
+                                statusText = "⚠️ $errMsg — Ses kaydınız alındı ('🎧 Kaydımı Dinle' ile dinleyebilirsiniz)."
                                 isRunning = false
                             }
                         )
@@ -1218,42 +1229,49 @@ fun ShadowingTrainerModal(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-                // Header
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "🗣️ Gölgeleme Stüdyosu",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.accentHead,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Dinle ve aynı ritimle tekrar et",
-                            fontSize = 11.sp,
-                            color = palette.textDim,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    IconButton(onClick = {
-                        viewModel.audioManager.stopAllAudio()
-                        viewModel.audioManager.stopSpeechRecognition()
-                        onDismiss()
-                    }) {
-                        Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
-                    }
+            // 1. Üst Başlık (Sabit)
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "🗣️ Gölgeleme Stüdyosu",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.accentHead,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Dinle ve aynı ritimle tekrar et",
+                        fontSize = 11.sp,
+                        color = palette.textDim,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
+                IconButton(onClick = {
+                    viewModel.audioManager.stopAllAudio()
+                    viewModel.audioManager.stopSpeechRecognition()
+                    onDismiss()
+                }) {
+                    Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
+                }
+            }
 
+            // 2. Üst ve Orta İçerik (Kaydırılabilir - weight(1f, fill = false))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 // Metin Kartı
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -1265,8 +1283,8 @@ fun ShadowingTrainerModal(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         if (coloredWords.isNotEmpty()) {
                             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -1279,7 +1297,7 @@ fun ShadowingTrainerModal(
                                             text = wStr,
                                             fontFamily = AmiriArabicFontFamily,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 28.sp,
+                                            fontSize = 26.sp,
                                             color = if (isOk) palette.okGreen else CoralRed,
                                             style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                                         )
@@ -1291,7 +1309,7 @@ fun ShadowingTrainerModal(
                                 text = target.arabic,
                                 fontFamily = AmiriArabicFontFamily,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 30.sp,
+                                fontSize = 28.sp,
                                 color = palette.textArabic,
                                 textAlign = TextAlign.Center,
                                 style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
@@ -1301,7 +1319,7 @@ fun ShadowingTrainerModal(
                         if (target.turkish.isNotBlank()) {
                             Text(
                                 text = target.turkish,
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 color = palette.textDim,
                                 textAlign = TextAlign.Center
                             )
@@ -1317,35 +1335,87 @@ fun ShadowingTrainerModal(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "🔊 Referans Ses Dalga Boyu ve Ritmi (Süre: $refDurationSec sn)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = RoyalBlue
-                        )
+                        // Üst Grafik Başlığı + Süre Rozeti
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "🔊 Referans Ses Ritmi",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = RoyalBlue,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = RoyalBlue.copy(alpha = 0.14f),
+                                border = BorderStroke(1.dp, RoyalBlue.copy(alpha = 0.4f))
+                            ) {
+                                Text(
+                                    text = "$refDurationSec sn",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = RoyalBlue,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
                         LiveWaveformBars(
                             bars = refBars,
                             isRecording = false,
                             barColorOverride = RoyalBlue,
-                            modifier = Modifier.height(54.dp)
+                            modifier = Modifier.height(56.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
 
-                        Text(
-                            text = "🎙️ Sizin Ses Dalga Boyunuz ve Ritminiz (Süre: $userDurationSec sn)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.okGreen
-                        )
+                        // Alt Grafik Başlığı + Süre Rozeti
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "🎙️ Sizin Ses Ritminiz",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = palette.okGreen,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = palette.okGreen.copy(alpha = 0.14f),
+                                border = BorderStroke(1.dp, palette.okGreen.copy(alpha = 0.4f))
+                            ) {
+                                Text(
+                                    text = "$userDurationSec sn",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.okGreen,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
                         LiveWaveformBars(
                             bars = userBars,
                             isRecording = isRunning,
                             barColorOverride = palette.okGreen,
-                            modifier = Modifier.height(54.dp)
+                            modifier = Modifier.height(56.dp)
                         )
                     }
                 }
@@ -1353,7 +1423,7 @@ fun ShadowingTrainerModal(
                 // Durum ve Skorlar
                 Text(
                     text = statusText,
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = when {
                         isPermDeniedInShadowing -> CoralRed
@@ -1383,22 +1453,24 @@ fun ShadowingTrainerModal(
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(42.dp)
+                            .height(40.dp)
                             .testTag("btn_open_permission_settings_shadowing")
                     ) {
                         Text(
                             text = "⚙️ İzin Ayarlarını Aç",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
                 }
 
                 if (totalFluencyPct > 0) {
                     Text(
-                        text = "🎯 Telaffuz Doğruluğu: %$pronScorePct   |   🎵 Ritim & Süre Uyumu: %$rhythmScorePct (Referans: ${refDurationSec}sn / Siz: ${userDurationSec}sn)",
+                        text = "🎯 Telaffuz: %$pronScorePct  •  🎵 Ritim: %$rhythmScorePct (${refDurationSec}sn / ${userDurationSec}sn)",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.textMain,
@@ -1406,22 +1478,32 @@ fun ShadowingTrainerModal(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+            }
 
-                // Kontrol Butonları
+            // 3. Alt Kontrol Butonları (Sabit ve Tam Görünür - navigationBarsPadding)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+            ) {
                 Button(
                     onClick = { requestMicAndStartShadowing() },
                     enabled = !isRunning,
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
                     shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
+                        .height(46.dp)
                         .testTag("btn_start_shadowing_cycle")
                 ) {
                     Text(
-                        text = if (isRunning) "⏳ Gölgeleme Çalışıyor..." else "🎬 Gölgelemeyi Başlat (Dinle & Anında Tekrar Et)",
+                        text = if (isRunning) "⏳ Gölgeleme Çalışıyor..." else "🎬 Gölgelemeyi Başlat",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -1435,9 +1517,19 @@ fun ShadowingTrainerModal(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f)
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
                     ) {
-                        Text("🔊 Referansı Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "🔊 Referansı Dinle",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false
+                        )
                     }
 
                     Button(
@@ -1447,11 +1539,22 @@ fun ShadowingTrainerModal(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f)
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
                     ) {
-                        Text("🎧 Sesimi Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "🎧 Kaydımı Dinle",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false
+                        )
                     }
                 }
+            }
         }
     }
 }

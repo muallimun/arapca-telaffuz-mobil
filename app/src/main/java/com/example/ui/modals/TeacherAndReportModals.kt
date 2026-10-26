@@ -767,16 +767,19 @@ fun WorksheetAndHandoutGeneratorModal(
                         contentColor = Color(0xFF0F172A)
                     ),
                     shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
+                        .navigationBarsPadding()
+                        .height(50.dp)
                         .testTag("btn_generate_pdf_exam")
                 ) {
                     Text(
                         text = "🖨️ PDF Oluştur ve Kaydet",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
         }
@@ -2030,14 +2033,44 @@ fun UnifiedAdminPanelModal(
                                     ) {
                                         value = null
                                         value = withContext(Dispatchers.Default) {
-                                            val wIssues = allWords.mapNotNull { w ->
-                                                val probs = ArabicNlpEngine.checkItemQuality(w.arapca, w.turkce)
-                                                if (probs.isEmpty()) null else "Kelime [${w.id}] (${w.turkce}): ${probs.joinToString(", ")}"
+                                            val seenWordByPkg = mutableMapOf<Pair<String, String>, String>()
+                                            val wIssues = mutableListOf<String>()
+                                            for (w in allWords) {
+                                                val probs = ArabicNlpEngine.checkItemQuality(w.arapca, w.turkce).toMutableList()
+                                                val trimmedAr = w.arapca.trim()
+                                                if (trimmedAr.isNotEmpty()) {
+                                                    val key = w.paketId to trimmedAr
+                                                    val firstId = seenWordByPkg[key]
+                                                    if (firstId != null) {
+                                                        probs.add("Aynı pakette mükerrer Arapça kelime (İlk kayıt: $firstId)")
+                                                    } else {
+                                                        seenWordByPkg[key] = w.id
+                                                    }
+                                                }
+                                                if (probs.isNotEmpty()) {
+                                                    wIssues.add("Kelime [${w.id}] (${w.turkce}): ${probs.joinToString(", ")}")
+                                                }
                                             }
-                                            val sIssues = allSentences.mapNotNull { s ->
-                                                val probs = ArabicNlpEngine.checkItemQuality(s.arapca, s.turkce)
-                                                if (probs.isEmpty()) null else "Cümle [${s.id}]: ${probs.joinToString(", ")}"
+
+                                            val seenSentByPkg = mutableMapOf<Pair<String, String>, String>()
+                                            val sIssues = mutableListOf<String>()
+                                            for (s in allSentences) {
+                                                val probs = ArabicNlpEngine.checkItemQuality(s.arapca, s.turkce).toMutableList()
+                                                val trimmedAr = s.arapca.trim()
+                                                if (trimmedAr.isNotEmpty()) {
+                                                    val key = s.paketId to trimmedAr
+                                                    val firstId = seenSentByPkg[key]
+                                                    if (firstId != null) {
+                                                        probs.add("Aynı pakette mükerrer Arapça cümle (İlk kayıt: $firstId)")
+                                                    } else {
+                                                        seenSentByPkg[key] = s.id
+                                                    }
+                                                }
+                                                if (probs.isNotEmpty()) {
+                                                    sIssues.add("Cümle [${s.id}]: ${probs.joinToString(", ")}")
+                                                }
                                             }
+
                                             val dIssues = allDialogueLines.mapNotNull { l ->
                                                 val probs = ArabicNlpEngine.checkItemQuality(l.arapca, l.turkce)
                                                 if (probs.isEmpty()) null else "Diyalog #${l.id}: ${probs.joinToString(", ")}"
@@ -2078,12 +2111,12 @@ fun UnifiedAdminPanelModal(
                                         ) {
                                             Column(modifier = Modifier.padding(10.dp)) {
                                                 Text(
-                                                    text = if (issues.isEmpty()) "✅ Kalite Denetimi: Tüm kayıtlar harekeli ve eksiksiz!" else "⚠️ Tespit Edilen Kalite Kusurları (${issues.size}):",
+                                                    text = if (issues.isEmpty()) "✅ Kalite Denetimi: Tüm kayıtlar harekeli, tekil ve eksiksiz!" else "⚠️ Tespit Edilen Kalite & Mükerrer Kayıt Kusurları (${issues.size}):",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = if (issues.isEmpty()) palette.okGreen else WarmGold
                                                 )
-                                                issues.take(8).forEach { iss ->
+                                                issues.take(10).forEach { iss ->
                                                     Text("• $iss", fontSize = 11.sp, color = palette.textMain)
                                                 }
                                             }

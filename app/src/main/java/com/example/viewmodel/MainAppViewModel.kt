@@ -185,6 +185,9 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
+    private val _isSeedingDatabase = MutableStateFlow(false)
+    val isSeedingDatabase: StateFlow<Boolean> = _isSeedingDatabase.asStateFlow()
+
     private val _updateAvailableVersion = MutableStateFlow<String?>(null)
     val updateAvailableVersion: StateFlow<String?> = _updateAvailableVersion.asStateFlow()
 
@@ -406,7 +409,17 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         viewModelScope.launch {
-            repository.ensureSeeded(getApplication())
+            val seedingMsg = "⏳ İlk kurulum veritabanı hazırlanıyor..."
+            _isSeedingDatabase.value = true
+            _toastMessage.value = seedingMsg
+            try {
+                repository.ensureSeeded(getApplication())
+            } finally {
+                _isSeedingDatabase.value = false
+                if (_toastMessage.value == seedingMsg) {
+                    _toastMessage.value = null
+                }
+            }
             loadPersistedConfig()
         }
         viewModelScope.launch {
@@ -1722,7 +1735,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 chosen
             }
         }
-        withTimeoutOrNull(9000L) {
+        withTimeoutOrNull(15000L) {
             suspendCancellableCoroutine<Unit> { cont ->
                 audioManager.speakArabic(
                     text = text,
@@ -1739,7 +1752,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private suspend fun speakTurkishAwait(text: String) {
-        withTimeoutOrNull(8000L) {
+        withTimeoutOrNull(12000L) {
             suspendCancellableCoroutine<Unit> { cont ->
                 audioManager.speakTurkish(
                     text = text,
@@ -1931,6 +1944,14 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    val appVersionName: String
+        get() = try {
+            val context = getApplication<Application>()
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.0"
+        } catch (_: Exception) {
+            "1.0.0"
+        }
+
     fun isRemoteVersionNewer(remote: String, current: String): Boolean {
         val cleanRemote = remote.trim().removePrefix("v").removePrefix("V").trim()
         val cleanCurrent = current.trim().removePrefix("v").removePrefix("V").trim()
@@ -1961,16 +1982,15 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
      */
     fun checkForUpdates(
         silent: Boolean = false,
-        currentVersionName: String = "1.0.0",
+        currentVersionName: String = appVersionName,
         onResult: ((hasUpdate: Boolean, latestVersion: String, message: String, storeUrl: String) -> Unit)? = null
     ) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val currentVersion = currentVersionName.trim().removePrefix("v").removePrefix("V").trim().ifEmpty { "1.0.0" }
+            val currentVersion = currentVersionName.trim().removePrefix("v").removePrefix("V").trim().ifEmpty { appVersionName }
             var hasNew = false
             var latestVer = currentVersion
             var releaseNote = "✅ Uygulamanız güncel! En son sürümü (Mobil Sürüm v$currentVersion) kullanıyorsunuz."
             var targetUrl = "https://arapca.muallimun.net"
-            var fetchFailed = false
             try {
                 val url = java.net.URL("https://arapca.muallimun.net/version_android.json")
                 val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
@@ -2023,18 +2043,14 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                         _updateAvailableVersion.value = null
                     }
                 } else {
-                    fetchFailed = true
                     releaseNote = "Sürüm bilgisi alınamadı veya şu an güncel sürümü kullanıyorsunuz."
                 }
                 conn.disconnect()
             } catch (_: Exception) {
-                fetchFailed = true
                 releaseNote = "Sürüm bilgisi alınamadı veya şu an güncel sürümü kullanıyorsunuz."
             }
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 if (!silent) {
-                    showToast(releaseNote)
-                } else if (hasNew && !fetchFailed) {
                     showToast(releaseNote)
                 }
                 onResult?.invoke(hasNew, latestVer, releaseNote, targetUrl)
