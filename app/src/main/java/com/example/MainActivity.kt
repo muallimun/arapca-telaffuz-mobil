@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -213,7 +214,7 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
+            .background(palette.bgColor)
     ) {
         Scaffold(
             contentWindowInsets = WindowInsets.safeDrawing,
@@ -389,7 +390,7 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
                         color = palette.bgColor,
                         modifier = Modifier
                             .fillMaxSize()
-                            .windowInsetsPadding(WindowInsets.safeDrawing)
+                            .windowInsetsPadding(WindowInsets.systemBars)
                             .imePadding()
                     ) {
                         when (activeModal) {

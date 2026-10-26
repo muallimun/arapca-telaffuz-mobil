@@ -143,7 +143,7 @@ fun SarfExplorerModal(
     var selectedEntryId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = palette.bgColor,
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
@@ -625,7 +625,7 @@ fun ListeningExamModal(
     val currentQuestion = if (examStarted && currentIndex in questions.indices) questions[currentIndex] else null
 
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = palette.bgColor,
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
@@ -1273,7 +1273,7 @@ fun ShadowingTrainerModal(
     }
 
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = palette.bgColor,
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->

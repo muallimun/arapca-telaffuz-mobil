@@ -177,7 +177,7 @@ fun OnboardingTourModal(
     val step = steps[curStep]
 
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = palette.bgColor,
         modifier = Modifier
             .fillMaxSize()
@@ -415,7 +415,7 @@ fun SettingsModal(
     var recStats by remember { mutableStateOf(viewModel.audioManager.getRecordingsStats()) }
 
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = palette.bgColor,
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
@@ -1040,7 +1040,7 @@ fun UserGuideModal(
     }
 
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = palette.bgColor,
         modifier = Modifier
             .fillMaxSize()
@@ -1765,7 +1765,7 @@ fun RoleplayReportCardModal(
     val scorePct = if (totalWords > 0) ((okWords.toDouble() / totalWords) * 100).roundToInt() else 100
 
     Scaffold(
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = palette.bgColor,
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
