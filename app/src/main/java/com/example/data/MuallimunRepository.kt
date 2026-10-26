@@ -44,7 +44,7 @@ class MuallimunRepository(private val dao: MuallimunDao) {
         // Yalnızca ilgili tablo hâlâ tamamen boşsa (assets/ içinden yüklenmemişse) InitialSeedData yedeğini ekle
         if (dao.getAllWords().isEmpty()) {
             dao.insertPackages(InitialSeedData.initialPackages.filter { it.mode == "words" })
-            val allWords = InitialSeedData.initialVisualWords + InitialSeedData.buildSozlukWordCards()
+            val allWords = (InitialSeedData.initialVisualWords + InitialSeedData.buildSozlukWordCards()).distinctBy { it.id }
             dao.insertWords(allWords)
         }
         if (dao.getAllSozluk().isEmpty()) {
@@ -614,35 +614,46 @@ class MuallimunRepository(private val dao: MuallimunDao) {
 
     // --- DATABASE TEXT DOCTOR & AUTO CEFR LEVELER ---
     suspend fun repairAllDatabases(): Int {
-        var fixed = 0
         val words = dao.getAllWords()
+        val updatedWords = mutableListOf<WordEntity>()
         for (w in words) {
             val newAr = ArabicNlpEngine.sanitizeArabicSentence(w.arapca)
             val newTr = ArabicNlpEngine.sanitizeTurkishSentence(w.turkce)
             if (newAr != w.arapca || newTr != w.turkce) {
-                dao.insertWord(w.copy(arapca = newAr, turkce = newTr))
-                fixed++
+                updatedWords.add(w.copy(arapca = newAr, turkce = newTr))
             }
         }
+        if (updatedWords.isNotEmpty()) {
+            dao.insertWords(updatedWords)
+        }
+
         val sents = dao.getAllSentences()
+        val updatedSentences = mutableListOf<SentenceEntity>()
         for (s in sents) {
             val newAr = ArabicNlpEngine.sanitizeArabicSentence(s.arapca)
             val newTr = ArabicNlpEngine.sanitizeTurkishSentence(s.turkce)
             if (newAr != s.arapca || newTr != s.turkce) {
-                dao.insertSentence(s.copy(arapca = newAr, turkce = newTr))
-                fixed++
+                updatedSentences.add(s.copy(arapca = newAr, turkce = newTr))
             }
         }
+        if (updatedSentences.isNotEmpty()) {
+            dao.insertSentences(updatedSentences)
+        }
+
         val lines = dao.getAllDialogueLines()
+        val updatedLines = mutableListOf<DialogueLineEntity>()
         for (l in lines) {
             val newAr = ArabicNlpEngine.sanitizeArabicSentence(l.arapca)
             val newTr = ArabicNlpEngine.sanitizeTurkishSentence(l.turkce)
             if (newAr != l.arapca || newTr != l.turkce) {
-                dao.insertDialogueLine(l.copy(arapca = newAr, turkce = newTr))
-                fixed++
+                updatedLines.add(l.copy(arapca = newAr, turkce = newTr))
             }
         }
-        return fixed
+        if (updatedLines.isNotEmpty()) {
+            dao.insertDialogueLines(updatedLines)
+        }
+
+        return updatedWords.size + updatedSentences.size + updatedLines.size
     }
 
     suspend fun autoAssignCefrLevels(targetMode: String = "all"): Int {

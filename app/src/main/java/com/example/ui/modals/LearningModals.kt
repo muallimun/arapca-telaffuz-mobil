@@ -549,10 +549,10 @@ fun ListeningExamModal(
     val sentencePackages by viewModel.sentencePackages.collectAsState()
 
     val sourceOptions = listOf(
-        "words" to "🏠 Görselli Kelimeler",
+        "words" to "🖼️ Kelimeler",
         "dictionary" to "📖 Sarf Sözlüğü",
-        "sentences" to "📜 Anahtar Cümleler",
-        "dialogue" to "💬 Diyalog Cümleleri"
+        "sentences" to "📜 Cümleler",
+        "dialogue" to "💬 Diyaloglar"
     )
     var selectedSourceKey by remember { mutableStateOf("words") }
     var selectedPaketId by remember { mutableStateOf("all") }
@@ -567,13 +567,13 @@ fun ListeningExamModal(
 
     val availablePackages = remember(selectedSourceKey, wordPackages, sentencePackages, allDialogues) {
         when (selectedSourceKey) {
-            "words" -> listOf("all" to "📦 Tüm Görselli Paketler") +
+            "words" -> listOf("all" to "📦 Tüm Paketler") +
                 wordPackages.filter { !it.id.startsWith("szl_") }.map { it.id to "📦 ${it.ad}" }
-            "dictionary" -> listOf("all" to "📖 Tüm Sarf Sözlüğü") +
+            "dictionary" -> listOf("all" to "📖 Tüm Sözlük") +
                 wordPackages.filter { it.id.startsWith("szl_") }.map { it.id to "📖 ${it.ad}" }
             "dialogue" -> listOf("all" to "💬 Tüm Diyaloglar") +
                 allDialogues.map { it.id to "💬 [${it.seviye}] ${it.baslikTr}" }
-            else -> listOf("all" to "📜 Tüm Cümle Paketleri") +
+            else -> listOf("all" to "📜 Tüm Paketler") +
                 sentencePackages.map { it.id to "📜 ${it.ad}" }
         }
     }
@@ -637,10 +637,12 @@ fun ListeningExamModal(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "🎧 DİNLE & BUL — SESLİ SINAV MERKEZİ",
-                            fontSize = 15.sp,
+                            text = "🎧 Dinle & Bul",
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = palette.accentHead
+                            color = palette.accentHead,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         val totAns = correctCount + wrongCount
                         val accPct = if (totAns > 0) ((correctCount.toDouble() / totAns) * 100).roundToInt() else 0
@@ -797,7 +799,7 @@ fun ListeningExamModal(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
-                                        text = "Hedef: $selectedTargetCount",
+                                        text = selectedTargetCount,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = palette.accentHead,
@@ -843,7 +845,7 @@ fun ListeningExamModal(
                             )
                         }
 
-                        // 4. Satır: 🔊 Sesi Dinle ve 👁️ İpucu Yan Yana (Eşit Genişlik - weight(1f))
+                        // 4. Satır: 🔊 Tekrar Dinle ve 👁️ İpucu Yan Yana (Eşit Genişlik - weight(1f))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -862,9 +864,7 @@ fun ListeningExamModal(
                                     .weight(1f)
                                     .height(44.dp)
                             ) {
-                                Icon(Icons.Default.VolumeUp, contentDescription = null)
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("🔊 Sesi Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text("🔊 Tekrar Dinle", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                             }
 
                             Button(
@@ -1136,16 +1136,41 @@ fun ShadowingTrainerModal(
 
         viewModel.audioManager.speakArabic(target.arabic, "male", viewModel.slowTts.value) {
             statusText = "🎙️ 2. Adım: ŞİMDİ AYNI HIZ VE TONLAMAYLA TEKRAR EDİN!"
+            val prefix = "shadow_${target.itemId}"
             viewModel.audioManager.startSpeechRecognition(
-                itemIdPrefix = "shadow_${target.itemId}"
+                itemIdPrefix = prefix
             ) { heardText, durSec, errMsg ->
+                val savedWav = viewModel.audioManager.findLatestStudentWavForId(target.itemId)
+                    ?: viewModel.audioManager.lastRecordedWavFile
                 if (!errMsg.isNullOrBlank() && heardText.isBlank()) {
-                    coloredWords = ArabicNlpEngine.evaluateSentenceWords(target.arabic, "").wordResults
-                    pronScorePct = 0
-                    rhythmScorePct = 0
-                    totalFluencyPct = 0
-                    statusText = "⚠️ $errMsg — Tekrar deneyin."
-                    isRunning = false
+                    if (savedWav == null) {
+                        viewModel.audioManager.recordWavForShadowingOrAdmin(
+                            itemIdPrefix = prefix,
+                            maxDurationSec = max(2.2f, refDurationSec + 1.0f),
+                            onProgressBars = { bars ->
+                                if (bars.isNotEmpty()) {
+                                    userBars = List(48) { i -> bars[i % bars.size] }
+                                }
+                            },
+                            onFinished = { _, env48, recDur ->
+                                userBars = env48
+                                userDurationSec = recDur
+                                coloredWords = ArabicNlpEngine.evaluateSentenceWords(target.arabic, "").wordResults
+                                pronScorePct = 0
+                                rhythmScorePct = 0
+                                totalFluencyPct = 0
+                                statusText = "⚠️ $errMsg — Ses kaydınız alındı ('🎧 Sesimi Dinle' ile dinleyebilirsiniz)."
+                                isRunning = false
+                            }
+                        )
+                    } else {
+                        coloredWords = ArabicNlpEngine.evaluateSentenceWords(target.arabic, "").wordResults
+                        pronScorePct = 0
+                        rhythmScorePct = 0
+                        totalFluencyPct = 0
+                        statusText = "⚠️ $errMsg — Tekrar deneyin."
+                        isRunning = false
+                    }
                 } else {
                     evaluateShadowingResult(heardText, durSec)
                 }
@@ -1185,7 +1210,7 @@ fun ShadowingTrainerModal(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
                 // Header
@@ -1196,15 +1221,19 @@ fun ShadowingTrainerModal(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "🗣️ GÖLGELEME (SHADOWING) AKICILIK ANTRENMANI",
-                            fontSize = 14.sp,
+                            text = "🗣️ Gölgeleme Stüdyosu",
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = palette.accentHead
+                            color = palette.accentHead,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Dinle ➔ Beklemeden Aynı Hız ve Tonlamayla Tekrar Et",
+                            text = "Dinle ve aynı ritimle tekrar et",
                             fontSize = 11.sp,
-                            color = palette.textDim
+                            color = palette.textDim,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     IconButton(onClick = {

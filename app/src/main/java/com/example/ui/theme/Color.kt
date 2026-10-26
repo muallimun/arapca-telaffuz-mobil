@@ -2,7 +2,7 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Deep Slate & Warm Gold (Dark Laboratory Theme — v40.0)
+// Deep Slate & Warm Gold (Dark Laboratory Theme — v1.0.0)
 val DarkBgColor = Color(0xFF0F172A)
 val DarkCardColor = Color(0xFF1E293B)
 val DarkPanelColor = Color(0xFF162032)

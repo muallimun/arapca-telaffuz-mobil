@@ -268,7 +268,7 @@ fun DialogueModeScreen(
                     }
                 }
 
-                // Alt Mod Seçici: 📖 Öğrenme Modu vs 🎭 Canlandırma
+                // Alt Mod Seçici: 📖 Öğrenme vs 🎭 Rol Yap
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -281,14 +281,14 @@ fun DialogueModeScreen(
                             contentColor = if (submode == "learn") Color(0xFF0F172A) else palette.textMain
                         ),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                         modifier = Modifier
                             .weight(1f)
-                            .height(34.dp)
+                            .height(36.dp)
                             .testTag("btn_submode_learn")
                     ) {
                         Text(
-                            text = "📖 Öğrenme Modu",
+                            text = "📖 Öğrenme",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -304,14 +304,14 @@ fun DialogueModeScreen(
                             contentColor = if (submode == "roleplay") Color(0xFF0F172A) else palette.textMain
                         ),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                         modifier = Modifier
                             .weight(1f)
-                            .height(34.dp)
+                            .height(36.dp)
                             .testTag("btn_submode_roleplay")
                     ) {
                         Text(
-                            text = "🎭 Canlandırma",
+                            text = "🎭 Rol Yap",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -337,13 +337,13 @@ fun DialogueModeScreen(
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                             modifier = Modifier
-                                .weight(1f)
+                                .weight(1.25f)
                                 .height(34.dp)
                                 .testTag("btn_play_all_dialogue")
                         ) {
                             Text(
-                                text = if (isPlayingAll) "⏹️ Durdur" else "▶️ Tümü",
-                                fontSize = 12.sp,
+                                text = if (isPlayingAll) "⏹️ Durdur" else "▶️ Tümünü Çal",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
                                 maxLines = 1,
@@ -361,12 +361,12 @@ fun DialogueModeScreen(
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                             modifier = Modifier
-                                .weight(1f)
+                                .weight(0.95f)
                                 .height(34.dp)
                         ) {
                             Text(
                                 text = "✨ Hareke",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -383,12 +383,12 @@ fun DialogueModeScreen(
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                             modifier = Modifier
-                                .weight(1f)
+                                .weight(0.95f)
                                 .height(34.dp)
                         ) {
                             Text(
                                 text = "🇹🇷 Anlam",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -406,7 +406,7 @@ fun DialogueModeScreen(
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                             modifier = Modifier.height(34.dp)
                         ) {
-                            Text("A-", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text("A-", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
 
                         Button(
@@ -419,7 +419,7 @@ fun DialogueModeScreen(
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                             modifier = Modifier.height(34.dp)
                         ) {
-                            Text("A+", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text("A+", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
                 } else {
@@ -542,40 +542,41 @@ fun DialogueModeScreen(
                         modifier = Modifier.padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // Üst Satır: Sol Dinle / Telaffuz Et / Gölgele | Sağ Konuşmacı Rozeti
+                        // Üst Satır: Sol Kompakt İkon Butonlar (🔊, 🎤, 🗣️) | Sağ Konuşmacı Rozeti
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 val vType = if (line.cinsiyet.equals("K", ignoreCase = true)) "female" else "male"
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = AccentCoral,
-                                    modifier = Modifier.clickable {
-                                        viewModel.audioManager.speakArabic(
-                                            text = line.arapca,
-                                            voiceType = vType,
-                                            slow = viewModel.slowTts.value,
-                                            audioPath = line.ses,
-                                            itemId = "dlgline_${line.id}",
-                                            paketId = line.diyalogId
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clickable {
+                                            viewModel.audioManager.speakArabic(
+                                                text = line.arapca,
+                                                voiceType = vType,
+                                                slow = viewModel.slowTts.value,
+                                                audioPath = line.ses,
+                                                itemId = "dlgline_${line.id}",
+                                                paketId = line.diyalogId
+                                            )
+                                        }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Text(
+                                            text = "🔊",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
                                         )
                                     }
-                                ) {
-                                    Text(
-                                        text = "🔊 Dinle",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
-                                    )
                                 }
 
                                 if (submode == "learn") {
@@ -584,41 +585,42 @@ fun DialogueModeScreen(
                                         shape = RoundedCornerShape(8.dp),
                                         color = if (isRecordingThisLine) CoralRed else EmeraldGreen,
                                         modifier = Modifier
+                                            .size(32.dp)
                                             .clickable { requestAndPracticeLine(idx) }
                                             .testTag("btn_practice_dlg_line_$idx")
                                     ) {
-                                        Text(
-                                            text = if (isRecordingThisLine) "⏹️ Durdur" else "🎤 Telaffuz Et",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isRecordingThisLine) Color.White else Color(0xFF0F172A),
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
-                                        )
+                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                            Text(
+                                                text = if (isRecordingThisLine) "⏹️" else "🎤",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isRecordingThisLine) Color.White else Color(0xFF0F172A)
+                                            )
+                                        }
                                     }
                                 }
 
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = RoyalPurple,
-                                    modifier = Modifier.clickable {
-                                        viewModel.openShadowingForCustomTarget(
-                                            "dlg_${line.id}",
-                                            line.arapca,
-                                            line.turkce
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clickable {
+                                            viewModel.openShadowingForCustomTarget(
+                                                "dlg_${line.id}",
+                                                line.arapca,
+                                                line.turkce
+                                            )
+                                        }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Text(
+                                            text = "🗣️",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
                                         )
                                     }
-                                ) {
-                                    Text(
-                                        text = "🗣️ Gölgele",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
-                                    )
                                 }
                             }
 
@@ -629,11 +631,15 @@ fun DialogueModeScreen(
                             }
                             Text(
                                 text = spkLabel,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isUserRole) palette.okGreen else palette.accentHead,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.End,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp)
                             )
                         }
 

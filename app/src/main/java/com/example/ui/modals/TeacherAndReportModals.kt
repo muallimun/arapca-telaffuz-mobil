@@ -51,9 +51,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -444,16 +447,16 @@ fun WorksheetAndHandoutGeneratorModal(
     val sentencePackages by viewModel.sentencePackages.collectAsState()
 
     val sourceModes = listOf(
-        "words" to "🏠 Kelimeler & Sarf Sözlüğü",
-        "dialogue" to "💬 Günlük Diyaloglar",
-        "sentences" to "📜 Anahtar Cümleler",
-        "all_mixed" to "🌟 Karma Sınav (Kelime + Diyalog + Cümle Birlikte)"
+        "words" to "🏠 Kelimeler & Sözlük",
+        "dialogue" to "💬 Diyaloglar",
+        "sentences" to "📜 Cümleler",
+        "all_mixed" to "🌟 Karma Sınav"
     )
 
     var selectedSourceMode by remember { mutableStateOf("words") }
     var selectedPaketId by remember { mutableStateOf("all") }
     var selectedLevel by remember { mutableStateOf("Tümü") }
-    var sheetTitle by remember { mutableStateOf("Arapça Dersi Kelime, Sarf ve Anlama Yazılı Sınavı") }
+    var sheetTitle by remember { mutableStateOf("Arapça Çalışma Kağıdı") }
 
     var arToTrCount by remember { mutableIntStateOf(8) }
     var trToArCount by remember { mutableIntStateOf(8) }
@@ -505,10 +508,12 @@ fun WorksheetAndHandoutGeneratorModal(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "🖨️ A4 YAZILI SINAV, DERS NOTU & PDF ÜRETİCİ",
-                        fontSize = 15.sp,
+                        text = "🖨️ Sınav & PDF Üretici",
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.accentHead,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = onDismiss) {
@@ -521,10 +526,11 @@ fun WorksheetAndHandoutGeneratorModal(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(1.4f)) {
                         OutlinedButton(
                             onClick = { showSourceMenu = true },
                             shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             val lbl = sourceModes.firstOrNull { it.first == selectedSourceMode }?.second ?: ""
@@ -548,12 +554,22 @@ fun WorksheetAndHandoutGeneratorModal(
                         }
                     }
 
-                    Box {
+                    Box(modifier = Modifier.weight(0.8f)) {
                         OutlinedButton(
                             onClick = { showLevelMenu = true },
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Seviye: $selectedLevel", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = palette.textMain)
+                            Text(
+                                text = "Seviye: $selectedLevel",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = palette.textMain,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
                             Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
                         }
                         DropdownMenu(expanded = showLevelMenu, onDismissRequest = { showLevelMenu = false }) {
@@ -632,12 +648,12 @@ fun WorksheetAndHandoutGeneratorModal(
                                 color = palette.accentHead
                             )
 
-                            QuestionCountStepper("1. Bölüm — Arapça ➔ Türkçe Yazma:", arToTrCount, 30) { arToTrCount = it }
-                            QuestionCountStepper("2. Bölüm — Türkçe ➔ Arapça Yazma:", trToArCount, 30) { trToArCount = it }
-                            QuestionCountStepper("3. Bölüm — Boşluk Doldurma:", fillBlankCount, 30) { fillBlankCount = it }
-                            QuestionCountStepper("4. Bölüm — Çoktan Seçmeli (4 Şıklı) Test:", mcQuizCount, 30) { mcQuizCount = it }
-                            QuestionCountStepper("5. Bölüm — Eşleştirme Alıştırması:", matchingCount, 20) { matchingCount = it }
-                            QuestionCountStepper("6. Bölüm — Sarf (Kök & Türev) Tablosu:", sarfCount, 20) { sarfCount = it }
+                            QuestionCountStepper("1. Arapça ➔ Türkçe", arToTrCount, 30) { arToTrCount = it }
+                            QuestionCountStepper("2. Türkçe ➔ Arapça", trToArCount, 30) { trToArCount = it }
+                            QuestionCountStepper("3. Boşluk Doldurma", fillBlankCount, 30) { fillBlankCount = it }
+                            QuestionCountStepper("4. Çoktan Seçmeli Test", mcQuizCount, 30) { mcQuizCount = it }
+                            QuestionCountStepper("5. Eşleştirme", matchingCount, 20) { matchingCount = it }
+                            QuestionCountStepper("6. Sarf Kök Tablosu", sarfCount, 20) { sarfCount = it }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(checked = includeSummaryTable, onCheckedChange = { includeSummaryTable = it })
@@ -671,7 +687,7 @@ fun WorksheetAndHandoutGeneratorModal(
                                         sheetTitle = if (it) {
                                             "Arapça Diyalog ve Okuma Metni Ders Notu"
                                         } else {
-                                            "Arapça Dersi Kelime, Sarf ve Anlama Yazılı Sınavı"
+                                            "Arapça Çalışma Kağıdı"
                                         }
                                     }
                                 )
@@ -757,9 +773,10 @@ fun WorksheetAndHandoutGeneratorModal(
                         .testTag("btn_generate_pdf_exam")
                 ) {
                     Text(
-                        text = "🖨️ A4 MATERYALİ / SINAVI OLUŞTUR VE PDF KAYDET",
+                        text = "🖨️ PDF Oluştur ve Kaydet",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 14.sp,
+                        maxLines = 1
                     )
                 }
         }
@@ -2005,36 +2022,70 @@ fun UnifiedAdminPanelModal(
                                 )
 
                                 if (showAuditReport) {
-                                    val issues = remember(allWords, allSentences, allDialogueLines) {
-                                        val wIssues = allWords.mapNotNull { w ->
-                                            val probs = ArabicNlpEngine.checkItemQuality(w.arapca, w.turkce)
-                                            if (probs.isEmpty()) null else "Kelime [${w.id}] (${w.turkce}): ${probs.joinToString(", ")}"
-                                        }
-                                        val sIssues = allSentences.mapNotNull { s ->
-                                            val probs = ArabicNlpEngine.checkItemQuality(s.arapca, s.turkce)
-                                            if (probs.isEmpty()) null else "Cümle [${s.id}]: ${probs.joinToString(", ")}"
-                                        }
-                                        val dIssues = allDialogueLines.mapNotNull { l ->
-                                            val probs = ArabicNlpEngine.checkItemQuality(l.arapca, l.turkce)
-                                            if (probs.isEmpty()) null else "Diyalog #${l.id}: ${probs.joinToString(", ")}"
-                                        }
-                                        wIssues + sIssues + dIssues
-                                    }
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = palette.cardColor,
-                                        border = BorderStroke(1.dp, if (issues.isEmpty()) EmeraldGreen else WarmGold),
-                                        modifier = Modifier.fillMaxWidth()
+                                    val issuesState by produceState<List<String>?>(
+                                        initialValue = null,
+                                        allWords,
+                                        allSentences,
+                                        allDialogueLines
                                     ) {
-                                        Column(modifier = Modifier.padding(10.dp)) {
-                                            Text(
-                                                text = if (issues.isEmpty()) "✅ Kalite Denetimi: Tüm kayıtlar harekeli ve eksiksiz!" else "⚠️ Tespit Edilen Kalite Kusurları (${issues.size}):",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (issues.isEmpty()) palette.okGreen else WarmGold
-                                            )
-                                            issues.take(8).forEach { iss ->
-                                                Text("• $iss", fontSize = 11.sp, color = palette.textMain)
+                                        value = null
+                                        value = withContext(Dispatchers.Default) {
+                                            val wIssues = allWords.mapNotNull { w ->
+                                                val probs = ArabicNlpEngine.checkItemQuality(w.arapca, w.turkce)
+                                                if (probs.isEmpty()) null else "Kelime [${w.id}] (${w.turkce}): ${probs.joinToString(", ")}"
+                                            }
+                                            val sIssues = allSentences.mapNotNull { s ->
+                                                val probs = ArabicNlpEngine.checkItemQuality(s.arapca, s.turkce)
+                                                if (probs.isEmpty()) null else "Cümle [${s.id}]: ${probs.joinToString(", ")}"
+                                            }
+                                            val dIssues = allDialogueLines.mapNotNull { l ->
+                                                val probs = ArabicNlpEngine.checkItemQuality(l.arapca, l.turkce)
+                                                if (probs.isEmpty()) null else "Diyalog #${l.id}: ${probs.joinToString(", ")}"
+                                            }
+                                            wIssues + sIssues + dIssues
+                                        }
+                                    }
+                                    val issues = issuesState
+                                    if (issues == null) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = palette.cardColor,
+                                            border = BorderStroke(1.dp, WarmGold),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(10.dp),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = "⏳ Kayıtlar arka planda denetleniyor...",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = WarmGold
+                                                )
+                                                LinearProgressIndicator(
+                                                    color = WarmGold,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = palette.cardColor,
+                                            border = BorderStroke(1.dp, if (issues.isEmpty()) EmeraldGreen else WarmGold),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.padding(10.dp)) {
+                                                Text(
+                                                    text = if (issues.isEmpty()) "✅ Kalite Denetimi: Tüm kayıtlar harekeli ve eksiksiz!" else "⚠️ Tespit Edilen Kalite Kusurları (${issues.size}):",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (issues.isEmpty()) palette.okGreen else WarmGold
+                                                )
+                                                issues.take(8).forEach { iss ->
+                                                    Text("• $iss", fontSize = 11.sp, color = palette.textMain)
+                                                }
                                             }
                                         }
                                     }

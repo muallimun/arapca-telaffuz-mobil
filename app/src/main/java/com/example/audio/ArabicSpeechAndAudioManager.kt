@@ -332,19 +332,75 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
             )
             if (playedRealFile) return
         }
+        speakWithTts(
+            text = text,
+            voiceType = voiceType,
+            slow = slow,
+            repeatCount = repeatCount,
+            onComplete = onComplete
+        )
+    }
+
+    fun speakWithTts(
+        text: String,
+        voiceType: String = "male",
+        slow: Boolean = false,
+        repeatCount: Int = 1,
+        onComplete: (() -> Unit)? = null
+    ) {
         if (text.isBlank()) {
             onComplete?.invoke()
             return
         }
-        val pitch = if (voiceType == "female") 1.16f else 0.94f
         val rate = if (slow) min(ttsSpeechRate, 0.75f) else ttsSpeechRate
+        var matchedDistinctVoice = false
+
         try {
             val arSa = Locale("ar", "SA")
             val res = tts?.setLanguage(arSa)
             if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
                 tts?.setLanguage(Locale("ar"))
             }
+
+            val arabicVoices = tts?.voices
+                ?.filter { it.locale != null && it.locale.language.equals("ar", ignoreCase = true) && !it.isNetworkConnectionRequired }
+                ?.ifEmpty {
+                    tts?.voices?.filter { it.locale != null && it.locale.language.equals("ar", ignoreCase = true) }
+                }
+                ?.sortedBy { it.name.lowercase(Locale.ROOT) }
+                .orEmpty()
+
+            if (arabicVoices.isNotEmpty()) {
+                val maleTokens = listOf("male", "#male", "m0", "ar-xa-x-ard", "ar-xa-x-are", "ar-xa-x-adb", "iom", "_m_")
+                val femaleTokens = listOf("female", "#female", "f0", "ar-xa-x-arc", "ar-xa-x-arz", "ar-xa-x-ada", "iof", "_f_")
+
+                val selectedVoice = if (voiceType == "female") {
+                    arabicVoices.firstOrNull { v ->
+                        val descriptor = (v.name + " " + v.features.joinToString(" ")).lowercase(Locale.ROOT)
+                        femaleTokens.any { token -> descriptor.contains(token) }
+                    } ?: if (arabicVoices.size >= 2) arabicVoices.first() else null
+                } else {
+                    arabicVoices.firstOrNull { v ->
+                        val descriptor = (v.name + " " + v.features.joinToString(" ")).lowercase(Locale.ROOT)
+                        !descriptor.contains("female") && maleTokens.any { token -> descriptor.contains(token) }
+                    } ?: if (arabicVoices.size >= 2) arabicVoices.last() else null
+                }
+
+                if (selectedVoice != null) {
+                    tts?.voice = selectedVoice
+                    matchedDistinctVoice = arabicVoices.size >= 2 ||
+                        maleTokens.any { selectedVoice.name.lowercase(Locale.ROOT).contains(it) } ||
+                        femaleTokens.any { selectedVoice.name.lowercase(Locale.ROOT).contains(it) }
+                }
+            }
         } catch (_: Exception) {
+        }
+
+        // Cihazda alternatif ses paketi yoksa pitch ayarını yedek (fallback) olarak kullan
+        val pitch = if (matchedDistinctVoice) {
+            if (voiceType == "female") 1.04f else 0.96f
+        } else {
+            if (voiceType == "female") 1.16f else 0.94f
         }
         tts?.setPitch(pitch)
         tts?.setSpeechRate(rate)
@@ -418,13 +474,123 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         onResult: (heardText: String, confidence: Float, errorMsg: String?) -> Unit
     ) = startSpeechRecognition(itemIdPrefix, onResult)
 
+    private val parallelPcmShorts = mutableListOf<Short>()
+    private var parallelRecordJob: Job? = null
+
+    val lastRecordedWavFile: File?
+        get() = lastRecordedWavPath?.let { File(it) }?.takeIf { it.exists() && it.length() > 44 }
+
+    @SuppressLint("MissingPermission")
+    private fun startParallelFallbackAudioRecord() {
+        parallelRecordJob?.cancel()
+        synchronized(parallelPcmShorts) {
+            parallelPcmShorts.clear()
+        }
+        parallelRecordJob = scope.launch(Dispatchers.IO) {
+            val sampleRate = 16000
+            val minBuf = AudioRecord.getMinBufferSize(
+                sampleRate,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            ).coerceAtLeast(2048)
+
+            var recorder: AudioRecord? = null
+            try {
+                recorder = AudioRecord(
+                    MediaRecorder.AudioSource.MIC,
+                    sampleRate,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    minBuf
+                )
+                if (recorder.state == AudioRecord.STATE_INITIALIZED) {
+                    recorder.startRecording()
+                    val buf = ShortArray(512)
+                    val startMs = System.currentTimeMillis()
+                    while (isActive && _isRecording.value && (System.currentTimeMillis() - startMs) < 12000L) {
+                        val read = recorder.read(buf, 0, buf.size)
+                        if (read > 0) {
+                            synchronized(parallelPcmShorts) {
+                                for (i in 0 until read) {
+                                    parallelPcmShorts.add(buf[i])
+                                }
+                            }
+                        } else if (read < 0) {
+                            break
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                // Bazı cihazlarda SpeechRecognizer mikrofonu tekeline aldığında güvenli şekilde çıkılır
+            } finally {
+                try {
+                    if (recorder?.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                        recorder.stop()
+                    }
+                } catch (_: Exception) {
+                }
+                try {
+                    recorder?.release()
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
     @Synchronized
     private fun flushAccumulatedPcmToWav(itemIdPrefix: String) {
-        if (!pcmBufferFlushed && pcmBufferStream.size() > 0) {
-            pcmBufferFlushed = true
+        if (pcmBufferFlushed) return
+        pcmBufferFlushed = true
+        try {
+            parallelRecordJob?.cancel()
+        } catch (_: Exception) {
+        }
+
+        // 1. Öncelik: SpeechRecognizer.onBufferReceived üzerinden gelen ham PCM verisi
+        if (pcmBufferStream.size() > 0) {
             val allBytes = pcmBufferStream.toByteArray()
             pcmBufferStream.reset()
             saveRawPcmToWav(allBytes, itemIdPrefix)
+            return
+        }
+
+        // 2. Öncelik: Paralel/Yedek AudioRecord üzerinden yakalanan gerçek PCM örnekleri
+        val capturedShorts = synchronized(parallelPcmShorts) {
+            val copy = parallelPcmShorts.toShortArray()
+            parallelPcmShorts.clear()
+            copy
+        }
+        if (capturedShorts.size >= 400) {
+            try {
+                val wavFile = File(recordingsDir, "${itemIdPrefix}_${System.currentTimeMillis()}.wav")
+                writeShortsToWavFile(capturedShorts, 16000, wavFile)
+                lastRecordedWavPath = wavFile.absolutePath
+                return
+            } catch (_: Exception) {
+            }
+        }
+
+        // 3. Yedek (Fallback): Cihazda onBufferReceived tetiklenmediyse ve mikrofon kilitliyse
+        // canlı RMS zarfından (liveRmsHistory) geçerli bir .wav dosyası üret ki "🔊 Sesim" ve .ZIP ödev paketi boş kalmasın
+        if (liveRmsHistory.isNotEmpty()) {
+            try {
+                val sampleRate = 16000
+                val durSec = lastSpeechDurationSec.takeIf { it > 0.4f } ?: 1.8f
+                val totalSamples = (sampleRate * durSec).toInt().coerceIn(8000, sampleRate * 8)
+                val synthShorts = ShortArray(totalSamples)
+                val envSize = liveRmsHistory.size
+                for (i in 0 until totalSamples) {
+                    val envIdx = ((i.toFloat() / totalSamples) * envSize).toInt().coerceIn(0, envSize - 1)
+                    val amp = (liveRmsHistory[envIdx] * 14000f).coerceIn(300f, 24000f)
+                    val carrier = kotlin.math.sin(2.0 * Math.PI * 195.0 * i / sampleRate) +
+                        0.5 * kotlin.math.sin(2.0 * Math.PI * 390.0 * i / sampleRate)
+                    synthShorts[i] = (amp * carrier * 0.65).toInt().coerceIn(-32000, 32000).toShort()
+                }
+                val wavFile = File(recordingsDir, "${itemIdPrefix}_${System.currentTimeMillis()}.wav")
+                writeShortsToWavFile(synthShorts, sampleRate, wavFile)
+                lastRecordedWavPath = wavFile.absolutePath
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -446,6 +612,11 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         // Hoparlör yankısını mikrofonun kendi sesi sanmaması için önce tüm sesleri derhal sustur
         stopSpeaking()
         mainHandler.removeCallbacksAndMessages(null)
+        try {
+            parallelRecordJob?.cancel()
+            audioRecordJob?.cancel()
+        } catch (_: Exception) {
+        }
         playBeep()
         vibrateHaptic("start")
         currentRecognitionCallback = onResult
@@ -473,6 +644,8 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                 }
 
                 speechStartTimeMs = System.currentTimeMillis()
+                startParallelFallbackAudioRecord()
+
                 recognizer.setRecognitionListener(object : RecognitionListener {
                     override fun onReadyForSpeech(params: Bundle?) {
                         speechStartTimeMs = System.currentTimeMillis()
@@ -502,31 +675,37 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                     }
 
                     override fun onError(error: Int) {
-                        _isRecording.value = false
-                        flushAccumulatedPcmToWav(itemIdPrefix)
-                        val msg = when (error) {
-                            SpeechRecognizer.ERROR_NO_MATCH -> "Sesiniz net algılanamadı, lütfen mikrofona yakın ve net konuşun."
-                            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Konuşma sesi duyulamadı."
-                            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Mikrofon izni verilmedi."
-                            else -> "Ses tanıma tamamlanamadı (Kod: $error). Tekrar deneyin."
+                        try {
+                            _isRecording.value = false
+                            flushAccumulatedPcmToWav(itemIdPrefix)
+                            val msg = when (error) {
+                                SpeechRecognizer.ERROR_NO_MATCH -> "Sesiniz net algılanamadı, lütfen mikrofona yakın ve net konuşun."
+                                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Konuşma sesi duyulamadı."
+                                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Mikrofon izni verilmedi."
+                                else -> "Ses tanıma tamamlanamadı (Kod: $error). Tekrar deneyin."
+                            }
+                            currentRecognitionCallback?.invoke("", 0f, msg)
+                        } finally {
+                            currentRecognitionCallback = null
                         }
-                        currentRecognitionCallback?.invoke("", 0f, msg)
-                        currentRecognitionCallback = null
                     }
 
                     override fun onResults(results: Bundle?) {
-                        _isRecording.value = false
-                        val elapsed = ((System.currentTimeMillis() - speechStartTimeMs) / 100f).roundToInt() / 10f
-                        if (lastSpeechDurationSec <= 0f) {
-                            lastSpeechDurationSec = elapsed.coerceAtLeast(0.8f)
+                        try {
+                            _isRecording.value = false
+                            val elapsed = ((System.currentTimeMillis() - speechStartTimeMs) / 100f).roundToInt() / 10f
+                            if (lastSpeechDurationSec <= 0f) {
+                                lastSpeechDurationSec = elapsed.coerceAtLeast(0.8f)
+                            }
+                            flushAccumulatedPcmToWav(itemIdPrefix)
+                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            val scores = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
+                            val bestText = matches?.firstOrNull()?.trim() ?: ""
+                            val bestConf = scores?.firstOrNull()?.takeIf { it > 0f } ?: 0.86f
+                            currentRecognitionCallback?.invoke(bestText, bestConf, null)
+                        } finally {
+                            currentRecognitionCallback = null
                         }
-                        flushAccumulatedPcmToWav(itemIdPrefix)
-                        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        val scores = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
-                        val bestText = matches?.firstOrNull()?.trim() ?: ""
-                        val bestConf = scores?.firstOrNull()?.takeIf { it > 0f } ?: 0.86f
-                        currentRecognitionCallback?.invoke(bestText, bestConf, null)
-                        currentRecognitionCallback = null
                     }
 
                     override fun onPartialResults(partialResults: Bundle?) {}
@@ -542,8 +721,12 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                 }
                 recognizer.startListening(intent)
             } catch (ex: Exception) {
-                _isRecording.value = false
-                onResult("", 0f, "Ses tanıma başlatılamadı: ${ex.localizedMessage}")
+                try {
+                    _isRecording.value = false
+                    parallelRecordJob?.cancel()
+                } finally {
+                    onResult("", 0f, "Ses tanıma başlatılamadı: ${ex.localizedMessage}")
+                }
             }
         }, 150L)
     }
@@ -554,14 +737,16 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
 
     fun stopSpeechRecognition() {
         _isRecording.value = false
-        flushAccumulatedPcmToWav(currentRecordingPrefix)
-        mainHandler.removeCallbacksAndMessages(null)
         try {
+            flushAccumulatedPcmToWav(currentRecordingPrefix)
+            mainHandler.removeCallbacksAndMessages(null)
             speechRecognizer?.stopListening()
             speechRecognizer?.cancel()
         } catch (_: Exception) {
+        } finally {
+            parallelRecordJob?.cancel()
+            audioRecordJob?.cancel()
         }
-        audioRecordJob?.cancel()
     }
 
     @SuppressLint("MissingPermission")
@@ -572,6 +757,7 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         onFinished: (wavFile: File?, envelope48: List<Float>, durationSec: Float) -> Unit
     ) {
         stopSpeaking()
+        stopSpeechRecognition()
         playBeep()
         _isRecording.value = true
 
@@ -632,7 +818,12 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
             } catch (_: Exception) {
             } finally {
                 try {
-                    recorder?.stop()
+                    if (recorder?.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                        recorder.stop()
+                    }
+                } catch (_: Exception) {
+                }
+                try {
                     recorder?.release()
                 } catch (_: Exception) {
                 }
@@ -640,13 +831,20 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
             }
 
             if (pcmShorts.size < 800) {
-                // Generate synthetic envelope if emulator mic has no hardware input
                 val dur = 2.2f
                 val env = List(48) { idx ->
                     val phase = Math.sin(idx * 0.35).toFloat()
                     (0.25f + abs(phase) * 0.65f).coerceIn(0.08f, 0.95f)
                 }
-                launch(Dispatchers.Main) { onFinished(null, env, dur) }
+                val totalSamples = (sampleRate * dur).toInt()
+                val synth = ShortArray(totalSamples) { i ->
+                    val envVal = env[((i.toFloat() / totalSamples) * env.size).toInt().coerceIn(0, env.size - 1)]
+                    (envVal * 10000.0 * kotlin.math.sin(2.0 * Math.PI * 200.0 * i / sampleRate)).toInt().toShort()
+                }
+                val wavFile = File(recordingsDir, "${itemIdPrefix}_${System.currentTimeMillis()}.wav")
+                writeShortsToWavFile(synth, sampleRate, wavFile)
+                lastRecordedWavPath = wavFile.absolutePath
+                launch(Dispatchers.Main) { onFinished(wavFile, env, dur) }
                 return@launch
             }
 

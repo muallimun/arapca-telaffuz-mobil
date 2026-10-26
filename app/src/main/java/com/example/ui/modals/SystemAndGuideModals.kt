@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -266,12 +267,14 @@ fun OnboardingTourModal(
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
                         onClick = { viewModel.finishOnboardingTour(dontShowAgain) },
                         colors = ButtonDefaults.buttonColors(containerColor = palette.panelColor, contentColor = palette.textDim),
                         shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                         modifier = Modifier
                             .height(44.dp)
                             .testTag("btn_skip_tour")
@@ -279,14 +282,17 @@ fun OnboardingTourModal(
                         Text("⏭️ Turu Atla", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     }
 
+                    Spacer(modifier = Modifier.weight(1f))
+
                     if (curStep > 0) {
                         Button(
                             onClick = { curStep-- },
                             colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
                             shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                             modifier = Modifier.height(44.dp)
                         ) {
-                            Text("◀ Önceki", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                            Text("◀", fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
 
@@ -303,14 +309,14 @@ fun OnboardingTourModal(
                             contentColor = if (curStep == steps.size - 1) Color(0xFF0F172A) else Color.White
                         ),
                         shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                         modifier = Modifier
-                            .weight(1f)
                             .height(44.dp)
                             .testTag("btn_next_tour")
                     ) {
                         Text(
-                            text = if (curStep == steps.size - 1) "🚀 Hemen Başla!" else "Sonraki Adım ▶",
-                            fontSize = 13.sp,
+                            text = if (curStep == steps.size - 1) "✅ Bitir" else "▶",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
                         )
@@ -425,10 +431,12 @@ fun SettingsModal(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "⚙️ UYGULAMA VE EĞİTİM AYARLARI",
-                    fontSize = 15.sp,
+                    text = "⚙️ Ayarlar",
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = palette.accentHead,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onDismiss) {
@@ -446,8 +454,8 @@ fun SettingsModal(
                     onClick = { selectedTab = 0 },
                     text = {
                         Text(
-                            text = "🎨 Görünüm & Tema",
-                            fontSize = 11.sp,
+                            text = "🎨 Görünüm",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -459,8 +467,8 @@ fun SettingsModal(
                     onClick = { selectedTab = 1 },
                     text = {
                         Text(
-                            text = "🔊 Ses & Okuma",
-                            fontSize = 11.sp,
+                            text = "🔊 Ses",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -472,8 +480,8 @@ fun SettingsModal(
                     onClick = { selectedTab = 2 },
                     text = {
                         Text(
-                            text = "🎯 Çalışma & İlerleme",
-                            fontSize = 11.sp,
+                            text = "🎯 Çalışma",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -522,33 +530,42 @@ fun SettingsModal(
                                     "okul" to "🏫 Okul",
                                     "kurumsal" to "🏛️ Kurumsal"
                                 )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    themeOptions.forEach { (modeKey, modeLabel) ->
-                                        val isSel = appThemeMode == modeKey
-                                        Surface(
-                                            shape = RoundedCornerShape(10.dp),
-                                            color = if (isSel) RoyalBlue else palette.btnSec,
-                                            border = BorderStroke(
-                                                1.dp,
-                                                if (isSel) RoyalBlue else palette.border
-                                            ),
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clickable { viewModel.setAppThemeMode(modeKey) }
+                                    themeOptions.chunked(2).forEach { rowItems ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
-                                            Text(
-                                                text = modeLabel,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isSel) Color.White else palette.textMain,
-                                                textAlign = TextAlign.Center,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-                                            )
+                                            rowItems.forEach { (modeKey, modeLabel) ->
+                                                val isSel = appThemeMode == modeKey
+                                                Surface(
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    color = if (isSel) RoyalBlue else palette.btnSec,
+                                                    border = BorderStroke(
+                                                        1.dp,
+                                                        if (isSel) RoyalBlue else palette.border
+                                                    ),
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(38.dp)
+                                                        .clickable { viewModel.setAppThemeMode(modeKey) }
+                                                ) {
+                                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                        Text(
+                                                            text = modeLabel,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isSel) Color.White else palette.textMain,
+                                                            textAlign = TextAlign.Center,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -572,32 +589,42 @@ fun SettingsModal(
                                     46 to "Büyük",
                                     52 to "Çok Büyük"
                                 )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    fontPresets.forEach { (spVal, label) ->
-                                        val isSel = kotlin.math.abs(wordFontSizeSp - spVal) <= 2
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = if (isSel) EmeraldGreen else palette.btnSec,
-                                            border = BorderStroke(
-                                                1.dp,
-                                                if (isSel) EmeraldGreen else palette.border
-                                            ),
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clickable { viewModel.setGlobalFontSizePreset(spVal) }
+                                    fontPresets.chunked(2).forEach { rowPresets ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
-                                            Text(
-                                                text = label,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isSel) Color(0xFF0F172A) else palette.textMain,
-                                                textAlign = TextAlign.Center,
-                                                maxLines = 1,
-                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 7.dp)
-                                            )
+                                            rowPresets.forEach { (spVal, label) ->
+                                                val isSel = kotlin.math.abs(wordFontSizeSp - spVal) <= 2
+                                                Surface(
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    color = if (isSel) EmeraldGreen else palette.btnSec,
+                                                    border = BorderStroke(
+                                                        1.dp,
+                                                        if (isSel) EmeraldGreen else palette.border
+                                                    ),
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(38.dp)
+                                                        .clickable { viewModel.setGlobalFontSizePreset(spVal) }
+                                                ) {
+                                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                        Text(
+                                                            text = label,
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isSel) Color(0xFF0F172A) else palette.textMain,
+                                                            textAlign = TextAlign.Center,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -618,20 +645,27 @@ fun SettingsModal(
                                     shape = RoundedCornerShape(10.dp),
                                     color = palette.cardColor,
                                     border = BorderStroke(1.dp, palette.border),
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 64.dp)
                                 ) {
-                                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                                        Text(
-                                            text = if (showTashkeel) "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ" else "بسم الله الرحمن الرحيم",
-                                            fontFamily = AmiriArabicFontFamily,
-                                            fontSize = (wordFontSizeSp * 0.65f).coerceIn(18f, 34f).sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = palette.textMain,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 8.dp, horizontal = 10.dp)
-                                        )
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 12.dp, horizontal = 12.dp)
+                                    ) {
+                                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                                            Text(
+                                                text = if (showTashkeel) "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ" else "بسم الله الرحمن الرحيم",
+                                                fontFamily = AmiriArabicFontFamily,
+                                                fontSize = (wordFontSizeSp * 0.65f).coerceIn(18f, 34f).sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = palette.textMain,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -904,7 +938,7 @@ fun SettingsModal(
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text("✅ AYARLARI UYGULA VE KAPAT", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("✅ Kaydet ve Kapat", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
     }
@@ -980,18 +1014,20 @@ fun UserGuideModal(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "📖 MOBİL KULLANIM KILAVUZU",
-                    fontSize = 15.sp,
+                    text = "📖 Kullanım Kılavuzu",
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = palette.accentHead,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
                 Button(
                     onClick = { viewModel.openModal(ActiveModal.ABOUT_INFO) },
                     colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(34.dp)
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.height(36.dp)
                 ) {
                     Text("ℹ️ Hakkında", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
@@ -1000,7 +1036,8 @@ fun UserGuideModal(
                     onClick = { viewModel.openModal(ActiveModal.ONBOARDING_TOUR) },
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(34.dp)
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.height(36.dp)
                 ) {
                     Text("🔄 7 Adımlı Tur", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
@@ -1009,7 +1046,7 @@ fun UserGuideModal(
                 }
             }
 
-            // Kompakt Sekmeler: Menü & Gezinme | Mikrofon & Mahreç | Paket & İçerik
+            // Kompakt Sekmeler: Modlar | Ses & Mahreç | Paketler
             TabRow(
                 selectedTabIndex = selectedGuideTab,
                 containerColor = palette.panelColor,
@@ -1018,7 +1055,7 @@ fun UserGuideModal(
                 Tab(
                     selected = selectedGuideTab == 0,
                     onClick = { selectedGuideTab = 0 },
-                    text = { Text("📱 Menü & Modlar", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                    text = { Text("📱 Modlar", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                 )
                 Tab(
                     selected = selectedGuideTab == 1,
@@ -1028,7 +1065,7 @@ fun UserGuideModal(
                 Tab(
                     selected = selectedGuideTab == 2,
                     onClick = { selectedGuideTab = 2 },
-                    text = { Text("📥 Paket Yükleme", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                    text = { Text("📥 Paketler", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                 )
             }
 
@@ -1041,8 +1078,10 @@ fun UserGuideModal(
                 when (selectedGuideTab) {
                     0 -> {
                         GuideSectionCard(
-                            title = "🧭 1. Alt ve Üst Menü Kullanımı",
-                            body = "• Alt Gezinme Çubuğu: Ekranın altındaki 4 sekme (🏠 Ana Sayfa, 🔤 Kelime, 💬 Diyalog, 📝 Cümle) arasında tek dokunuşla geçiş yapın.\n• Ana Sayfa & Üst Araçlar: '📖 Sarf Kök Sözlüğü', '🎧 Dinle & Bul', '📊 Karne & Analiz', '🖨️ Sınav' ve '🛠️ Yönetim' panellerine hızlıca ulaşın.\n• 🔧 Görünüm & Filtre Butonu: Kelime ve Cümle ekranlarının sağ üstündeki '🔧' butonundan '🙈 Gizle', '✨ Hareke', '🇹🇷 Anlam', punto (A-/A+) ve durum filtrelerini açıp kapatın."
+                            title = "🧭 1. Ekran Geçişleri ve Araç Çubukları",
+                            body = "• Alt Menü: Ekranın altındaki 4 sekme (🏠 Ana Sayfa, 📖 Kelime, 💬 Diyalog, 📝 Cümle) arasında tek dokunuşla geçiş yapın.\n" +
+                                "• Üst Araçlar (🔧): Çalışma ekranlarında sağ üstteki '🔧' butonuna dokunarak Kök Sözlüğü, Dinle & Bul ve Karne ekranlarını istediğiniz an açın.\n" +
+                                "• Görünüm & Filtre (⚙️ Filtre ▼): Kelime ve Cümle ekranlarındaki '⚙️ Filtre ▼' butonundan Arapça gizleme, hareke, anlam, yazı boyutu (A-/A+) ve durum filtrelerini yönetin."
                         )
                         GuideSectionCard(
                             title = "🌿 2. Sarf Kök Sözlüğü ve 6'lı Petek Görünümü",
@@ -1166,14 +1205,14 @@ fun AboutInfoModal(
     fun checkForUpdates() {
         isCheckingUpdate = true
         if (viewModel != null) {
-            viewModel.checkForUpdates(currentVersionName = "40.0") { hasUpdate, _, message, storeUrl ->
+            viewModel.checkForUpdates(currentVersionName = "1.0.0") { hasUpdate, _, message, storeUrl ->
                 isCheckingUpdate = false
                 updateResultMessage = message
                 updateStoreUrl = if (hasUpdate) storeUrl else null
             }
         } else {
             isCheckingUpdate = false
-            updateResultMessage = "✅ Uygulamanız güncel! En son sürümü (Mobil Sürüm v40.0) kullanıyorsunuz."
+            updateResultMessage = "✅ Uygulamanız güncel! En son sürümü (Mobil Sürüm v1.0.0) kullanıyorsunuz."
             updateStoreUrl = null
         }
     }
@@ -1270,29 +1309,6 @@ fun AboutInfoModal(
                 .testTag("modal_about_info")
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
-                // Sağ üst köşede zarif, yuvarlak kapat (✕) ikon butonu
-                Surface(
-                    shape = CircleShape,
-                    color = palette.panelColor,
-                    border = BorderStroke(1.dp, palette.border),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 12.dp, end = 12.dp)
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .clickable { onDismiss() }
-                        .testTag("btn_close_about_modal")
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Kapat",
-                            tint = palette.textMain,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -1328,7 +1344,7 @@ fun AboutInfoModal(
                         border = BorderStroke(1.dp, RoyalBlue.copy(alpha = 0.35f))
                     ) {
                         Text(
-                            text = "✨ Mobil Sürüm v40.0 • Yapay Zekâ Destekli",
+                            text = "✨ Mobil Sürüm v1.0.0 • Yapay Zekâ Destekli",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = RoyalBlue,
@@ -1575,6 +1591,29 @@ fun AboutInfoModal(
                         }
                     }
                 }
+
+                // Sağ üst köşede zarif, yuvarlak kapat (✕) ikon butonu (En üst katmanda - Column'un üstünde)
+                Surface(
+                    shape = CircleShape,
+                    color = palette.panelColor,
+                    border = BorderStroke(1.dp, palette.border),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 12.dp)
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .clickable { onDismiss() }
+                        .testTag("btn_close_about_modal")
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Kapat",
+                            tint = palette.textMain,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -1587,22 +1626,22 @@ private fun AboutCapabilityBadge(
 ) {
     val palette = LocalMuallimunPalette.current
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = palette.panelColor,
-        border = BorderStroke(1.dp, palette.border),
+        shape = RoundedCornerShape(8.dp),
+        color = palette.bgColor.copy(alpha = 0.6f),
+        border = BorderStroke(0.5.dp, palette.border.copy(alpha = 0.6f)),
         modifier = modifier
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 7.dp)
+                .padding(horizontal = 6.dp, vertical = 6.dp)
         ) {
             Text(
                 text = label,
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = palette.accentHead,
+                fontWeight = FontWeight.SemiBold,
+                color = palette.textMain,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 softWrap = false,

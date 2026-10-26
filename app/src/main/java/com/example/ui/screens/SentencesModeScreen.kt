@@ -160,17 +160,17 @@ fun SentencesModeScreen(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Üst Seçici Bar: Filtre/Kategori (weight 1.25f) | Seviye "🎯 Tümü" (weight 0.9f) | Filtre Toggle -> Hepsi 38.dp
+                // Üst Seçici Bar: Filtre/Kategori (weight 1.1f) | Seviye "🎯 Tümü" (weight 1f) | Filtre Toggle -> Hepsi 38.dp
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(modifier = Modifier.weight(1.25f)) {
+                    Box(modifier = Modifier.weight(1.1f)) {
                         OutlinedButton(
                             onClick = { showFilterMenu = true },
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(38.dp)
@@ -204,12 +204,12 @@ fun SentencesModeScreen(
                         }
                     }
 
-                    // Seviye Seçici ("Seviye: " ön eki olmadan "🎯 Tümü" veya "🎯 A1")
-                    Box(modifier = Modifier.weight(0.9f)) {
+                    // Seviye Seçici ("🎯 Tümü" veya "🎯 A1")
+                    Box(modifier = Modifier.weight(1f)) {
                         OutlinedButton(
                             onClick = { showLevelMenu = true },
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(38.dp)
@@ -268,7 +268,7 @@ fun SentencesModeScreen(
                     }
                 }
 
-                // Açılır-Kapanır Ek Filtreler: 3 Net Satır (Yatay Kaydırma veya Kesilme Yok)
+                // Açılır-Kapanır Ek Filtreler: 1) Arama 2) Tek Satır Durum Çipleri 3) Kart Görünüm Ayarları
                 if (filterExpanded) {
                     Column(
                         modifier = Modifier
@@ -276,85 +276,7 @@ fun SentencesModeScreen(
                             .wrapContentHeight(),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // 1. Satır: 🙈 Gizle | ✨ Hareke | 🇹🇷 Anlam | A- | A+ (Tek satırda kompakt)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Button(
-                                onClick = { viewModel.setSentHideArabic(!hideArabic) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (hideArabic) WarmGold else palette.btnSec,
-                                    contentColor = if (hideArabic) Color(0xFF0F172A) else palette.textMain
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp)
-                            ) {
-                                Text("🙈 Gizle", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-                            }
-
-                            Button(
-                                onClick = { viewModel.setSentShowTashkeel(!showTashkeel) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (showTashkeel) RoyalBlue else palette.btnSec,
-                                    contentColor = if (showTashkeel) Color.White else palette.textMain
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp)
-                            ) {
-                                Text("✨ Hareke", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-                            }
-
-                            Button(
-                                onClick = { viewModel.setSentShowTr(!showTr) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (showTr) RoyalBlue else palette.btnSec,
-                                    contentColor = if (showTr) Color.White else palette.textMain
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp)
-                            ) {
-                                Text("🇹🇷 Anlam", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-                            }
-
-                            Button(
-                                onClick = { viewModel.changeSentenceFontSize(-2) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.btnSec,
-                                    contentColor = palette.textMain
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                modifier = Modifier.height(34.dp)
-                            ) {
-                                Text("A-", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            }
-
-                            Button(
-                                onClick = { viewModel.changeSentenceFontSize(2) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.btnSec,
-                                    contentColor = palette.textMain
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                                modifier = Modifier.height(34.dp)
-                            ) {
-                                Text("A+", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            }
-                        }
-
-                        // 2. Satır: Tam Genişlikte (fillMaxWidth) Arama Kutusu (MainAppViewModel ile %100 senkronize)
+                        // 2. Satır (Arama): Tam Genişlikte (fillMaxWidth) Arama Kutusu (Kategori seçicilerin hemen altında)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = palette.cardColor,
@@ -409,11 +331,13 @@ fun SentencesModeScreen(
                             }
                         }
 
-                        // 3. Satır: Durum Çipleri (FlowRow içinde kesilmeden temizce dizilir)
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        // 3. Satır (Veri Filtre Çipleri): Kesinlikle tek satırda yan yana 5 çip
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             val statusItems = listOf(
                                 "Tümü" to "Tümü",
@@ -433,7 +357,10 @@ fun SentencesModeScreen(
                                         .height(30.dp)
                                         .clickable { viewModel.selectSentenceFilter(filterKey) }
                                 ) {
-                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 10.dp)) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                    ) {
                                         Text(
                                             text = label,
                                             fontSize = 11.sp,
@@ -444,6 +371,88 @@ fun SentencesModeScreen(
                                         )
                                     }
                                 }
+                            }
+                        }
+
+                        // 4. Satır (Kart Görünüm Ayarları): Cümle kartının hemen üstünde, optimize genişlik oranlarıyla
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = { viewModel.setSentHideArabic(!hideArabic) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (hideArabic) WarmGold else palette.btnSec,
+                                    contentColor = if (hideArabic) Color(0xFF0F172A) else palette.textMain
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .weight(1.15f)
+                                    .height(34.dp)
+                            ) {
+                                Text("🙈 Gizle", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            }
+
+                            Button(
+                                onClick = { viewModel.setSentShowTashkeel(!showTashkeel) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (showTashkeel) RoyalBlue else palette.btnSec,
+                                    contentColor = if (showTashkeel) Color.White else palette.textMain
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .weight(1.15f)
+                                    .height(34.dp)
+                            ) {
+                                Text("✨ Hareke", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            }
+
+                            Button(
+                                onClick = { viewModel.setSentShowTr(!showTr) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (showTr) RoyalBlue else palette.btnSec,
+                                    contentColor = if (showTr) Color.White else palette.textMain
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .weight(1.15f)
+                                    .height(34.dp)
+                            ) {
+                                Text("🇹🇷 Anlam", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            }
+
+                            Button(
+                                onClick = { viewModel.changeSentenceFontSize(-2) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = palette.btnSec,
+                                    contentColor = palette.textMain
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .weight(0.68f)
+                                    .height(34.dp)
+                            ) {
+                                Text("A-", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            }
+
+                            Button(
+                                onClick = { viewModel.changeSentenceFontSize(2) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = palette.btnSec,
+                                    contentColor = palette.textMain
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                modifier = Modifier
+                                    .weight(0.68f)
+                                    .height(34.dp)
+                            ) {
+                                Text("A+", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -488,74 +497,30 @@ fun SentencesModeScreen(
                             .fillMaxSize()
                             .padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
-                        // 1. ÜST META BARI (Sabit): Sol (⭐, ☑️ ve 📤 Paylaş) | Orta (< Sayaç >) | Sağ (Seviye Rozeti)
+                        // 1. ÜST META BARI (Sabit): Sol (Sadece ⭐ Favori) | Orta (< Sayaç >) | Sağ (Seviye Rozeti)
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            val isFav = currentItem.isFav == 1
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isFav) WarmGold else palette.btnSec,
+                                border = BorderStroke(1.dp, if (isFav) WarmGold else palette.border),
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clickable {
+                                        scope.launch { viewModel.repository.toggleSentenceFavorite(currentItem.id) }
+                                    }
                             ) {
-                                val isFav = currentItem.isFav == 1
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isFav) WarmGold else palette.btnSec,
-                                    border = BorderStroke(1.dp, if (isFav) WarmGold else palette.border),
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clickable {
-                                            scope.launch { viewModel.repository.toggleSentenceFavorite(currentItem.id) }
-                                        }
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = if (isFav) "⭐" else "☆",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isFav) Color(0xFF0F172A) else palette.textMain
-                                        )
-                                    }
-                                }
-
-                                val isLearned = currentItem.isLearned == 1
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isLearned) EmeraldGreen else palette.btnSec,
-                                    border = BorderStroke(1.dp, if (isLearned) EmeraldGreen else palette.border),
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clickable {
-                                            scope.launch { viewModel.repository.toggleSentenceLearned(currentItem.id) }
-                                        }
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = if (isLearned) "✅" else "☑️",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isLearned) Color(0xFF0F172A) else palette.textMain
-                                        )
-                                    }
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = palette.btnSec,
-                                    border = BorderStroke(1.dp, palette.border),
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clickable { viewModel.shareCurrentCard(context) }
-                                        .testTag("btn_share_sentence_card")
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = "📤",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = if (isFav) "⭐" else "☆",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isFav) Color(0xFF0F172A) else palette.textMain
+                                    )
                                 }
                             }
 
@@ -580,7 +545,7 @@ fun SentencesModeScreen(
                                 }
 
                                 Text(
-                                    text = "${safeSentenceIndex + 1}/${sentences.size} • ✅${currentItem.dogru}|❌${currentItem.yanlis}",
+                                    text = "${safeSentenceIndex + 1}/${sentences.size} • ✅${currentItem.dogru} | ❌${currentItem.yanlis}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = palette.textDim,
@@ -825,9 +790,9 @@ fun SentencesModeScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Üst Ses Satırı: Yan Yana Eşit Genişlikte (weight(1f)) 🔊 Dinle | 🗣️ Gölgele | 🎧 Sesim | 📻 Oto-Dinle
+                            // Üst Ses Satırı: Yan Yana Eşit Genişlikte (weight(1f)) 🔊 Dinle | 🗣️ Gölgele | 🎧 Sesim | 📻 Radyo
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -835,25 +800,41 @@ fun SentencesModeScreen(
                                     onClick = { viewModel.speakCurrentItem(null) },
                                     colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(36.dp)
+                                        .height(38.dp)
                                         .testTag("btn_sentence_tts")
                                 ) {
-                                    Text("🔊 Dinle", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, softWrap = false)
+                                    Text(
+                                        text = "🔊 Dinle",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        softWrap = false
+                                    )
                                 }
 
                                 Button(
                                     onClick = { viewModel.openShadowingForCurrentCard() },
                                     colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(36.dp)
+                                        .height(38.dp)
                                 ) {
-                                    Text("🗣️ Gölgele", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, softWrap = false)
+                                    Text(
+                                        text = "🗣️ Gölgele",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        softWrap = false
+                                    )
                                 }
 
                                 Button(
@@ -863,12 +844,19 @@ fun SentencesModeScreen(
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(36.dp)
+                                        .height(38.dp)
                                 ) {
-                                    Text("🎧 Sesim", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                    Text(
+                                        text = "🎧 Sesim",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        softWrap = false
+                                    )
                                 }
 
                                 Button(
@@ -878,18 +866,19 @@ fun SentencesModeScreen(
                                         contentColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                                     modifier = Modifier
-                                        .weight(1.1f)
-                                        .height(36.dp)
+                                        .weight(1f)
+                                        .height(38.dp)
                                         .testTag("btn_radio_mode_sentence")
                                 ) {
                                     Text(
-                                        text = if (isRadioModeActive) "⏹️ Durdur" else "📻 Oto-Dinle",
+                                        text = if (isRadioModeActive) "⏹️ Durdur" else "📻 Radyo",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                         maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                         softWrap = false
                                     )
                                 }

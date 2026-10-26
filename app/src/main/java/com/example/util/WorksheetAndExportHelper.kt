@@ -26,7 +26,7 @@ data class ExamGeneratorConfig(
     val sourceMode: String = "words", // "words", "dialogue", "sentences", "all_mixed"
     val paketId: String = "all",
     val seviye: String = "Tümü",
-    val sheetTitle: String = "Arapça Dersi Kelime, Sarf ve Anlama Yazılı Sınavı",
+    val sheetTitle: String = "Arapça Çalışma Kağıdı",
     val arToTrCount: Int = 10,
     val trToArCount: Int = 10,
     val fillBlankCount: Int = 5,
@@ -486,16 +486,26 @@ object WorksheetAndExportHelper {
         """.trimIndent()
     }
 
-    @android.annotation.SuppressLint("StaticFieldLeak")
-    private var activePrintWebView: WebView? = null
+    private var activePrintWebViewRef: java.lang.ref.WeakReference<WebView>? = null
 
     fun printHtmlAsPdf(context: Context, htmlContent: String, jobName: String = "Muallimun_Arapca_Sinav_Ve_Ders_Notu") {
+        activePrintWebViewRef?.get()?.let { oldWebView ->
+            try {
+                oldWebView.stopLoading()
+                oldWebView.webViewClient = WebViewClient()
+                oldWebView.destroy()
+            } catch (_: Exception) {
+            }
+        }
+        activePrintWebViewRef?.clear()
+
         val webView = WebView(context)
-        activePrintWebView = webView
+        activePrintWebViewRef = java.lang.ref.WeakReference(webView)
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
-                val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager ?: return
-                val adapter = webView.createPrintDocumentAdapter(jobName)
+                val currentWebView = view ?: return
+                val printManager = currentWebView.context.getSystemService(Context.PRINT_SERVICE) as? PrintManager ?: return
+                val adapter = currentWebView.createPrintDocumentAdapter(jobName)
                 printManager.print(
                     jobName,
                     adapter,

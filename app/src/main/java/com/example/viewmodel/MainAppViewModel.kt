@@ -22,6 +22,7 @@ import com.example.data.WordEntity
 import com.example.data.WordMorphologyInfo
 import com.example.nlp.ArabicNlpEngine
 import com.example.nlp.MakhrajTip
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -342,7 +344,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         }
         val isWeakFilter = catId == "zayif" || statusFilter == "Zayıflar" || statusFilter == "⚠️ Zayıf" || statusFilter == "zayif"
         if (rnd && !isWeakFilter && q.isEmpty()) searchFiltered.shuffled() else searchFiltered
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Filtered Sentence List based on filter, CEFR level & search query
     val filteredSentences: StateFlow<List<SentenceEntity>> = combine(
@@ -372,7 +374,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
             }
         }
         if (rnd && filter != "Zorlandıklarım" && filter != "⚠️ Zayıf" && q.isEmpty()) searchFiltered.shuffled() else searchFiltered
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Filtered Dialogues based on CEFR level
     val filteredDialogues: StateFlow<List<DialogueEntity>> = combine(
@@ -1863,7 +1865,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
      * yeni sürüm kontrolü yapar ve sonucu kullanıcıya bildirir.
      */
     fun checkForUpdates(
-        currentVersionName: String = "40.0",
+        currentVersionName: String = "1.0.0",
         onResult: ((hasUpdate: Boolean, latestVersion: String, message: String, storeUrl: String) -> Unit)? = null
     ) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -1894,10 +1896,12 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                             "🚀 Yeni bir güncelleme (v$remoteVer) yayınlandı! Mağaza veya web sayfası üzerinden güncelleyebilirsiniz."
                         }
                     }
+                } else {
+                    releaseNote = "⚠️ Güncelleme sunucusuna ulaşılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."
                 }
                 conn.disconnect()
-            } catch (_: Exception) {
-                // Çevrimdışı veya sunucuya ulaşılamadığında mevcut sürüm bilgisiyle güvenli geri dönüş
+            } catch (e: Exception) {
+                releaseNote = "⚠️ Güncelleme sunucusuna ulaşılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."
             }
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 showToast(releaseNote)

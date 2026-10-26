@@ -63,11 +63,13 @@ fun HomeDashboardScreen(
 
     val allWords by viewModel.allWords.collectAsState()
     val allDialogues by viewModel.allDialogues.collectAsState()
+    val allSentences by viewModel.allSentences.collectAsState()
     val allSozluk by viewModel.allSozluk.collectAsState()
 
-    val visualWordsCount = allWords.count { !it.gorsel.isNullOrBlank() }.let { if (it > 0) it else 65 }
-    val dialoguesCount = allDialogues.size.let { if (it > 0) it else 20 }
-    val sozlukCount = allSozluk.size.let { if (it > 0) it else 210 }
+    val wordsCount = allWords.size.let { if (it > 0) it else 1565 }
+    val dialoguesCount = allDialogues.size.let { if (it > 0) it else 60 }
+    val sentencesCount = allSentences.size.let { if (it > 0) it else 7952 }
+    val sozlukCount = allSozluk.size.let { if (it > 0) it else 1500 }
 
     val rawLevelTitle = viewModel.getLevelTitle()
     val compactLevelBadge = when {
@@ -105,7 +107,8 @@ fun HomeDashboardScreen(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        modifier = Modifier.weight(1f, fill = false)
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.app_icon),
@@ -198,7 +201,7 @@ fun HomeDashboardScreen(
                     }
                 }
 
-                // Orta Satır: 🔥 Seri: 1 Gün • 🎯 Bugün: 0/20 • ⭐ Puan: 0
+                // Orta Satır: 🔥 1 Gün • 🎯 1/20 • ⭐ 15 Puan
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = palette.panelColor,
@@ -206,7 +209,7 @@ fun HomeDashboardScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "🔥 Seri: $streak Gün  •  🎯 Bugün: $dailyCount/$dailyGoal  •  ⭐ Puan: $totalPoints",
+                        text = "🔥 $streak Gün  •  🎯 $dailyCount/$dailyGoal  •  ⭐ $totalPoints Puan",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = palette.textMain,
@@ -228,7 +231,7 @@ fun HomeDashboardScreen(
                         onClick = { viewModel.resumeLastSession() },
                         colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen),
                         shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                         modifier = Modifier
                             .weight(1f)
                             .height(38.dp)
@@ -252,14 +255,14 @@ fun HomeDashboardScreen(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue),
                         shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                         modifier = Modifier
                             .weight(1f)
                             .height(38.dp)
                             .testTag("daily_15_review_button")
                     ) {
                         Text(
-                            text = "📅 Günün 15 Tekrarı",
+                            text = "📅 15 Tekrar",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -272,14 +275,14 @@ fun HomeDashboardScreen(
             }
         }
 
-        // BÖLÜM 2: 2x2 Grid Çalışma Modları (Ekrana tam sığan 2 satır x 2 sütun)
+        // BÖLÜM 2: 2x2 Grid Çalışma Modları (Ekrana tam sığan, üst üste binmeyen ferah 2x2 grid)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 1. Satır: Sol Üst (Görselli Kelime) & Sağ Üst (Günlük Diyalog)
+            // 1. Satır: Sol Üst (🖼️ Kelimeler) & Sağ Üst (💬 Diyaloglar)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -287,11 +290,10 @@ fun HomeDashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CompactGridModeCard(
-                    title = "🖼️ Görselli Kelime",
-                    subtitle = "$visualWordsCount Kart • Mahreç Koçu",
+                    title = "🖼️ Kelimeler",
+                    subtitle = "$wordsCount Kelime",
                     centerIcon = "🖼️",
-                    centerDescription = "Görsel hafıza, harf mahreci ve SM-2 aralıklı tekrar",
-                    buttonText = "🚀 Başla",
+                    centerDescription = "Görsel hafıza ve mahreç koçu",
                     accentColor = RoyalBlue,
                     testTag = "mode_card_words",
                     onClick = {
@@ -307,11 +309,10 @@ fun HomeDashboardScreen(
                 )
 
                 CompactGridModeCard(
-                    title = "💬 Günlük Diyalog",
-                    subtitle = "$dialoguesCount Diyalog • Rol Yapma",
+                    title = "💬 Diyaloglar",
+                    subtitle = "$dialoguesCount Diyalog",
                     centerIcon = "💬",
-                    centerDescription = "Sesli diyalog dinleme ve karşılıklı rol canlandırma",
-                    buttonText = "🎭 Diyaloglar",
+                    centerDescription = "Sesli diyalog ve rol yapma",
                     accentColor = TealAccent,
                     testTag = "mode_card_dialogs",
                     onClick = { viewModel.switchMode(AppMode.DIALOGUE) },
@@ -321,7 +322,7 @@ fun HomeDashboardScreen(
                 )
             }
 
-            // 2. Satır: Sol Alt (Cümle & Akıcılık) & Sağ Alt (Sarf & Kök Sözlüğü)
+            // 2. Satır: Sol Alt (📜 Cümleler) & Sağ Alt (📖 Sarf Sözlüğü)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -329,11 +330,10 @@ fun HomeDashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 CompactGridModeCard(
-                    title = "📜 Cümle & Akıcılık",
-                    subtitle = "Cümle Kur & Telaffuz",
+                    title = "📜 Cümleler",
+                    subtitle = "$sentencesCount Cümle",
                     centerIcon = "📜",
-                    centerDescription = "Kelime kelime renkli doğruluk ve akıcılık analizi",
-                    buttonText = "🎙️ Cümleler",
+                    centerDescription = "Kelime bazlı akıcılık analizi",
                     accentColor = RoyalPurple,
                     testTag = "mode_card_sentences",
                     onClick = { viewModel.switchMode(AppMode.SENTENCES) },
@@ -343,11 +343,10 @@ fun HomeDashboardScreen(
                 )
 
                 CompactGridModeCard(
-                    title = "📖 Sarf & Kök Sözlüğü",
-                    subtitle = "$sozlukCount Madde • Kök Ailesi",
+                    title = "📖 Sarf Sözlüğü",
+                    subtitle = "$sozlukCount Kök",
                     centerIcon = "🏛️",
-                    centerDescription = "Sülâsî kökler, müfret/cemî ve fiil çekim atölyesi",
-                    buttonText = "🔎 Sözlüğü Aç",
+                    centerDescription = "Sülâsî kökler ve çekim atölyesi",
                     accentColor = AccentCoral,
                     testTag = "mode_card_sarf_explorer",
                     onClick = { viewModel.openModal(ActiveModal.SARF_EXPLORER) },
@@ -375,7 +374,7 @@ fun HomeDashboardScreen(
                 border = BorderStroke(1.5.dp, palette.amberBorder)
             ) {
                 BoxOrCenteredRow(
-                    text = "🎧 Dinle & Bul (İstimâ Sınavı)",
+                    text = "🎧 Dinle & Bul",
                     textColor = palette.amberText
                 )
             }
@@ -393,7 +392,7 @@ fun HomeDashboardScreen(
                 )
             ) {
                 BoxOrCenteredRow(
-                    text = "📊 Gelişim Karnesi & PDF",
+                    text = "📊 Karne & PDF",
                     textColor = palette.okGreen
                 )
             }
@@ -409,14 +408,14 @@ private fun BoxOrCenteredRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
-            .padding(horizontal = 8.dp),
+            .height(42.dp)
+            .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
         Text(
             text = text,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,
             textAlign = TextAlign.Center,
@@ -433,7 +432,6 @@ private fun CompactGridModeCard(
     subtitle: String,
     centerIcon: String,
     centerDescription: String,
-    buttonText: String,
     accentColor: Color,
     testTag: String,
     onClick: () -> Unit,
@@ -452,102 +450,67 @@ private fun CompactGridModeCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Üst Başlık ve Alt-bilgi Rozeti
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-                modifier = Modifier.fillMaxWidth()
+            // Merkez İkon Rozeti
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = accentColor.copy(alpha = 0.14f),
+                border = BorderStroke(1.5.dp, accentColor.copy(alpha = 0.4f)),
+                modifier = Modifier.size(46.dp)
             ) {
-                Text(
-                    text = title,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.textMain,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = palette.panelColor,
-                    border = BorderStroke(1.dp, palette.border)
-                ) {
+                Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = subtitle,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = palette.textDim,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        text = centerIcon,
+                        fontSize = 22.sp,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
 
-            // Orta Görsel İkon Rozeti + 2 Satırlık Açıklama (Kartın ortasındaki boşluğu doldurur)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Başlık
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = palette.textMain,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            // Kısa Tek Satır Açıklama
+            Text(
+                text = centerDescription,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = palette.textDim,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Alt Sayaç Rozeti (65 Kart, 20 Diyalog, 7950 Cümle, 210 Kök)
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = accentColor.copy(alpha = 0.15f),
+                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.5f))
             ) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = accentColor.copy(alpha = 0.12f),
-                    border = BorderStroke(1.5.dp, accentColor.copy(alpha = 0.35f)),
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = centerIcon,
-                            fontSize = 26.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(5.dp))
-
                 Text(
-                    text = centerDescription,
+                    text = subtitle,
                     fontSize = 11.sp,
-                    lineHeight = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = palette.textDim,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-            }
-
-            // Alt Aksiyon Butonu
-            Button(
-                onClick = onClick,
-                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(36.dp)
-            ) {
-                Text(
-                    text = buttonText,
-                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = if (palette.isDark) Color.White else accentColor,
+                    textAlign = TextAlign.Center,
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                 )
             }
         }

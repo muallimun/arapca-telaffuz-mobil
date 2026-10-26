@@ -168,15 +168,17 @@ object DesktopDatabaseImporter {
                     }
                 }
                 if (words.isNotEmpty()) {
-                    words.chunked(500).forEach { dao.insertWords(it) }
-                    addedTotal += words.size
-                    details.add("kelimeler.db: ${words.size} kelime aktarıldı")
+                    val uniqueWords = words.distinctBy { it.id }
+                    uniqueWords.chunked(500).forEach { dao.insertWords(it) }
+                    addedTotal += uniqueWords.size
+                    details.add("kelimeler.db: ${uniqueWords.size} kelime aktarıldı")
                 }
             }
 
             // 2. SARF SÖZLÜĞÜ VERİTABANI (sozluk.db)
             if ("sozluk" in tables) {
                 if (clearExisting) dao.deleteAllSozluk()
+                val existingWordIds = if (clearExisting) emptySet() else dao.getAllWords().mapTo(HashSet()) { it.id }
                 val szlList = mutableListOf<SozlukEntity>()
                 val szlWordCards = mutableListOf<WordEntity>()
                 val szlPackages = mutableMapOf<String, PackageEntity>()
@@ -220,22 +222,26 @@ object DesktopDatabaseImporter {
                                 )
                             )
                             szlPackages[katId] = PackageEntity(katId, "📖 Sözlük: $kat", "words", "A2", kat)
-                            szlWordCards.add(
-                                WordEntity(
-                                    id = wordId,
-                                    paketId = katId,
-                                    arapca = primaryAr,
-                                    turkce = anlamTr,
-                                    seviye = sev
+                            if (wordId !in existingWordIds) {
+                                szlWordCards.add(
+                                    WordEntity(
+                                        id = wordId,
+                                        paketId = katId,
+                                        arapca = primaryAr,
+                                        turkce = anlamTr,
+                                        seviye = sev
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
                 if (szlList.isNotEmpty()) {
                     dao.insertPackages(szlPackages.values.toList())
-                    szlList.chunked(500).forEach { dao.insertSozlukList(it) }
-                    szlWordCards.chunked(500).forEach { dao.insertWords(it) }
+                    szlList.distinctBy { it.id }.chunked(500).forEach { dao.insertSozlukList(it) }
+                    if (szlWordCards.isNotEmpty()) {
+                        szlWordCards.distinctBy { it.id }.chunked(500).forEach { dao.insertWords(it) }
+                    }
                     addedTotal += szlList.size
                     details.add("sozluk.db: ${szlList.size} sözlük maddesi ve kök ağacı aktarıldı")
                 }
