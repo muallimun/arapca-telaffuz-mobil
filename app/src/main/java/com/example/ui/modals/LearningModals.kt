@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
@@ -150,7 +151,7 @@ fun SarfExplorerModal(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
             // Kompakt Başlık ve Tek Satır Bilgi
             Row(
@@ -172,15 +173,19 @@ fun SarfExplorerModal(
                         fontSize = 11.sp,
                         color = palette.okGreen,
                         maxLines = 1,
+                        softWrap = false,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                IconButton(onClick = onDismiss) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(34.dp)
+                ) {
                     Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Arama Kutusu
             Row(
@@ -213,13 +218,13 @@ fun SarfExplorerModal(
                         Text(
                             text = "🧹",
                             fontSize = 14.sp,
-                            modifier = Modifier.padding(10.dp)
+                            modifier = Modifier.padding(8.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // 1. Satır (Tür Filtresi): Tümü, 🏷️ İsim, ⚡ Fiil eşit genişlikte
             Row(
@@ -239,7 +244,7 @@ fun SarfExplorerModal(
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
                         modifier = Modifier
                             .weight(1f)
-                            .height(34.dp)
+                            .height(32.dp)
                     ) {
                         Text(
                             text = label,
@@ -253,7 +258,7 @@ fun SarfExplorerModal(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // 2. Satır (Sıralama): Kök ⇅, Arapça ⇅, Türkçe ⇅ eşit genişlikte ve tek satır
             Row(
@@ -280,7 +285,7 @@ fun SarfExplorerModal(
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
                         modifier = Modifier
                             .weight(1f)
-                            .height(34.dp)
+                            .height(32.dp)
                     ) {
                         Text(
                             text = "$colLbl$arrow",
@@ -294,11 +299,11 @@ fun SarfExplorerModal(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Sözlük Maddeleri Listesi
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -327,8 +332,8 @@ fun SarfExplorerModal(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 10.dp, vertical = 10.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -570,13 +575,13 @@ fun ListeningExamModal(
 
     val availablePackages = remember(selectedSourceKey, wordPackages, sentencePackages, allDialogues) {
         when (selectedSourceKey) {
-            "words" -> listOf("all" to "📦 Tüm Paketler") +
+            "words" -> listOf("all" to "📦 Tümü") +
                 wordPackages.filter { !it.id.startsWith("szl_") }.map { it.id to "📦 ${it.ad}" }
-            "dictionary" -> listOf("all" to "📖 Tüm Sözlük") +
+            "dictionary" -> listOf("all" to "📖 Tümü") +
                 wordPackages.filter { it.id.startsWith("szl_") }.map { it.id to "📖 ${it.ad}" }
-            "dialogue" -> listOf("all" to "💬 Tüm Diyaloglar") +
+            "dialogue" -> listOf("all" to "💬 Tümü") +
                 allDialogues.map { it.id to "💬 [${it.seviye}] ${it.baslikTr}" }
-            else -> listOf("all" to "📜 Tüm Paketler") +
+            else -> listOf("all" to "📜 Tümü") +
                 sentencePackages.map { it.id to "📜 ${it.ad}" }
         }
     }
@@ -629,325 +634,361 @@ fun ListeningExamModal(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-                // Header
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+            // 1. Üst Başlık ve Tek Satır Skor Bilgisi
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "🎧 Dinle & Bul",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.accentHead,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        val totAns = correctCount + wrongCount
-                        val accPct = if (totAns > 0) ((correctCount.toDouble() / totAns) * 100).roundToInt() else 0
-                        Text(
-                            text = if (examStarted) {
-                                "Soru: ${currentIndex + 1}/${questions.size}  |  Doğru: $correctCount  |  Yanlış: $wrongCount  |  Başarı: %$accPct"
-                            } else {
-                                "Hazır • Başlamak için '▶️ SINAVI BAŞLAT' butonuna basın"
-                            },
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.okGreen
-                        )
-                    }
-                    IconButton(onClick = {
+                    Text(
+                        text = "🎧 Dinle & Bul",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.accentHead,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    val totAns = correctCount + wrongCount
+                    val accPct = if (totAns > 0) ((correctCount.toDouble() / totAns) * 100).roundToInt() else 0
+                    val qNum = if (examStarted) currentIndex + 1 else 0
+                    val qTot = if (examStarted) questions.size else (selectedTargetCount.substringBefore(" ").toIntOrNull() ?: 10)
+                    Text(
+                        text = if (examStarted) {
+                            "Soru: $qNum/$qTot • ✅ $correctCount • ❌ $wrongCount • 🎯 %$accPct"
+                        } else {
+                            "Soru: 0/$qTot • ✅ 0 • ❌ 0 • 🎯 %0 (Başlat'a basın)"
+                        },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.okGreen,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(
+                    onClick = {
                         viewModel.audioManager.stopAllAudio()
                         onDismiss()
-                    }) {
-                        Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
-                    }
-                }
-
-                // Kaynak, Paket/Diyalog, Seviye ve Soru Sayısı Seçici + Sınav Başlatma ve Ses/İpucu Butonları
-                Card(
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = palette.panelColor),
-                    border = BorderStroke(1.dp, palette.border),
-                    modifier = Modifier.fillMaxWidth()
+                    },
+                    modifier = Modifier.size(34.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
+                }
+            }
+
+            // 2. Kompakt Filtre ve Kontrol Kutusu
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = palette.panelColor),
+                border = BorderStroke(1.dp, palette.border),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // 1. Satır: Kaynak ve Paket / Diyalog Seçimi
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        // 1. Satır: Kaynak ve Paket / Diyalog Seçimi
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                OutlinedButton(
-                                    onClick = { showSourceMenu = true },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    val lbl = sourceOptions.firstOrNull { it.first == selectedSourceKey }?.second ?: ""
-                                    Text(
-                                        text = lbl,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = palette.accentHead,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
-                                }
-                                DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
-                                    sourceOptions.forEach { (k, label) ->
-                                        DropdownMenuItem(
-                                            text = { Text(label, fontWeight = FontWeight.SemiBold) },
-                                            onClick = {
-                                                showSourceMenu = false
-                                                selectedSourceKey = k
-                                                selectedPaketId = "all"
-                                                examStarted = false
-                                            }
-                                        )
-                                    }
-                                }
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedButton(
+                                onClick = { showSourceMenu = true },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                            ) {
+                                val lbl = sourceOptions.firstOrNull { it.first == selectedSourceKey }?.second ?: ""
+                                Text(
+                                    text = lbl,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.accentHead,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
                             }
-
-                            Box(modifier = Modifier.weight(1f)) {
-                                OutlinedButton(
-                                    onClick = { showPaketMenu = true },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("listening_paket_selector")
-                                ) {
-                                    val pkgLbl = availablePackages.firstOrNull { it.first == selectedPaketId }?.second
-                                        ?: "📦 Tümü"
-                                    Text(
-                                        text = pkgLbl,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = palette.textMain,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
+                            DropdownMenu(expanded = showSourceMenu, onDismissRequest = { showSourceMenu = false }) {
+                                sourceOptions.forEach { (k, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label, fontWeight = FontWeight.SemiBold) },
+                                        onClick = {
+                                            showSourceMenu = false
+                                            selectedSourceKey = k
+                                            selectedPaketId = "all"
+                                            examStarted = false
+                                        }
                                     )
-                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
-                                }
-                                DropdownMenu(expanded = showPaketMenu, onDismissRequest = { showPaketMenu = false }) {
-                                    availablePackages.forEach { (pkgKey, pkgLabel) ->
-                                        DropdownMenuItem(
-                                            text = { Text(pkgLabel, fontWeight = FontWeight.SemiBold) },
-                                            onClick = {
-                                                showPaketMenu = false
-                                                selectedPaketId = pkgKey
-                                                examStarted = false
-                                            }
-                                        )
-                                    }
                                 }
                             }
                         }
 
-                        // 2. Satır: Seviye Seçimi ve Soru Sayısı (Yan Yana Eşit Genişlik - weight(1f))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                OutlinedButton(
-                                    onClick = { showLevelMenu = true },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = "Seviye: $selectedLevel",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = palette.textMain,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedButton(
+                                onClick = { showPaketMenu = true },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                                    .testTag("listening_paket_selector")
+                            ) {
+                                val pkgLbl = availablePackages.firstOrNull { it.first == selectedPaketId }?.second
+                                    ?: "📦 Tümü"
+                                Text(
+                                    text = pkgLbl,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.textMain,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
+                            }
+                            DropdownMenu(expanded = showPaketMenu, onDismissRequest = { showPaketMenu = false }) {
+                                availablePackages.forEach { (pkgKey, pkgLabel) ->
+                                    DropdownMenuItem(
+                                        text = { Text(pkgLabel, fontWeight = FontWeight.SemiBold) },
+                                        onClick = {
+                                            showPaketMenu = false
+                                            selectedPaketId = pkgKey
+                                            examStarted = false
+                                        }
                                     )
-                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
-                                }
-                                DropdownMenu(expanded = showLevelMenu, onDismissRequest = { showLevelMenu = false }) {
-                                    listOf("Tümü", "A1", "A2", "B1", "B2", "C1").forEach { lvl ->
-                                        DropdownMenuItem(
-                                            text = { Text(lvl, fontWeight = FontWeight.Bold) },
-                                            onClick = {
-                                                showLevelMenu = false
-                                                selectedLevel = lvl
-                                                examStarted = false
-                                            }
-                                        )
-                                    }
                                 }
                             }
+                        }
+                    }
 
-                            Box(modifier = Modifier.weight(1f)) {
-                                OutlinedButton(
-                                    onClick = { showCountMenu = true },
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = selectedTargetCount,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = palette.accentHead,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
+                    // 2. Satır: Seviye Seçimi ve Soru Sayısı
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedButton(
+                                onClick = { showLevelMenu = true },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                            ) {
+                                Text(
+                                    text = "Seviye: $selectedLevel",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.textMain,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain)
+                            }
+                            DropdownMenu(expanded = showLevelMenu, onDismissRequest = { showLevelMenu = false }) {
+                                listOf("Tümü", "A1", "A2", "B1", "B2", "C1").forEach { lvl ->
+                                    DropdownMenuItem(
+                                        text = { Text(lvl, fontWeight = FontWeight.Bold) },
+                                        onClick = {
+                                            showLevelMenu = false
+                                            selectedLevel = lvl
+                                            examStarted = false
+                                        }
                                     )
-                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
-                                }
-                                DropdownMenu(expanded = showCountMenu, onDismissRequest = { showCountMenu = false }) {
-                                    listOf("10 Soru", "20 Soru", "50 Soru", "♾️ Sınırsız").forEach { cnt ->
-                                        DropdownMenuItem(
-                                            text = { Text(cnt, fontWeight = FontWeight.Bold) },
-                                            onClick = {
-                                                showCountMenu = false
-                                                selectedTargetCount = cnt
-                                                examStarted = false
-                                            }
-                                        )
-                                    }
                                 }
                             }
                         }
 
-                        // 3. Satır: ▶️ SINAVI BAŞLAT (Tam Genişlikte Tek Başına - height(48.dp))
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedButton(
+                                onClick = { showCountMenu = true },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                            ) {
+                                Text(
+                                    text = selectedTargetCount,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.accentHead,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead)
+                            }
+                            DropdownMenu(expanded = showCountMenu, onDismissRequest = { showCountMenu = false }) {
+                                listOf("10 Soru", "20 Soru", "50 Soru", "♾️ Sınırsız").forEach { cnt ->
+                                    DropdownMenuItem(
+                                        text = { Text(cnt, fontWeight = FontWeight.Bold) },
+                                        onClick = {
+                                            showCountMenu = false
+                                            selectedTargetCount = cnt
+                                            examStarted = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. Satır: 🔊 Tekrar Dinle | 👁️ İpucu | 🔄 Yenile (veya ▶️ Başlat) 3'lü Yan Yana (height = 38.dp)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = {
+                                currentQuestion?.let { q ->
+                                    viewModel.audioManager.speakArabic(q.arapca, "male", viewModel.slowTts.value)
+                                }
+                            },
+                            enabled = examStarted && currentQuestion != null,
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                        ) {
+                            Text(
+                                text = "🔊 Tekrar Dinle",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Button(
+                            onClick = { showArabicHint = !showArabicHint },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (showArabicHint) WarmGold else palette.btnSec,
+                                contentColor = if (showArabicHint) Color(0xFF0F172A) else palette.textMain
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                        ) {
+                            Text(
+                                text = if (showArabicHint) "👁️ İpucu Açık" else "👁️ İpucu",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
                         Button(
                             onClick = { startNewExam() },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (examStarted) RoyalBlue else EmeraldGreen,
                                 contentColor = if (examStarted) Color.White else Color(0xFF0F172A)
                             ),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
+                                .weight(1f)
+                                .height(38.dp)
                                 .testTag("btn_start_listening_exam")
                         ) {
                             Text(
-                                text = if (examStarted) "🔄 Yeniden Başlat" else "▶️ SINAVI BAŞLAT",
+                                text = if (examStarted) "🔄 Yenile" else "▶️ Başlat",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                maxLines = 1
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
                             )
-                        }
-
-                        // 4. Satır: 🔊 Tekrar Dinle ve 👁️ İpucu Yan Yana (Eşit Genişlik - weight(1f))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Button(
-                                onClick = {
-                                    currentQuestion?.let { q ->
-                                        viewModel.audioManager.speakArabic(q.arapca, "male", viewModel.slowTts.value)
-                                    }
-                                },
-                                enabled = examStarted && currentQuestion != null,
-                                colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(42.dp)
-                            ) {
-                                Text(
-                                    text = "🔊 Tekrar Dinle",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            Button(
-                                onClick = { showArabicHint = !showArabicHint },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (showArabicHint) WarmGold else palette.btnSec,
-                                    contentColor = if (showArabicHint) Color(0xFF0F172A) else palette.textMain
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(42.dp)
-                            ) {
-                                Text(
-                                    text = if (showArabicHint) "👁️ İpucu Açık" else "👁️ İpucu",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
                         }
                     }
                 }
+            }
 
-                // Soru Metni / İpucu Alanı
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = palette.cardColor),
-                    border = BorderStroke(1.dp, palette.border),
-                    modifier = Modifier.fillMaxWidth()
+            // 3. Soru Metni / İpucu Alanı (Kompakt)
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = palette.cardColor),
+                border = BorderStroke(1.dp, palette.border),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp)
-                    ) {
-                        if (!examStarted || currentQuestion == null) {
-                            Text(
-                                text = "🎯 Yukarıdan kaynak, seviye ve soru hedefini seçip '▶️ SINAVI BAŞLAT' butonuna basın.",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.accentHead,
-                                textAlign = TextAlign.Center
-                            )
-                        } else if (showArabicHint || chosenOption != null) {
-                            Text(
-                                text = currentQuestion.arapca,
-                                fontFamily = AmiriArabicFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 32.sp,
-                                color = palette.textArabic,
-                                textAlign = TextAlign.Center
-                            )
-                        } else {
-                            Text(
-                                text = "🔒 [ Seslendirilen Arapça İfadeyi Dinleyip Doğru Türkçe Karşılığını Seçin ]",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.textArabic,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                    if (!examStarted || currentQuestion == null) {
+                        Text(
+                            text = "🎯 Kaynak ve seviyeyi seçip '▶️ Başlat' butonuna basın.",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.accentHead,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else if (showArabicHint || chosenOption != null) {
+                        Text(
+                            text = currentQuestion.arapca,
+                            fontFamily = AmiriArabicFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 26.sp,
+                            color = palette.textArabic,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else {
+                        Text(
+                            text = "🔒 Seslendirilen ifadeyi dinleyip doğru karşılığını seçin",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.textArabic,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
+            }
 
-                // 4 Şıklı Seçenekler (A, B, C, D)
-                val letters = listOf("A", "B", "C", "D")
+            // 4. 4 Şıklı Seçenekler (A, B, C, D) — Tek Ekrana Sığacak Kompakt Yükseklik
+            val letters = listOf("A", "B", "C", "D")
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 for (i in 0 until 4) {
                     val optText = currentQuestion?.options?.getOrNull(i)
-                        ?: "[ Sınav başladığında seçenekler burada görünecektir ]"
+                        ?: "[ Seçenek ${letters[i]} ]"
                     val isEnabled = examStarted && currentQuestion != null && chosenOption == null
 
                     val bgCol = when {
@@ -964,7 +1005,7 @@ fun ListeningExamModal(
                     }
 
                     Card(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(10.dp),
                         colors = CardDefaults.cardColors(containerColor = bgCol),
                         border = BorderStroke(1.dp, palette.border),
                         modifier = Modifier
@@ -1003,57 +1044,66 @@ fun ListeningExamModal(
                             .testTag("listening_option_$i")
                     ) {
                         Text(
-                            text = "${letters[i]})   $optText",
+                            text = "${letters[i]})  $optText",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = fgCol,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
                         )
                     }
                 }
+            }
 
-                if (roundFinished) {
-                    val tot = correctCount + wrongCount
-                    val pct = if (tot > 0) ((correctCount.toDouble() / tot) * 100).roundToInt() else 0
-                    Card(
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = palette.panelColor),
-                        border = BorderStroke(2.dp, EmeraldGreen),
-                        modifier = Modifier.fillMaxWidth()
+            if (roundFinished) {
+                val tot = correctCount + wrongCount
+                val pct = if (tot > 0) ((correctCount.toDouble() / tot) * 100).roundToInt() else 0
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = palette.panelColor),
+                    border = BorderStroke(1.5.dp, EmeraldGreen),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Text(
+                            text = "🏆 Tur Tamamlandı! Çözülen: $tot • ✅ $correctCount • ❌ $wrongCount • 🎯 %$pct",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.accentHead,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "🏆 Tur Tamamlandı! Çözülen: $tot  |  Doğru: $correctCount  |  Yanlış: $wrongCount  |  Başarı: %$pct",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.accentHead
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
+                            Button(
+                                onClick = { startNewExam() },
+                                colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(36.dp)
                             ) {
-                                Button(
-                                    onClick = { startNewExam() },
-                                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color(0xFF0F172A)),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("🔄 Yeni Sınav Başlat", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                                Button(
-                                    onClick = onDismiss,
-                                    colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Text("Kapat", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                                }
+                                Text("🔄 Yeni Sınav Başlat", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            Button(
+                                onClick = onDismiss,
+                                colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Text("Kapat", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                             }
                         }
                     }
                 }
+            }
         }
     }
 }
@@ -1229,19 +1279,22 @@ fun ShadowingTrainerModal(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // 1. Üst Başlık (Sabit)
+            // 1. Üst Başlık (Sabit ve Kompakt)
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
                         text = "🗣️ Gölgeleme Stüdyosu",
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = palette.accentHead,
                         maxLines = 1,
@@ -1252,14 +1305,18 @@ fun ShadowingTrainerModal(
                         fontSize = 11.sp,
                         color = palette.textDim,
                         maxLines = 1,
+                        softWrap = false,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                IconButton(onClick = {
-                    viewModel.audioManager.stopAllAudio()
-                    viewModel.audioManager.stopSpeechRecognition()
-                    onDismiss()
-                }) {
+                IconButton(
+                    onClick = {
+                        viewModel.audioManager.stopAllAudio()
+                        viewModel.audioManager.stopSpeechRecognition()
+                        onDismiss()
+                    },
+                    modifier = Modifier.size(34.dp)
+                ) {
                     Icon(Icons.Default.Close, contentDescription = "Kapat", tint = palette.textMain)
                 }
             }
@@ -1270,11 +1327,11 @@ fun ShadowingTrainerModal(
                     .fillMaxWidth()
                     .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // Metin Kartı
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = palette.cardColor),
                     border = BorderStroke(1.dp, palette.border),
                     modifier = Modifier.fillMaxWidth()
@@ -1283,7 +1340,7 @@ fun ShadowingTrainerModal(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         if (coloredWords.isNotEmpty()) {
@@ -1297,7 +1354,7 @@ fun ShadowingTrainerModal(
                                             text = wStr,
                                             fontFamily = AmiriArabicFontFamily,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 26.sp,
+                                            fontSize = 24.sp,
                                             color = if (isOk) palette.okGreen else CoralRed,
                                             style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
                                         )
@@ -1309,7 +1366,7 @@ fun ShadowingTrainerModal(
                                 text = target.arabic,
                                 fontFamily = AmiriArabicFontFamily,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 28.sp,
+                                fontSize = 24.sp,
                                 color = palette.textArabic,
                                 textAlign = TextAlign.Center,
                                 style = LocalTextStyle.current.copy(textDirection = TextDirection.Rtl)
@@ -1319,9 +1376,11 @@ fun ShadowingTrainerModal(
                         if (target.turkish.isNotBlank()) {
                             Text(
                                 text = target.turkish,
-                                fontSize = 13.sp,
+                                fontSize = 12.sp,
                                 color = palette.textDim,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -1329,14 +1388,14 @@ fun ShadowingTrainerModal(
 
                 // Çift Dalga Boyu Karşılaştırma Kutusu (Referans vs Öğrenci)
                 Card(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = palette.panelColor),
                     border = BorderStroke(1.dp, palette.border),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         // Üst Grafik Başlığı + Süre Rozeti
                         Row(
@@ -1374,7 +1433,7 @@ fun ShadowingTrainerModal(
                             bars = refBars,
                             isRecording = false,
                             barColorOverride = RoyalBlue,
-                            modifier = Modifier.height(56.dp)
+                            modifier = Modifier.height(42.dp)
                         )
 
                         Spacer(modifier = Modifier.height(2.dp))
@@ -1415,7 +1474,7 @@ fun ShadowingTrainerModal(
                             bars = userBars,
                             isRecording = isRunning,
                             barColorOverride = palette.okGreen,
-                            modifier = Modifier.height(56.dp)
+                            modifier = Modifier.height(42.dp)
                         )
                     }
                 }
@@ -1453,10 +1512,10 @@ fun ShadowingTrainerModal(
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(40.dp)
+                            .height(38.dp)
                             .testTag("btn_open_permission_settings_shadowing")
                     ) {
                         Text(
@@ -1475,6 +1534,9 @@ fun ShadowingTrainerModal(
                         fontWeight = FontWeight.Bold,
                         color = palette.textMain,
                         textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1482,7 +1544,7 @@ fun ShadowingTrainerModal(
 
             // 3. Alt Kontrol Butonları (Sabit ve Tam Görünür - navigationBarsPadding)
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
@@ -1491,24 +1553,24 @@ fun ShadowingTrainerModal(
                     onClick = { requestMicAndStartShadowing() },
                     enabled = !isRunning,
                     colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue, contentColor = Color.White),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(46.dp)
+                        .height(42.dp)
                         .testTag("btn_start_shadowing_cycle")
                 ) {
                     Text(
                         text = if (isRunning) "⏳ Gölgeleme Çalışıyor..." else "🎬 Gölgelemeyi Başlat",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
@@ -1517,10 +1579,10 @@ fun ShadowingTrainerModal(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
                         shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         modifier = Modifier
                             .weight(1f)
-                            .height(42.dp)
+                            .height(38.dp)
                     ) {
                         Text(
                             text = "🔊 Referansı Dinle",
@@ -1539,10 +1601,10 @@ fun ShadowingTrainerModal(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
                         shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
                         modifier = Modifier
                             .weight(1f)
-                            .height(42.dp)
+                            .height(38.dp)
                     ) {
                         Text(
                             text = "🎧 Kaydımı Dinle",
