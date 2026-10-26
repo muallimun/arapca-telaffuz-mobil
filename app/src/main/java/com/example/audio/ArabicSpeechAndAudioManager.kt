@@ -137,12 +137,85 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         }
     }
 
+    private var nextPraiseIsMale: Boolean = true
+
     fun playPraiseTone() {
         try {
             val tg = ToneGenerator(AudioManager.STREAM_MUSIC, 75)
             tg.startTone(ToneGenerator.TONE_PROP_ACK, 260)
             mainHandler.postDelayed({ tg.release() }, 350)
         } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * Başarılı telaffuzlardan (score >= 75) veya sınav doğrularından sonra
+     * assets/sounds/effect/${prefix}_${suffix}.mp3 dosyasını doğrudan çalar:
+     * - ahsent_female.mp3 / ahsent_male.mp3 (75..84)
+     * - rai_female.mp3 / rai_male.mp3 (85..94)
+     * - mumtaz_female.mp3 / mumtaz_male.mp3 (>= 95)
+     */
+    fun playPraiseEffect(
+        score: Int,
+        voiceGenderSetting: String = "Sırayla",
+        isEnabled: Boolean = true
+    ) {
+        if (!isEnabled || score < 75) return
+
+        val prefix = when {
+            score >= 95 -> "mumtaz"
+            score in 85..94 -> "rai"
+            else -> "ahsent"
+        }
+
+        val suffix = when (voiceGenderSetting) {
+            "Erkek" -> "male"
+            "Kadın" -> "female"
+            else -> {
+                val chosen = if (nextPraiseIsMale) "male" else "female"
+                nextPraiseIsMale = !nextPraiseIsMale
+                chosen
+            }
+        }
+
+        try {
+            context.assets.openFd("sounds/effect/${prefix}_${suffix}.mp3").use { afd ->
+                val mp = MediaPlayer()
+                mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                mp.setOnCompletionListener { player ->
+                    try {
+                        player.release()
+                    } catch (_: Exception) {
+                    }
+                }
+                mp.setOnErrorListener { player, _, _ ->
+                    try {
+                        player.release()
+                    } catch (_: Exception) {
+                    }
+                    true
+                }
+                mp.prepare()
+                mp.start()
+            }
+            return
+        } catch (_: Exception) {
+        }
+
+        // Yedek (Fallback): Hata oluşursa TTS ile kısa Arapça övgü seslendir
+        try {
+            val fallbackArabic = when {
+                score >= 95 -> "مُمْتَازٌ"
+                score in 85..94 -> "رَائِعٌ"
+                else -> "أَحْسَنْتَ"
+            }
+            speakWithTts(
+                text = fallbackArabic,
+                voiceType = suffix,
+                slow = false
+            )
+        } catch (_: Exception) {
+            playPraiseTone()
         }
     }
 

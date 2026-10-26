@@ -1016,13 +1016,13 @@ fun ListeningExamModal(
                                 val isOk = optText == q.correctTr
                                 if (isOk) {
                                     correctCount++
-                                    viewModel.audioManager.playPraiseTone()
+                                    viewModel.triggerPraiseFeedback(90)
                                 } else {
                                     wrongCount++
                                 }
                                 scope.launch {
                                     viewModel.repository.recordPracticeOutcome(q.id, q.mode, isOk)
-                                    delay(1150)
+                                    delay(1350)
                                     if (currentIndex + 1 < questions.size) {
                                         currentIndex++
                                         chosenOption = null
@@ -1183,8 +1183,10 @@ fun ShadowingTrainerModal(
         totalFluencyPct = ((pronScorePct * 0.65) + (rhythmScorePct * 0.35)).roundToInt().coerceIn(0, 100)
 
         statusText = when {
-            pronScorePct >= 80 && totalFluencyPct >= 75 ->
+            pronScorePct >= 80 && totalFluencyPct >= 75 -> {
+                viewModel.triggerPraiseFeedback(totalFluencyPct)
                 "✅ Harika Akıcılık ve Telaffuz! (Algılanan: \"$heardText\") — Genel Puan: %$totalFluencyPct"
+            }
             pronScorePct >= 50 ->
                 "🟡 İyi Deneme! Kırmızı kelimelere dikkat edin (Algılanan: \"$heardText\") — Genel Puan: %$totalFluencyPct"
             else ->

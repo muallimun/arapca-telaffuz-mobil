@@ -178,6 +178,13 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
     private val _hapticFeedbackEnabled = MutableStateFlow(true)
     val hapticFeedbackEnabled: StateFlow<Boolean> = _hapticFeedbackEnabled.asStateFlow()
 
+    private val _praiseSoundEffectsEnabled = MutableStateFlow(
+        getApplication<Application>()
+            .getSharedPreferences("muallimun_prefs", Context.MODE_PRIVATE)
+            .getBoolean("praise_sound_effects", true)
+    )
+    val praiseSoundEffectsEnabled: StateFlow<Boolean> = _praiseSoundEffectsEnabled.asStateFlow()
+
     private val _isRadioModeActive = MutableStateFlow(false)
     val isRadioModeActive: StateFlow<Boolean> = _isRadioModeActive.asStateFlow()
     private var radioLoopJob: Job? = null
@@ -445,6 +452,14 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 _hapticFeedbackEnabled.value = hapticCfg
                 audioManager.hapticEnabled = hapticCfg
 
+                val prefs = getApplication<Application>().getSharedPreferences("muallimun_prefs", Context.MODE_PRIVATE)
+                val praiseCfg = if (map.containsKey("praise_sound_effects")) {
+                    map["praise_sound_effects"] != "0"
+                } else {
+                    prefs.getBoolean("praise_sound_effects", true)
+                }
+                _praiseSoundEffectsEnabled.value = praiseCfg
+
                 val savedRate = map["tts_speech_rate"]?.toFloatOrNull()?.coerceIn(0.75f, 1.25f) ?: 1.0f
                 _ttsSpeechRate.value = savedRate
                 audioManager.ttsSpeechRate = savedRate
@@ -613,6 +628,41 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         audioManager.hapticEnabled = enabled
         viewModelScope.launch {
             repository.setConfig("haptic_feedback", if (enabled) "1" else "0")
+        }
+    }
+
+    fun setPraiseSoundEffectsEnabled(enabled: Boolean) {
+        _praiseSoundEffectsEnabled.value = enabled
+        getApplication<Application>()
+            .getSharedPreferences("muallimun_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("praise_sound_effects", enabled)
+            .apply()
+        viewModelScope.launch {
+            repository.setConfig("praise_sound_effects", if (enabled) "1" else "0")
+        }
+    }
+
+    private var testPraiseTierIndex = 0
+
+    fun testPraiseSoundEffect() {
+        val sampleScores = listOf(80, 90, 98)
+        val score = sampleScores[testPraiseTierIndex % sampleScores.size]
+        testPraiseTierIndex++
+        audioManager.playPraiseEffect(
+            score = score,
+            voiceGenderSetting = _voicePreference.value,
+            isEnabled = true
+        )
+    }
+
+    fun triggerPraiseFeedback(score: Int) {
+        if (score >= 75 && _praiseSoundEffectsEnabled.value) {
+            audioManager.playPraiseEffect(
+                score = score,
+                voiceGenderSetting = _voicePreference.value,
+                isEnabled = true
+            )
         }
     }
 
@@ -1127,7 +1177,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 if (isCorrect) {
                     audioManager.vibrateHaptic("success")
                     if (showConfettiFlag) {
-                        audioManager.playPraiseTone()
+                        triggerPraiseFeedback(max(quality, pct))
                         viewModelScope.launch {
                             delay(2000L)
                             if (_evalState.value.showConfetti) {
@@ -1356,13 +1406,14 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 repository.recordPracticeOutcome("dlgline_${line.id}", "dialogue", allPassed)
             }
             if (allPassed) {
-                audioManager.playPraiseTone()
+                val rpScore = (eval.ratio * 100).roundToInt().coerceAtLeast(80)
+                triggerPraiseFeedback(rpScore)
                 _roleplayStatusText.value = "✅ ${line.sira}. Cümle Başarılı! Sonraki satıra geçiliyor..."
             } else {
                 _roleplayStatusText.value = "⏭️ ${line.sira}. Cümle tamamlandı, sonraki satıra geçiliyor..."
             }
             viewModelScope.launch {
-                delay(1200)
+                delay(1500)
                 _roleplayTurnIndex.value += 1
                 processRoleplayTurn()
             }
@@ -1608,7 +1659,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         )
 
         if (showConfettiFlag) {
-            audioManager.playPraiseTone()
+            triggerPraiseFeedback(max(quality, pct))
             audioManager.vibrateHaptic("success")
             viewModelScope.launch {
                 delay(2000L)

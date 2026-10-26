@@ -399,6 +399,7 @@ fun SettingsModal(
     val chatFontSizeSp by viewModel.chatFontSizeSp.collectAsState()
     val ttsSpeechRate by viewModel.ttsSpeechRate.collectAsState()
     val hapticFeedback by viewModel.hapticFeedbackEnabled.collectAsState()
+    val praiseSoundEffects by viewModel.praiseSoundEffectsEnabled.collectAsState()
     val autoPlay by viewModel.autoPlayOnCardChange.collectAsState()
     val showTashkeel by viewModel.wordShowTashkeel.collectAsState()
     val autoAdvance by viewModel.autoAdvanceOnCorrect.collectAsState()
@@ -769,6 +770,47 @@ fun SettingsModal(
                                             )
                                         }
                                     }
+                                }
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "🎉 Sesli Övgü Dönütleri (Ahsent / Mümtaz)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = palette.textMain,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Button(
+                                        onClick = { viewModel.testPraiseSoundEffect() },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = RoyalBlue,
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        modifier = Modifier
+                                            .height(32.dp)
+                                            .testTag("btn_test_praise_sound")
+                                    ) {
+                                        Text(
+                                            text = "🔊 Test",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                    Switch(
+                                        checked = praiseSoundEffects,
+                                        onCheckedChange = { viewModel.setPraiseSoundEffectsEnabled(it) },
+                                        modifier = Modifier.testTag("switch_praise_sound_effects")
+                                    )
                                 }
 
                                 SettingSwitchRow("🔊 Kart Geçişlerinde Otomatik Seslendir", autoPlay) {
