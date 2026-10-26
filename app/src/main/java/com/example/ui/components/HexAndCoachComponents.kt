@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +26,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -42,11 +48,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -323,9 +331,11 @@ fun LiveMakhrajAndHarakaCoachCard(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalMuallimunPalette.current
+    val context = LocalContext.current
     val targetAr = activeArabicText.ifBlank { evalState.expectedArabic }
-    val hasResult = evalState.isCorrect != null &&
-        (evalState.expectedArabic == targetAr || activeArabicText.isBlank())
+    val isPermMissing = evalState.isPermissionMissing || evalState.verdictTitle.contains("Mikrofon İzni Gerekli")
+    val hasResult = isPermMissing || (evalState.isCorrect != null &&
+        (evalState.expectedArabic == targetAr || activeArabicText.isBlank()))
     val isListeningNow = !hasResult && evalState.verdictTitle.startsWith("🎙️")
 
     val borderColor = when {
@@ -359,7 +369,7 @@ fun LiveMakhrajAndHarakaCoachCard(
             // Başlık & Doğruluk Yüzdesi / Dinleniyor Rozeti Satırı
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
@@ -371,12 +381,14 @@ fun LiveMakhrajAndHarakaCoachCard(
                         hasResult -> if (evalState.isCorrect == true) palette.okGreen else CoralRed
                         else -> palette.accentHead
                     },
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
 
                 if (isListeningNow) {
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(50),
                         color = EmeraldGreen
                     ) {
                         Text(
@@ -384,30 +396,73 @@ fun LiveMakhrajAndHarakaCoachCard(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 } else if (hasResult) {
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(50),
                         color = if (evalState.isCorrect == true) EmeraldGreen else CoralRed
                     ) {
                         Text(
                             text = if (evalState.isCorrect == true) {
-                                "✅ Doğruluk: %${evalState.accuracyPct}"
+                                "✅ %${evalState.accuracyPct}"
                             } else {
-                                "⚠️ Doğruluk: %${evalState.accuracyPct}"
+                                "⚠️ %${evalState.accuracyPct}"
                             },
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (evalState.isCorrect == true) Color(0xFF0F172A) else Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
             }
 
-            if (!hasResult) {
+            if (isPermMissing) {
+                Text(
+                    text = "🎤 Mikrofon İzni Gerekli: Telaffuz analizi için mikrofon izni vermelisiniz.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CoralRed
+                )
+                Button(
+                    onClick = {
+                        try {
+                            val intent = Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null)
+                            ).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = RoyalBlue,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(38.dp)
+                        .testTag("btn_open_permission_settings")
+                ) {
+                    Text(
+                        text = "⚙️ İzin Ayarlarını Aç",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            } else if (!hasResult) {
                 // Konuşmadan Önce veya Dinleme Sırasında: Aktif kelime/cümlenin kısa hareke ve mahreç ipucu
                 if (isListeningNow) {
                     Text(

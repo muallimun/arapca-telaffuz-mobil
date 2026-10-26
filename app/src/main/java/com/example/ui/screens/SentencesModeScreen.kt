@@ -47,14 +47,20 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -120,6 +126,40 @@ fun SentencesModeScreen(
     var showFilterMenu by remember { mutableStateOf(false) }
     var showLevelMenu by remember { mutableStateOf(false) }
     var filterExpanded by remember { mutableStateOf(false) }
+    var pendingMicAction by remember { mutableStateOf<String?>(null) }
+
+    val sentMicPermLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val action = pendingMicAction
+        pendingMicAction = null
+        if (granted) {
+            if (action == "shadowing") {
+                viewModel.openShadowingForCurrentCard()
+            } else {
+                viewModel.startPronunciationRecording()
+            }
+        } else {
+            viewModel.onMicrophonePermissionDenied()
+        }
+    }
+
+    fun checkMicAndRun(actionType: String) {
+        val hasPerm = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPerm) {
+            if (actionType == "shadowing") {
+                viewModel.openShadowingForCurrentCard()
+            } else {
+                onRequestMicPermissionAndRecord()
+            }
+        } else {
+            pendingMicAction = actionType
+            sentMicPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
 
     val safeSentenceIndex = if (sentences.isNotEmpty()) {
         sentenceIndex.coerceIn(0, sentences.size - 1)
@@ -160,10 +200,10 @@ fun SentencesModeScreen(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Üst Seçici Bar: Filtre/Kategori (weight 1.1f) | Seviye "🎯 Tümü" (weight 1f) | Filtre Toggle -> Hepsi 38.dp
+                // Üst Seçici Bar: Filtre/Kategori (weight 1.1f) | Seviye "🎯 Tümü" (weight 0.95f) | Filtre Toggle -> Hepsi 38.dp
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(modifier = Modifier.weight(1.1f)) {
@@ -186,7 +226,7 @@ fun SentencesModeScreen(
                                 softWrap = false,
                                 modifier = Modifier.weight(1f)
                             )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead, modifier = Modifier.size(15.dp))
                         }
                         DropdownMenu(
                             expanded = showFilterMenu,
@@ -205,7 +245,7 @@ fun SentencesModeScreen(
                     }
 
                     // Seviye Seçici ("🎯 Tümü" veya "🎯 A1")
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(0.95f)) {
                         OutlinedButton(
                             onClick = { showLevelMenu = true },
                             shape = RoundedCornerShape(8.dp),
@@ -224,7 +264,7 @@ fun SentencesModeScreen(
                                 softWrap = false,
                                 modifier = Modifier.weight(1f)
                             )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain, modifier = Modifier.size(15.dp))
                         }
                         DropdownMenu(
                             expanded = showLevelMenu,
@@ -253,7 +293,7 @@ fun SentencesModeScreen(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.padding(horizontal = 10.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp)
                         ) {
                             Text(
                                 text = if (filterExpanded) "⚙️ Filtre ▲" else "⚙️ Filtre ▼",
@@ -527,46 +567,52 @@ fun SentencesModeScreen(
                             // Orta: < Önceki | Sayaç + Doğru/Yanlış | Sonraki >
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 4.dp)
                             ) {
                                 IconButton(
                                     onClick = { viewModel.changeSentenceIndex(-1) },
                                     modifier = Modifier
                                         .background(palette.btnSec, RoundedCornerShape(8.dp))
-                                        .size(30.dp)
+                                        .size(28.dp)
                                         .testTag("btn_prev_sentence")
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                         contentDescription = "Önceki Cümle",
                                         tint = palette.textMain,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
 
                                 Text(
-                                    text = "${safeSentenceIndex + 1}/${sentences.size} • ✅${currentItem.dogru} | ❌${currentItem.yanlis}",
+                                    text = "${safeSentenceIndex + 1}/${sentences.size} • ✅${currentItem.dogru} ❌${currentItem.yanlis} • $attemptCount/$maxAttemptsSetting",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = palette.textDim,
+                                    textAlign = TextAlign.Center,
                                     maxLines = 1,
                                     softWrap = false,
                                     overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(horizontal = 2.dp)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 2.dp)
                                 )
 
                                 IconButton(
                                     onClick = { viewModel.changeSentenceIndex(1) },
                                     modifier = Modifier
                                         .background(palette.btnSec, RoundedCornerShape(8.dp))
-                                        .size(30.dp)
+                                        .size(28.dp)
                                         .testTag("btn_next_sentence")
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                         contentDescription = "Sonraki Cümle",
                                         tint = palette.textMain,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -586,7 +632,8 @@ fun SentencesModeScreen(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = palette.accentHead,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -594,14 +641,17 @@ fun SentencesModeScreen(
 
                         // 2. ORTA CÜMLE, KELİME ÇİPLERİ & CANLI MAHREÇ KOÇU ALANI (Kaydırılabilir & AnimatedContent Geçişli)
                         val middleScrollState = rememberScrollState()
+                        LaunchedEffect(currentItem.id) {
+                            middleScrollState.scrollTo(0)
+                        }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                            verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Top),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .verticalScroll(middleScrollState)
-                                .padding(vertical = 6.dp)
+                                .padding(top = 4.dp, bottom = 4.dp)
                                 .pointerInput(currentItem.id) {
                                     var totalDrag = 0f
                                     detectHorizontalDragGestures(
@@ -790,9 +840,9 @@ fun SentencesModeScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Üst Ses Satırı: Yan Yana Eşit Genişlikte (weight(1f)) 🔊 Dinle | 🗣️ Gölgele | 🎧 Sesim | 📻 Radyo
+                            // Üst Ses Satırı: Yan Yana Kesilmesiz 🔊 Dinle | 🗣️ Gölgele | 🎧 Sesim | 📻 Radyo
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -800,9 +850,9 @@ fun SentencesModeScreen(
                                     onClick = { viewModel.speakCurrentItem(null) },
                                     colors = ButtonDefaults.buttonColors(containerColor = AccentCoral, contentColor = Color.White),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                     modifier = Modifier
-                                        .weight(1f)
+                                        .weight(0.95f)
                                         .height(38.dp)
                                         .testTag("btn_sentence_tts")
                                 ) {
@@ -818,12 +868,12 @@ fun SentencesModeScreen(
                                 }
 
                                 Button(
-                                    onClick = { viewModel.openShadowingForCurrentCard() },
+                                    onClick = { checkMicAndRun("shadowing") },
                                     colors = ButtonDefaults.buttonColors(containerColor = RoyalPurple, contentColor = Color.White),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                     modifier = Modifier
-                                        .weight(1f)
+                                        .weight(1.12f)
                                         .height(38.dp)
                                 ) {
                                     Text(
@@ -844,9 +894,9 @@ fun SentencesModeScreen(
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = palette.btnSec, contentColor = palette.textMain),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                     modifier = Modifier
-                                        .weight(1f)
+                                        .weight(0.95f)
                                         .height(38.dp)
                                 ) {
                                     Text(
@@ -866,9 +916,9 @@ fun SentencesModeScreen(
                                         contentColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                                     modifier = Modifier
-                                        .weight(1f)
+                                        .weight(0.98f)
                                         .height(38.dp)
                                         .testTag("btn_radio_mode_sentence")
                                 ) {
@@ -896,7 +946,7 @@ fun SentencesModeScreen(
                             }
 
                             Button(
-                                onClick = onRequestMicPermissionAndRecord,
+                                onClick = { checkMicAndRun("record") },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = if (isRecording) CoralRed else RoyalBlue,
                                     contentColor = Color.White

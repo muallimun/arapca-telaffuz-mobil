@@ -187,7 +187,7 @@ fun MuallimunArabicAppRoot(viewModel: MainAppViewModel) {
                 viewModel.startPronunciationRecording()
             }
         } else {
-            viewModel.showToast("Mikrofon izni verilmedi.")
+            viewModel.onMicrophonePermissionDenied()
         }
     }
 

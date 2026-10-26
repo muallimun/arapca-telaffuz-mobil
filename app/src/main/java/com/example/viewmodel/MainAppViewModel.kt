@@ -1,8 +1,11 @@
 package com.example.viewmodel
 
+import android.Manifest
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.audio.ArabicSpeechAndAudioManager
@@ -71,7 +74,8 @@ data class EvaluationSummaryState(
     val wordStatuses: List<Pair<String, Boolean>> = emptyList(),
     val makhrajTips: List<MakhrajTip> = emptyList(),
     val harakaGuide: String = "",
-    val showConfetti: Boolean = false
+    val showConfetti: Boolean = false,
+    val isPermissionMissing: Boolean = false
 )
 
 data class ShadowingTarget(
@@ -180,6 +184,15 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
 
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
+
+    private val _updateAvailableVersion = MutableStateFlow<String?>(null)
+    val updateAvailableVersion: StateFlow<String?> = _updateAvailableVersion.asStateFlow()
+
+    private val _updateDownloadUrl = MutableStateFlow("https://arapca.muallimun.net")
+    val updateDownloadUrl: StateFlow<String> = _updateDownloadUrl.asStateFlow()
+
+    private val _updateNotes = MutableStateFlow("")
+    val updateNotes: StateFlow<String> = _updateNotes.asStateFlow()
 
     // --- WORD MODE STATE ---
     private val _selectedWordCategory = MutableStateFlow("hayvanlar")
@@ -490,6 +503,7 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
         }
+        checkForUpdates(silent = true)
     }
 
     private suspend fun loadPersistedConfig() {
@@ -1023,6 +1037,16 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         if (lineIndex !in lines.indices) return
         val line = lines[lineIndex]
 
+        val hasMicPerm = ContextCompat.checkSelfPermission(
+            getApplication(),
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasMicPerm) {
+            _highlightedDialogueLineIndex.value = lineIndex
+            onMicrophonePermissionDenied(line.arapca)
+            return
+        }
+
         _highlightedDialogueLineIndex.value = lineIndex
         _evalState.value = EvaluationSummaryState(
             expectedArabic = line.arapca,
@@ -1034,11 +1058,16 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
 
         audioManager.startSpeechRecognition("dlgline_${line.id}") { heardText, confidence, errorMsg ->
             if (!errorMsg.isNullOrBlank() && heardText.isBlank()) {
-                _evalState.value = _evalState.value.copy(
-                    isCorrect = false,
-                    verdictTitle = "🤔 Sesiniz Net Algılanamadı",
-                    statusDetail = errorMsg
-                )
+                if (errorMsg == "PERMISSION_DENIED") {
+                    onMicrophonePermissionDenied(line.arapca)
+                } else {
+                    _evalState.value = _evalState.value.copy(
+                        isCorrect = false,
+                        verdictTitle = "🤔 Sesiniz Net Algılanamadı",
+                        statusDetail = errorMsg,
+                        isPermissionMissing = false
+                    )
+                }
             } else {
                 val cmp = ArabicNlpEngine.compareArabic(line.arapca, heardText)
                 val wordEval = ArabicNlpEngine.evaluateSentenceWords(line.arapca, heardText)
@@ -1244,9 +1273,22 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         if (idx >= lines.size) return
         val line = lines[idx]
 
+        val hasMicPerm = ContextCompat.checkSelfPermission(
+            getApplication(),
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasMicPerm) {
+            onMicrophonePermissionDenied(line.arapca)
+            return
+        }
+
         audioManager.startSpeechRecognition("rp_${line.id}") { heard, _, errMsg ->
             if (!errMsg.isNullOrBlank() && heard.isBlank()) {
-                _roleplayStatusText.value = "🤔 $errMsg — Lütfen '🎤 Konuş' butonuna dokunarak tekrar deneyin"
+                if (errMsg == "PERMISSION_DENIED") {
+                    onMicrophonePermissionDenied(line.arapca)
+                } else {
+                    _roleplayStatusText.value = "🤔 $errMsg — Lütfen '🎤 Konuş' butonuna dokunarak tekrar deneyin"
+                }
             } else {
                 handleRoleplayTranscription(heard)
             }
@@ -1407,6 +1449,21 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         openModal(ActiveModal.SHADOWING_TRAINER)
     }
 
+    fun onMicrophonePermissionDenied(explicitExpectedArabic: String? = null) {
+        val expected = explicitExpectedArabic ?: getExpectedArabicForCurrentCard()
+        _evalState.value = EvaluationSummaryState(
+            expectedArabic = expected,
+            isCorrect = false,
+            accuracyPct = 0,
+            verdictTitle = "🎤 Mikrofon İzni Gerekli: Telaffuz analizi için mikrofon izni vermelisiniz.",
+            statusDetail = "Uygulamanın sesinizi duyabilmesi için aşağıdaki butona dokunup İzinler bölümünden Mikrofon iznini açın.",
+            isPermissionMissing = true
+        )
+        if (_currentMode.value == AppMode.DIALOGUE && _roleplayActive.value) {
+            _roleplayStatusText.value = "🎤 Mikrofon İzni Gerekli: Telaffuz analizi için mikrofon izni vermelisiniz."
+        }
+    }
+
     fun startPronunciationRecording() {
         stopRadioMode()
         if (audioManager.isRecording.value) {
@@ -1415,6 +1472,15 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         }
         val expected = getExpectedArabicForCurrentCard()
         if (expected.isBlank()) return
+
+        val hasMicPerm = ContextCompat.checkSelfPermission(
+            getApplication(),
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasMicPerm) {
+            onMicrophonePermissionDenied(expected)
+            return
+        }
 
         val maxSetting = _maxAttemptsSetting.value
         val curAttempts = if (_currentMode.value == AppMode.WORDS) _wordAttemptCount.value else _sentAttemptCount.value
@@ -1448,11 +1514,16 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
 
         audioManager.startSpeechRecognition(itemId) { heardText, confidence, errorMsg ->
             if (!errorMsg.isNullOrBlank() && heardText.isBlank()) {
-                _evalState.value = _evalState.value.copy(
-                    isCorrect = false,
-                    verdictTitle = "🤔 Sesiniz Net Algılanamadı",
-                    statusDetail = errorMsg
-                )
+                if (errorMsg == "PERMISSION_DENIED") {
+                    onMicrophonePermissionDenied(expected)
+                } else {
+                    _evalState.value = _evalState.value.copy(
+                        isCorrect = false,
+                        verdictTitle = "🤔 Sesiniz Net Algılanamadı",
+                        statusDetail = errorMsg,
+                        isPermissionMissing = false
+                    )
+                }
             } else {
                 evaluatePronunciationResult(expected, heardText, confidence)
             }
@@ -1860,21 +1931,48 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun isRemoteVersionNewer(remote: String, current: String): Boolean {
+        val cleanRemote = remote.trim().removePrefix("v").removePrefix("V").trim()
+        val cleanCurrent = current.trim().removePrefix("v").removePrefix("V").trim()
+        if (cleanRemote.isEmpty() || cleanCurrent.isEmpty()) return false
+
+        val remoteParts = cleanRemote.split(".")
+            .map { part -> part.takeWhile { it.isDigit() }.toIntOrNull() ?: 0 }
+        val currentParts = cleanCurrent.split(".")
+            .map { part -> part.takeWhile { it.isDigit() }.toIntOrNull() ?: 0 }
+
+        val maxLen = max(remoteParts.size, currentParts.size)
+        for (i in 0 until maxLen) {
+            val r = remoteParts.getOrElse(i) { 0 }
+            val c = currentParts.getOrElse(i) { 0 }
+            if (r > c) return true
+            if (r < c) return false
+        }
+        return false
+    }
+
+    fun dismissUpdateNotification() {
+        _updateAvailableVersion.value = null
+    }
+
     /**
-     * Sunucudaki muallimun.net/version.json veya Google Play In-App Update API üzerinden
-     * yeni sürüm kontrolü yapar ve sonucu kullanıcıya bildirir.
+     * Sunucudaki https://arapca.muallimun.net/version_android.json üzerinden
+     * bağımsız Android sürüm kontrolü yapar ve sonucu kullanıcıya bildirir.
      */
     fun checkForUpdates(
+        silent: Boolean = false,
         currentVersionName: String = "1.0.0",
         onResult: ((hasUpdate: Boolean, latestVersion: String, message: String, storeUrl: String) -> Unit)? = null
     ) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val currentVersion = currentVersionName.trim().removePrefix("v").removePrefix("V").trim().ifEmpty { "1.0.0" }
             var hasNew = false
-            var latestVer = currentVersionName
-            var releaseNote = "✅ Uygulamanız güncel! En son sürümü (Mobil Sürüm v$currentVersionName) kullanıyorsunuz."
-            var targetUrl = "https://arapca.muallimun.net/arapca-telaffuz-asistani/"
+            var latestVer = currentVersion
+            var releaseNote = "✅ Uygulamanız güncel! En son sürümü (Mobil Sürüm v$currentVersion) kullanıyorsunuz."
+            var targetUrl = "https://arapca.muallimun.net"
+            var fetchFailed = false
             try {
-                val url = java.net.URL("https://arapca.muallimun.net/version.json")
+                val url = java.net.URL("https://arapca.muallimun.net/version_android.json")
                 val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
                     connectTimeout = 3500
                     readTimeout = 3500
@@ -1883,28 +1981,62 @@ class MainAppViewModel(application: Application) : AndroidViewModel(application)
                 if (conn.responseCode in 200..299) {
                     val body = conn.inputStream.bufferedReader().use { it.readText() }
                     val json = org.json.JSONObject(body)
-                    val remoteVer = json.optString("version", currentVersionName).trim()
-                    val remoteNote = json.optString("notes", "").trim()
-                    val remoteUrl = json.optString("url", targetUrl).trim()
-                    if (remoteVer.isNotEmpty() && remoteVer != currentVersionName) {
+                    val latestVersion = json.optString("version", "")
+                        .trim()
+                        .removePrefix("v")
+                        .removePrefix("V")
+                        .trim()
+
+                    val rawUrl = json.optString("url", "").trim().ifEmpty {
+                        json.optString("download_url", "").trim()
+                    }.ifEmpty {
+                        "https://arapca.muallimun.net"
+                    }
+                    val cleanUrlPath = rawUrl.substringBefore("?").substringBefore("#").lowercase()
+                    val safeDownloadUrl = if (
+                        cleanUrlPath.endsWith(".exe") ||
+                        cleanUrlPath.endsWith(".msi") ||
+                        cleanUrlPath.endsWith(".dmg")
+                    ) {
+                        "https://arapca.muallimun.net"
+                    } else {
+                        rawUrl
+                    }
+
+                    val remoteNote = json.optString("notes", "").trim().ifEmpty {
+                        json.optString("changelog", "").trim()
+                    }
+
+                    if (latestVersion.isNotEmpty() && isRemoteVersionNewer(latestVersion, currentVersion)) {
                         hasNew = true
-                        latestVer = remoteVer
-                        targetUrl = remoteUrl.ifEmpty { targetUrl }
+                        latestVer = latestVersion
+                        targetUrl = safeDownloadUrl
+                        _updateAvailableVersion.value = latestVersion
+                        _updateDownloadUrl.value = safeDownloadUrl
+                        _updateNotes.value = remoteNote
                         releaseNote = if (remoteNote.isNotEmpty()) {
-                            "🚀 Yeni sürüm mevcut (v$remoteVer):\n$remoteNote"
+                            "🚀 Yeni sürüm mevcut (v$latestVersion):\n$remoteNote"
                         } else {
-                            "🚀 Yeni bir güncelleme (v$remoteVer) yayınlandı! Mağaza veya web sayfası üzerinden güncelleyebilirsiniz."
+                            "🚀 Yeni bir güncelleme (v$latestVersion) yayınlandı! Mağaza veya web sayfası üzerinden güncelleyebilirsiniz."
                         }
+                    } else {
+                        _updateAvailableVersion.value = null
                     }
                 } else {
-                    releaseNote = "⚠️ Güncelleme sunucusuna ulaşılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."
+                    fetchFailed = true
+                    releaseNote = "Sürüm bilgisi alınamadı veya şu an güncel sürümü kullanıyorsunuz."
                 }
                 conn.disconnect()
-            } catch (e: Exception) {
-                releaseNote = "⚠️ Güncelleme sunucusuna ulaşılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."
+            } catch (_: Exception) {
+                fetchFailed = true
+                releaseNote = "Sürüm bilgisi alınamadı veya şu an güncel sürümü kullanıyorsunuz."
             }
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                showToast(releaseNote)
+                if (!silent) {
+                    showToast(releaseNote)
+                } else if (hasNew && !fetchFailed) {
+                    showToast(releaseNote)
+                }
                 onResult?.invoke(hasNew, latestVer, releaseNote, targetUrl)
             }
         }

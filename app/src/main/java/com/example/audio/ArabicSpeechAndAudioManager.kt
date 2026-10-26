@@ -1,9 +1,12 @@
 package com.example.audio
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioFormat
+import androidx.core.content.ContextCompat
 import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaPlayer
@@ -605,10 +608,23 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         }
     }
 
+    @Volatile
+    private var lastPartialRecognizedText: String = ""
+
     fun startSpeechRecognition(
         itemIdPrefix: String = "rec",
         onResult: (heardText: String, confidence: Float, errorMsg: String?) -> Unit
     ) {
+        val hasMicPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasMicPermission) {
+            _isRecording.value = false
+            onResult("", 0f, "PERMISSION_DENIED")
+            return
+        }
+
         // Hoparlör yankısını mikrofonun kendi sesi sanmaması için önce tüm sesleri derhal sustur
         stopSpeaking()
         mainHandler.removeCallbacksAndMessages(null)
@@ -624,6 +640,7 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
         pcmBufferStream.reset()
         pcmBufferFlushed = false
         liveRmsHistory.clear()
+        lastPartialRecognizedText = ""
         speechStartTimeMs = System.currentTimeMillis()
         _isRecording.value = true
         _waveBars.value = List(20) { 0.1f }
@@ -638,13 +655,19 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
 
                 val recognizer = speechRecognizer
                 if (recognizer == null) {
-                    _isRecording.value = false
-                    onResult("", 0f, "Cihazda ses tanıma servisi bulunamadı.")
+                    // Sadece cihazda SpeechRecognizer servisi yoksa yedek AudioRecord kullan
+                    startParallelFallbackAudioRecord()
+                    mainHandler.postDelayed({
+                        _isRecording.value = false
+                        flushAccumulatedPcmToWav(itemIdPrefix)
+                        onResult("", 0f, "Cihazda ses tanıma servisi bulunamadı.")
+                    }, 3000L)
                     return@postDelayed
                 }
 
+                // ÖNEMLİ: SpeechRecognizer aktifken paralel AudioRecord KESİNLİKLE başlatılmaz!
+                // Böylece mikrofon donanımı %100 SpeechRecognizer'a tahsis edilir ve çakışma önlenir.
                 speechStartTimeMs = System.currentTimeMillis()
-                startParallelFallbackAudioRecord()
 
                 recognizer.setRecognitionListener(object : RecognitionListener {
                     override fun onReadyForSpeech(params: Bundle?) {
@@ -678,10 +701,20 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                         try {
                             _isRecording.value = false
                             flushAccumulatedPcmToWav(itemIdPrefix)
+                            val fallbackPartial = lastPartialRecognizedText.trim()
+                            if (fallbackPartial.isNotEmpty() &&
+                                (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error == SpeechRecognizer.ERROR_CLIENT)
+                            ) {
+                                currentRecognitionCallback?.invoke(fallbackPartial, 0.82f, null)
+                                return
+                            }
                             val msg = when (error) {
+                                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "PERMISSION_DENIED"
                                 SpeechRecognizer.ERROR_NO_MATCH -> "Sesiniz net algılanamadı, lütfen mikrofona yakın ve net konuşun."
                                 SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Konuşma sesi duyulamadı."
-                                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Mikrofon izni verilmedi."
+                                SpeechRecognizer.ERROR_AUDIO -> "Mikrofon ses akışı alınamadı, lütfen tekrar deneyin."
+                                SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
+                                    "Ses tanıma için internet bağlantınızı kontrol edin."
                                 else -> "Ses tanıma tamamlanamadı (Kod: $error). Tekrar deneyin."
                             }
                             currentRecognitionCallback?.invoke("", 0f, msg)
@@ -700,24 +733,47 @@ class ArabicSpeechAndAudioManager(private val context: Context) {
                             flushAccumulatedPcmToWav(itemIdPrefix)
                             val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                             val scores = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES)
-                            val bestText = matches?.firstOrNull()?.trim() ?: ""
+                            val bestText = matches
+                                ?.firstOrNull { it.isNotBlank() }
+                                ?.trim()
+                                ?.ifEmpty { lastPartialRecognizedText.trim() }
+                                ?: lastPartialRecognizedText.trim()
                             val bestConf = scores?.firstOrNull()?.takeIf { it > 0f } ?: 0.86f
-                            currentRecognitionCallback?.invoke(bestText, bestConf, null)
+                            if (bestText.isBlank()) {
+                                currentRecognitionCallback?.invoke(
+                                    "",
+                                    0f,
+                                    "Sesiniz net algılanamadı, lütfen mikrofona yakın ve net konuşun."
+                                )
+                            } else {
+                                currentRecognitionCallback?.invoke(bestText, bestConf, null)
+                            }
                         } finally {
                             currentRecognitionCallback = null
                         }
                     }
 
-                    override fun onPartialResults(partialResults: Bundle?) {}
+                    override fun onPartialResults(partialResults: Bundle?) {
+                        val partials = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        val candidate = partials?.firstOrNull { it.isNotBlank() }?.trim()
+                        if (!candidate.isNullOrBlank()) {
+                            lastPartialRecognizedText = candidate
+                        }
+                    }
+
                     override fun onEvent(eventType: Int, params: Bundle?) {}
                 })
 
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ar-SA")
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ar-SA")
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ar")
+                    putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
                     putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3000L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1200L)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
                 }
                 recognizer.startListening(intent)
             } catch (ex: Exception) {

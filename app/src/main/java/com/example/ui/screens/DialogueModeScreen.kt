@@ -55,7 +55,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
@@ -108,15 +111,30 @@ fun DialogueModeScreen(
 
     val context = LocalContext.current
     var pendingPracticeLineIdx by remember { mutableStateOf<Int?>(null) }
+    var pendingShadowLineIdx by remember { mutableStateOf<Int?>(null) }
+    var pendingRoleplayMic by remember { mutableStateOf(false) }
+
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         val idxToRun = pendingPracticeLineIdx
+        val shadowIdx = pendingShadowLineIdx
+        val isRp = pendingRoleplayMic
         pendingPracticeLineIdx = null
-        if (granted && idxToRun != null) {
-            viewModel.practiceSingleDialogueLine(idxToRun)
-        } else if (!granted) {
-            viewModel.showToast("Sesli telaffuz için mikrofon izni gereklidir.")
+        pendingShadowLineIdx = null
+        pendingRoleplayMic = false
+        if (granted) {
+            when {
+                idxToRun != null -> viewModel.practiceSingleDialogueLine(idxToRun)
+                shadowIdx != null && shadowIdx in lines.indices -> {
+                    val ln = lines[shadowIdx]
+                    viewModel.openShadowingForCustomTarget("dlg_${ln.id}", ln.arapca, ln.turkce)
+                }
+                isRp -> viewModel.triggerRoleplayUserMic()
+            }
+        } else {
+            val targetAr = idxToRun?.let { lines.getOrNull(it)?.arapca }
+            viewModel.onMicrophonePermissionDenied(targetAr)
         }
     }
 
@@ -129,6 +147,35 @@ fun DialogueModeScreen(
             viewModel.practiceSingleDialogueLine(lineIdx)
         } else {
             pendingPracticeLineIdx = lineIdx
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    fun requestAndOpenShadowing(lineIdx: Int) {
+        val hasPerm = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPerm) {
+            if (lineIdx in lines.indices) {
+                val ln = lines[lineIdx]
+                viewModel.openShadowingForCustomTarget("dlg_${ln.id}", ln.arapca, ln.turkce)
+            }
+        } else {
+            pendingShadowLineIdx = lineIdx
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    fun requestAndRunRoleplayMic() {
+        val hasPerm = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPerm) {
+            onRequestMicForRoleplay()
+        } else {
+            pendingRoleplayMic = true
             micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
@@ -178,17 +225,17 @@ fun DialogueModeScreen(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Üst Seçici Bar: Diyalog (weight 1.2f) | Seviye (weight 1f) -> Hepsi 38.dp
+                // Üst Seçici Bar: Diyalog (weight 1.1f) | Seviye (weight 0.95f) -> Hepsi 38.dp
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(modifier = Modifier.weight(1.2f)) {
+                    Box(modifier = Modifier.weight(1.1f)) {
                         OutlinedButton(
                             onClick = { showDialogueMenu = true },
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(38.dp)
@@ -207,7 +254,7 @@ fun DialogueModeScreen(
                                 softWrap = false,
                                 modifier = Modifier.weight(1f)
                             )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.accentHead, modifier = Modifier.size(15.dp))
                         }
                         DropdownMenu(
                             expanded = showDialogueMenu,
@@ -230,11 +277,11 @@ fun DialogueModeScreen(
                         }
                     }
 
-                    Box(modifier = Modifier.weight(0.9f)) {
+                    Box(modifier = Modifier.weight(0.95f)) {
                         OutlinedButton(
                             onClick = { showLevelMenu = true },
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(38.dp)
@@ -249,7 +296,7 @@ fun DialogueModeScreen(
                                 softWrap = false,
                                 modifier = Modifier.weight(1f)
                             )
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = palette.textMain, modifier = Modifier.size(15.dp))
                         }
                         DropdownMenu(
                             expanded = showLevelMenu,
@@ -480,7 +527,7 @@ fun DialogueModeScreen(
 
                             if (roleplayActive && roleplayWaitingUser) {
                                 Button(
-                                    onClick = onRequestMicForRoleplay,
+                                    onClick = { requestAndRunRoleplayMic() },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = RoyalBlue,
                                         contentColor = Color.White
@@ -499,7 +546,7 @@ fun DialogueModeScreen(
                                 text = roleplayStatus,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = palette.accentHead
+                                color = if (evalState.isPermissionMissing) CoralRed else palette.accentHead
                             )
                         }
                     }
@@ -605,13 +652,7 @@ fun DialogueModeScreen(
                                     color = RoyalPurple,
                                     modifier = Modifier
                                         .size(32.dp)
-                                        .clickable {
-                                            viewModel.openShadowingForCustomTarget(
-                                                "dlg_${line.id}",
-                                                line.arapca,
-                                                line.turkce
-                                            )
-                                        }
+                                        .clickable { requestAndOpenShadowing(idx) }
                                 ) {
                                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                         Text(

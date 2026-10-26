@@ -1,5 +1,8 @@
 package com.example.ui.modals
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -1178,13 +1181,18 @@ fun ShadowingTrainerModal(
         }
     }
 
+    var isPermDeniedInShadowing by remember { mutableStateOf(false) }
+
     val shadowPermLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
+            isPermDeniedInShadowing = false
             startShadowingCycle()
         } else {
-            viewModel.showToast("Mikrofon izni verilmedi.")
+            isPermDeniedInShadowing = true
+            statusText = "🎤 Mikrofon İzni Gerekli: Telaffuz analizi için mikrofon izni vermelisiniz."
+            viewModel.onMicrophonePermissionDenied()
         }
     }
 
@@ -1194,6 +1202,7 @@ fun ShadowingTrainerModal(
             Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
         if (hasPerm) {
+            isPermDeniedInShadowing = false
             startShadowingCycle()
         } else {
             shadowPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -1346,10 +1355,46 @@ fun ShadowingTrainerModal(
                     text = statusText,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (totalFluencyPct >= 70) palette.okGreen else palette.accentHead,
+                    color = when {
+                        isPermDeniedInShadowing -> CoralRed
+                        totalFluencyPct >= 70 -> palette.okGreen
+                        else -> palette.accentHead
+                    },
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (isPermDeniedInShadowing) {
+                    Button(
+                        onClick = {
+                            try {
+                                val intent = Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", context.packageName, null)
+                                ).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = RoyalBlue,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .testTag("btn_open_permission_settings_shadowing")
+                    ) {
+                        Text(
+                            text = "⚙️ İzin Ayarlarını Aç",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
 
                 if (totalFluencyPct > 0) {
                     Text(
